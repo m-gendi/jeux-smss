@@ -336,7 +336,9 @@
             coin: (x, y) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:20px; height:20px;" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#BDC3C7" stroke="#7F8C8D" stroke-width="2" /><circle cx="20" cy="20" r="10" fill="none" stroke="#95a5a6" stroke-width="1" /></svg>`,
             chalice: (x, y) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:40px; height:60px;" viewBox="0 0 60 100"><path d="M10 10 Q30 5 50 10 L45 50 Q30 60 15 50 Z" fill="#F1C40F" stroke="#D4AC0D" /><rect x="25" y="50" width="10" height="30" fill="#F1C40F" /><ellipse cx="30" cy="85" rx="20" ry="8" fill="#F1C40F" /></svg>`,
             flower: (x, y) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:30px; height:40px;" viewBox="0 0 50 70"><path d="M25 70 L25 40" stroke="#27AE60" stroke-width="3" /><circle cx="25" cy="30" r="12" fill="#E74C3C" /><circle cx="15" cy="22" r="8" fill="#F1C40F" opacity="0.8" /><circle cx="35" cy="22" r="8" fill="#F1C40F" opacity="0.8" /></svg>`,
-            cross: (x, y, scale) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:${60*scale}px; height:${100*scale}px; opacity:0.4" viewBox="0 0 60 100"><path d="M25 10 L35 10 L35 90 L25 90 Z M10 30 L50 30 L50 40 L10 40 Z" fill="#3E2723" /></svg>`
+            cross: (x, y, scale) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:${60*scale}px; height:${100*scale}px; opacity:0.4" viewBox="0 0 60 100"><path d="M25 10 L35 10 L35 90 L25 90 Z M10 30 L50 30 L50 40 L10 40 Z" fill="#3E2723" /></svg>`,
+            figTree: (x, y) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:120px; height:150px;" viewBox="0 0 100 120"><path d="M45 120 L55 120 L52 60 L48 60 Z" fill="#5D4037"/><path d="M50 70 Q80 60 90 30 Q60 10 50 40 Q40 10 10 30 Q20 60 50 70" fill="#2D5A27"/><path d="M30 40 Q40 30 50 45 Q60 30 70 40 Q50 60 30 40" fill="#2D5A27" opacity="0.8"/></svg>`,
+            oilLamp: (x, y) => `<svg class="decor-item" style="left:${x}px; bottom:${y}px; width:40px; height:30px;" viewBox="0 0 60 40"><path d="M5 35 Q30 45 55 35 L50 20 Q30 15 10 20 Z" fill="#CD7F32" stroke="#8B4513"/><path d="M30 15 Q35 5 30 0 Q25 5 30 15" fill="#FFD700"><animate attributeName="opacity" values="1;0.6;1" dur="0.5s" repeatCount="indefinite"/></path></svg>`
         };
 
         const stepsData = [
@@ -344,45 +346,7 @@
                 day: "Dimanche des Rameaux", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448542/Dimanche_des_rameaux_ihepng.jpg",
                 desc: "Jésus entre triomphalement à Jérusalem sur un ânon. La foule, remplie de joie, étend ses vêtements et des branches de palmiers sur Son passage en chantant 'Hosanna !'.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#87CEEB" />
-                    <!-- Jerusalem Gates -->
-                    <path d="M100 450 L100 150 Q400 50 700 150 L700 450" fill="#EEDCBB" stroke="#D4B483" stroke-width="4" />
-                    <rect x="350" y="250" width="100" height="200" fill="#4A3728" rx="10" />
-                    <rect x="0" y="380" width="800" height="70" fill="#D2B48C" />
-                    
-                    <!-- Donkey & Jesus moving -->
-                    <g transform="translate(-150, 320)">
-                        <animateTransform attributeName="transform" type="translate" from="-150, 320" to="850, 320" dur="10s" repeatCount="indefinite" />
-                        <!-- Donkey Body -->
-                        <rect width="80" height="50" fill="#8B4513" rx="10" />
-                        <rect x="65" y="-30" width="20" height="40" fill="#8B4513" rx="5" />
-                        <!-- Jesus -->
-                        <circle cx="75" cy="-50" r="15" fill="#E0AC69" />
-                        <path d="M60 -35 L90 -35 L95 20 L55 20 Z" fill="#F5F5DC" />
-                    </g>
-
-                    <!-- People laying clothes (appearing) -->
-                    <rect x="250" y="390" width="60" height="20" fill="#C0392B" opacity="0">
-                        <animate attributeName="opacity" values="0;1;1;0" dur="10s" repeatCount="indefinite" />
-                    </rect>
-                    <rect x="450" y="400" width="60" height="20" fill="#2980B9" opacity="0">
-                        <animate attributeName="opacity" values="0;0;1;1;0" dur="10s" repeatCount="indefinite" />
-                    </rect>
-                    
-                    <!-- Palm Branches waving -->
-                    <g transform="translate(150, 300) rotate(-10)">
-                        <path d="M0 0 Q20 -40 40 0" fill="none" stroke="#2D5A27" stroke-width="3">
-                            <animateTransform attributeName="transform" type="rotate" values="-10;10;-10" dur="2s" repeatCount="indefinite" />
-                        </path>
-                    </g>
-                    <g transform="translate(650, 300) rotate(10)">
-                        <path d="M0 0 Q-20 -40 -40 0" fill="none" stroke="#2D5A27" stroke-width="3">
-                            <animateTransform attributeName="transform" type="rotate" values="10;-10;10" dur="2.5s" repeatCount="indefinite" />
-                        </path>
-                    </g>
-                </svg>`,
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><rect width="800" height="450" fill="#87CEEB" /><path d="M100 450 L100 150 Q400 50 700 150 L700 450" fill="#EEDCBB" stroke="#D4B483" stroke-width="4" /><rect x="350" y="250" width="100" height="200" fill="#4A3728" rx="10" /><rect x="0" y="380" width="800" height="70" fill="#D2B48C" /><g transform="translate(-150, 320)"><animateTransform attributeName="transform" type="translate" from="-150, 320" to="850, 320" dur="10s" repeatCount="indefinite" /><rect width="80" height="50" fill="#8B4513" rx="10" /><rect x="65" y="-30" width="20" height="40" fill="#8B4513" rx="5" /><circle cx="75" cy="-50" r="15" fill="#E0AC69" /><path d="M60 -35 L90 -35 L95 20 L55 20 Z" fill="#F5F5DC" /></g><rect x="250" y="390" width="60" height="20" fill="#C0392B" opacity="0"><animate attributeName="opacity" values="0;1;1;0" dur="10s" repeatCount="indefinite" /></rect><rect x="450" y="400" width="60" height="20" fill="#2980B9" opacity="0"><animate attributeName="opacity" values="0;0;1;1;0" dur="10s" repeatCount="indefinite" /></rect><g transform="translate(150, 300) rotate(-10)"><path d="M0 0 Q20 -40 40 0" fill="none" stroke="#2D5A27" stroke-width="3"><animateTransform attributeName="transform" type="rotate" values="-10;10;-10" dur="2s" repeatCount="indefinite" /></path></g><g transform="translate(650, 300) rotate(10)"><path d="M0 0 Q-20 -40 -40 0" fill="none" stroke="#2D5A27" stroke-width="3"><animateTransform attributeName="transform" type="rotate" values="10;-10;10" dur="2.5s" repeatCount="indefinite" /></path></g></svg>`,
                 event: "L'entrée triomphale de Jésus à Jérusalem sur un âne.",
                 verse: "« Hosanna ! Béni soit celui qui vient au nom du Seigneur ! »",
                 rite: "Procession des Rameaux et tresses de palmes.",
@@ -394,99 +358,31 @@
                 day: "Lundi Saint", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448542/Lundi_saint_elkqi2.jpg",
                 desc: "Jésus purifie le Temple. Il renverse les tables des changeurs, rappelant que Sa maison est un lieu de prière. Dehors, Il maudit le figuier stérile qui ne porte pas de fruit.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#7DB9E8" />
-                    <rect x="150" y="100" width="500" height="300" fill="#FDF2E9" stroke="#E59866" stroke-width="5" />
-                    <!-- Columns -->
-                    <rect x="180" y="150" width="30" height="250" fill="#D5D8DC" />
-                    <rect x="590" y="150" width="30" height="250" fill="#D5D8DC" />
-                    
-                    <!-- Flipping Tables -->
-                    <g transform="translate(300, 350)">
-                        <rect width="200" height="20" fill="#8B4513" rx="5">
-                            <animateTransform attributeName="transform" type="rotate" values="0 100 10; 45 100 10; 0 100 10" dur="2s" repeatCount="indefinite" />
-                        </rect>
-                        <!-- Coins flying -->
-                        <circle cx="50" cy="0" r="5" fill="gold">
-                            <animate attributeName="cy" values="0;-100;100" dur="2s" repeatCount="indefinite" />
-                            <animate attributeName="cx" values="50;20;80" dur="2s" repeatCount="indefinite" />
-                        </circle>
-                    </g>
-
-                    <!-- Fig tree drying -->
-                    <g transform="translate(60, 380)">
-                        <path d="M0 0 Q10 -100 0 -150" stroke="#5D4037" stroke-width="10" fill="none" />
-                        <path d="M0 -150 Q40 -180 60 -150" fill="#2D5A27">
-                            <animate attributeName="fill" values="#2D5A27;#7B7D7D;#2D5A27" dur="5s" repeatCount="indefinite" />
-                        </path>
-                    </g>
-                </svg>`,
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><rect width="800" height="450" fill="#FDF2E9" /><rect x="0" y="380" width="800" height="70" fill="#D5D8DC" /><rect x="50" y="0" width="60" height="380" fill="#EAECEE" stroke="#D5D8DC" /><rect x="690" y="0" width="60" height="380" fill="#EAECEE" stroke="#D5D8DC" /><g transform="translate(600, 200)"><path d="M0 180 L0 50" stroke="#5D4037" stroke-width="8" /><path d="M0 50 Q40 20 60 50 Q40 80 0 50" fill="#2D5A27"><animate attributeName="fill" values="#2D5A27;#99A3A4;#7B7D7D" dur="4s" fill="freeze" /></path><path d="M0 70 Q-40 40 -60 70 Q-40 100 0 70" fill="#2D5A27"><animate attributeName="fill" values="#2D5A27;#99A3A4;#7B7D7D" dur="4s" fill="freeze" /></path></g><g transform="translate(200, 300)"><rect x="30" y="-40" width="10" height="40" fill="#E0AC69" rx="5"><animateTransform attributeName="transform" type="rotate" values="0 35 -40; -90 35 -40; 0 35 -40" dur="2s" repeatCount="indefinite" /></rect><path d="M-20 80 L20 80 L15 -50 L-15 -50 Z" fill="#F5F5DC" /><circle cx="0" cy="-70" r="20" fill="#E0AC69" /><path d="M-15 -75 Q0 -90 15 -75" fill="#4A3728" /></g><g transform="translate(450, 380)"><animateTransform attributeName="transform" type="rotate" values="0 100 0; 50 100 0; 50 100 0" dur="2s" repeatCount="indefinite" /><rect x="15" y="-60" width="8" height="60" fill="#8B4513" /><rect x="40" y="-60" width="8" height="60" fill="#8B4513" opacity="0.7" /><rect x="150" y="-60" width="8" height="60" fill="#8B4513" opacity="0.7" /><rect x="175" y="-60" width="8" height="60" fill="#8B4513" /><rect x="0" y="-70" width="200" height="15" fill="#5D4037" rx="2" /><g>${Array.from({length: 15}).map((_, i) => `<circle cx="${50 + i*10}" cy="-80" r="6" fill="#BDC3C7" stroke="#7F8C8D"><animate attributeName="cx" values="${50 + i*10};${Math.random()*400 - 100}" dur="2s" repeatCount="indefinite" /><animate attributeName="cy" values="-80;${Math.random()*-200 - 100};${Math.random()*200 + 100}" dur="2s" repeatCount="indefinite" /><animate attributeName="opacity" values="1;1;0" dur="2s" repeatCount="indefinite" /></circle>`).join('')}</g></g></svg>`,
                 event: "Jésus purifie le Temple et maudit le figuier stérile.",
                 verse: "« Ma maison sera appelée une maison de prière. »",
                 rite: "Lectures sur la Création et mise en place des voiles noirs.",
                 hint: "Jésus rappelle que Son église est un lieu de communion sacré.",
                 sky: "linear-gradient(to bottom, #7DB9E8, #C9D6FF)",
-                decorType: 'withered'
+                decorType: 'figTrees'
             },
             { 
                 day: "Mardi Saint", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/Mardi_saint_a0scnl.jpg",
                 desc: "Jésus enseigne au Mont des Oliviers. Il raconte la parabole des dix vierges, nous appelant à la vigilance constante, car personne ne connaît l'heure de Son retour.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#2C3E50" />
-                    <circle cx="700" cy="80" r="40" fill="#F4D03F" opacity="0.8" />
-                    
-                    <!-- Lamps -->
-                    <g transform="translate(250, 350)">
-                        <path d="M0 0 L100 0 L80 -40 L20 -40 Z" fill="#D35400" />
-                        <!-- Flame -->
-                        <path d="M50 -40 Q65 -80 50 -100 Q35 -80 50 -40" fill="#F1C40F">
-                            <animate attributeName="opacity" values="1;0.4;1" dur="0.2s" repeatCount="indefinite" />
-                            <animateTransform attributeName="transform" type="scale" values="1;1.2;1" dur="0.5s" repeatCount="indefinite" additive="sum" />
-                        </path>
-                    </g>
-                    
-                    <g transform="translate(450, 350)">
-                        <path d="M0 0 L100 0 L80 -40 L20 -40 Z" fill="#D35400" />
-                        <!-- Dying Flame -->
-                        <path d="M50 -40 Q55 -50 50 -60 Q45 -50 50 -40" fill="#7B7D7D">
-                            <animate attributeName="opacity" values="0.8;0.2;0.8" dur="3s" repeatCount="indefinite" />
-                        </path>
-                    </g>
-
-                    <text x="400" y="420" text-anchor="middle" fill="white" font-weight="bold" font-size="24">« Veillez et Priez »</text>
-                </svg>`,
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><rect width="800" height="450" fill="#2C3E50" /><circle cx="700" cy="80" r="40" fill="#F4D03F" opacity="0.8" /><g transform="translate(250, 350)"><path d="M0 0 L100 0 L80 -40 L20 -40 Z" fill="#D35400" /><path d="M50 -40 Q65 -80 50 -100 Q35 -80 50 -40" fill="#F1C40F"><animate attributeName="opacity" values="1;0.4;1" dur="0.2s" repeatCount="indefinite" /><animateTransform attributeName="transform" type="scale" values="1;1.2;1" dur="0.5s" repeatCount="indefinite" additive="sum" /></path></g><g transform="translate(450, 350)"><path d="M0 0 L100 0 L80 -40 L20 -40 Z" fill="#D35400" /><path d="M50 -40 Q55 -50 50 -60 Q45 -50 50 -40" fill="#7B7D7D"><animate attributeName="opacity" values="0.8;0.2;0.8" dur="3s" repeatCount="indefinite" /></path></g><text x="400" y="420" text-anchor="middle" fill="white" font-weight="bold" font-size="24">« Veillez et Priez »</text></svg>`,
                 event: "Les paraboles sur le Mont des Oliviers concernant le jugement.",
                 verse: "« Veillez donc, car vous ne savez ni le jour ni l'heure. »",
-                rite: "Chant de l'hymne de Pékoueth (À Toi la puissance).",
+                rite: "Chant de l'hymne Thok Te Ti Gom (À Toi la puissance).",
                 hint: "C'est un jour dédié à la préparation et à l'attente du retour du Christ.",
                 sky: "linear-gradient(to bottom, #4facfe, #00f2fe)",
-                decorType: 'lamp'
+                decorType: 'lamps'
             },
             { 
                 day: "Mercredi Saint", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448542/Mercredi_saint_dx4hmu.jpg",
                 desc: "Un jour de tristesse où Judas Iscariote accepte trente pièces d'argent pour livrer son Maître. L'Église se prépare dans le recueillement.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#34495E" />
-                    <!-- Bag of coins -->
-                    <path d="M350 350 Q350 250 400 250 Q450 250 450 350 Z" fill="#5D4037" />
-                    
-                    <!-- Coins falling one by one -->
-                    <circle cx="400" cy="270" r="10" fill="silver" stroke="#7F8C8D">
-                        <animate attributeName="cy" from="270" to="400" dur="1s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="1;0" dur="1s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="380" cy="280" r="10" fill="silver" stroke="#7F8C8D">
-                        <animate attributeName="cy" from="280" to="410" dur="1.2s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="1;0" dur="1.2s" repeatCount="indefinite" />
-                    </circle>
-                    
-                    <text x="400" y="150" text-anchor="middle" fill="#E74C3C" font-size="40" font-weight="bold">30 PIÈCES D'ARGENT</text>
-                </svg>`,
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><rect width="800" height="450" fill="#34495E" /><path d="M350 350 Q350 250 400 250 Q450 250 450 350 Z" fill="#5D4037" /><circle cx="400" cy="270" r="10" fill="silver" stroke="#7F8C8D"><animate attributeName="cy" from="270" to="400" dur="1s" repeatCount="indefinite" /><animate attributeName="opacity" values="1;0" dur="1s" repeatCount="indefinite" /></circle><circle cx="380" cy="280" r="10" fill="silver" stroke="#7F8C8D"><animate attributeName="cy" from="280" to="410" dur="1.2s" repeatCount="indefinite" /><animate attributeName="opacity" values="1;0" dur="1.2s" repeatCount="indefinite" /></circle><text x="400" y="150" text-anchor="middle" fill="#E74C3C" font-size="40" font-weight="bold">30 PIÈCES D'ARGENT</text></svg>`,
                 event: "La trahison de Judas pour trente pièces d'argent.",
                 verse: "« Ils lui payèrent trente pièces d'argent. »",
                 rite: "Interdiction de faire le baiser de paix liturgique.",
@@ -497,28 +393,53 @@
             { 
                 day: "Jeudi Saint", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/Jeudi_saint_i986xe.jpg",
-                desc: "Jésus célèbre Sa dernière Pâque. Il lave les pieds de Ses disciples pour leur montrer le chemin du service, puis institue l'Eucharistie en partageant le Pain et le Vin.",
+                desc: "Jésus célèbre Sa dernière Pâque au Cénacle. Il partage le Pain et le Vin avec Ses disciples, instituant le sacrement de l'Eucharistie avant de s'offrir pour le monde.",
                 animation: `
                 <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#5D4037" />
-                    <!-- Table -->
-                    <rect x="150" y="250" width="500" height="150" fill="#8B4513" rx="10" />
-                    <!-- Bread -->
-                    <circle cx="300" cy="230" r="30" fill="#F5CBA7" />
-                    <!-- Cup -->
-                    <path d="M450 240 L500 240 L490 200 L460 200 Z" fill="#F1C40F" />
-                    
-                    <!-- Foot washing animation -->
-                    <g transform="translate(400, 380)">
-                        <rect width="120" height="40" fill="#3498DB" opacity="0.4" />
-                        <g>
-                            <animateTransform attributeName="transform" type="translate" values="-20,0; 20,0; -20,0" dur="3s" repeatCount="indefinite" />
-                            <circle cx="60" cy="-20" r="15" fill="#E0AC69" /> <!-- Hand washing a foot -->
-                            <path d="M40 0 L80 0" stroke="white" stroke-width="2">
-                                <animate attributeName="opacity" values="0;1;0" dur="0.5s" repeatCount="indefinite" />
-                            </path>
-                        </g>
+                    <rect width="800" height="450" fill="#4A3728" />
+                    <!-- Background light from window -->
+                    <rect x="300" y="50" width="200" height="150" fill="#604D3C" />
+                    <path d="M300 125 L500 125 M400 50 L400 200" stroke="#2C1B0E" stroke-width="2" />
+
+                    <!-- Long Table -->
+                    <rect x="50" y="320" width="700" height="80" fill="#8B4513" rx="5" />
+                    <rect x="60" y="310" width="680" height="10" fill="#5D4037" />
+
+                    <!-- Disciples Left (6) -->
+                    <g transform="translate(100, 280)">
+                        ${[0, 1, 2, 3, 4, 5].map(i => `
+                            <g transform="translate(${i * 45}, 0)">
+                                <circle cy="0" r="15" fill="#E0AC69" />
+                                <path d="M-15 15 L15 15 L18 60 L-18 60 Z" fill="${['#C0392B', '#2980B9', '#10B981', '#F1C40F', '#8E44AD', '#D35400'][i]}" opacity="0.8" />
+                            </g>
+                        `).join('')}
                     </g>
+
+                    <!-- Jesus Center -->
+                    <g transform="translate(400, 260)">
+                        <!-- Divine Glow -->
+                        <circle r="40" fill="white" opacity="0.2">
+                            <animate attributeName="opacity" values="0.1;0.3;0.1" dur="3s" repeatCount="indefinite" />
+                        </circle>
+                        <circle cy="0" r="22" fill="#E0AC69" />
+                        <path d="M-22 22 L22 22 L25 80 L-25 80 Z" fill="#F5F5DC" />
+                        <path d="M-22 22 Q0 15 22 22 L15 70 L-15 70 Z" fill="#8B4513" opacity="0.6" />
+                        <!-- Bread & Cup in front of Him -->
+                        <circle cx="0" cy="55" r="10" fill="#F5CBA7" /> <!-- Bread -->
+                        <path d="M15 45 L35 45 L30 75 L20 75 Z" fill="#F1C40F" /> <!-- Cup -->
+                    </g>
+
+                    <!-- Disciples Right (6) -->
+                    <g transform="translate(470, 280)">
+                        ${[0, 1, 2, 3, 4, 5].map(i => `
+                            <g transform="translate(${i * 45}, 0)">
+                                <circle cy="0" r="15" fill="#E0AC69" />
+                                <path d="M-15 15 L15 15 L18 60 L-18 60 Z" fill="${['#27AE60', '#2980B9', '#7F8C8D', '#E67E22', '#16A085', '#C0392B'][i]}" opacity="0.8" />
+                            </g>
+                        `).join('')}
+                    </g>
+                    
+                    <text x="400" y="420" text-anchor="middle" fill="white" font-size="20" font-weight="bold" opacity="0.8">« CECI EST MON CORPS... CECI EST MON SANG »</text>
                 </svg>`,
                 event: "L'institution de l'Eucharistie et le lavement des pieds.",
                 verse: "« Si je ne te lave pas, tu n'auras point de part avec moi. »",
@@ -530,26 +451,8 @@
             { 
                 day: "Vendredi Saint", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/vendredi_saint_l6rhml.jpg",
-                desc: "Le jour de la Crucifixion. À midi, les ténèbres couvrent la terre. Le Christ remet Son esprit au Père pour le salut du monde.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#000">
-                        <animate attributeName="fill" values="#444;#000;#444" dur="10s" repeatCount="indefinite" />
-                    </rect>
-                    <!-- Hill of Golgotha -->
-                    <path d="M0 450 Q400 350 800 450" fill="#1A1A1A" />
-                    
-                    <!-- Central Cross -->
-                    <g transform="translate(400, 250)">
-                        <path d="M-10 150 L10 150 L10 -150 L-10 -150 Z" fill="#3E2723" />
-                        <path d="M-80 -80 L80 -80 L80 -60 L-80 -60 Z" fill="#3E2723" />
-                    </g>
-
-                    <!-- Lightning effect -->
-                    <path d="M300 0 L320 100 L280 120 L310 200" stroke="white" stroke-width="2" opacity="0">
-                        <animate attributeName="opacity" values="0;1;0;0;1;0" keyTimes="0;0.1;0.2;0.8;0.9;1" dur="4s" repeatCount="indefinite" />
-                    </path>
-                </svg>`,
+                desc: "Le jour de la Passion et de la Crucifixion. À midi, les ténèbres couvrent la terre. Le Christ remet Son esprit au Père pour le salut du monde.",
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><rect width="800" height="450" fill="#000"><animate attributeName="fill" values="#444;#000;#444" dur="10s" repeatCount="indefinite" /></rect><path d="M0 450 Q400 350 800 450" fill="#1A1A1A" /><g transform="translate(400, 250)"><path d="M-10 150 L10 150 L10 -150 L-10 -150 Z" fill="#3E2723" /><path d="M-80 -80 L80 -80 L80 -60 L-80 -60 Z" fill="#3E2723" /></g><path d="M300 0 L320 100 L280 120 L310 200" stroke="white" stroke-width="2" opacity="0"><animate attributeName="opacity" values="0;1;0;0;1;0" keyTimes="0;0.1;0.2;0.8;0.9;1" dur="4s" repeatCount="indefinite" /></path></svg>`,
                 event: "La Crucifixion et la mort de Jésus sur la Croix.",
                 verse: "« Père, entre tes mains je remets mon esprit. »",
                 rite: "Les 400 Kirié Eleisson et prosternements collectifs.",
@@ -561,24 +464,7 @@
                 day: "Samedi de la Lumière", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/Samedi_de_la_lumie%CC%80re_lijv4e.jpg",
                 desc: "Jésus descend aux enfers pour briser les portes d'airain et libérer Adam, Ève et tous les justes, les emmenant dans Son Paradis.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#1B2631" />
-                    <!-- Gates of Hades breaking -->
-                    <g transform="translate(400, 225)">
-                        <rect x="-150" y="-150" width="150" height="300" fill="#424949">
-                            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="-90 0 0" dur="4s" fill="freeze" />
-                        </rect>
-                        <rect x="0" y="-150" width="150" height="300" fill="#424949">
-                            <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="90 0 0" dur="4s" fill="freeze" />
-                        </rect>
-                        <!-- Light emerging from behind gates -->
-                        <circle r="0" fill="white">
-                            <animate attributeName="r" from="0" to="300" dur="5s" fill="freeze" />
-                            <animate attributeName="opacity" values="0;0.6" dur="5s" fill="freeze" />
-                        </circle>
-                    </g>
-                </svg>`,
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><defs><radialGradient id="christGlow" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="white" stop-opacity="1" /><stop offset="100%" stop-color="#F1C40F" stop-opacity="0" /></radialGradient></defs><rect width="800" height="450" fill="#0A0A0A" /><g transform="translate(400, 380)"><rect x="-180" y="0" width="140" height="40" fill="#2C3E50" transform="rotate(-15)"><animate attributeName="y" from="-200" to="0" dur="1s" fill="freeze" /><animateTransform attributeName="transform" type="rotate" from="0" to="-15" dur="1s" fill="freeze" /></rect><rect x="40" y="0" width="140" height="40" fill="#2C3E50" transform="rotate(10)"><animate attributeName="y" from="-200" to="0" dur="1.2s" fill="freeze" /><animateTransform attributeName="transform" type="rotate" from="0" to="10" dur="1.2s" fill="freeze" /></rect></g><circle cx="400" cy="225" r="0" fill="url(#christGlow)" opacity="0.8"><animate attributeName="r" from="0" to="600" dur="4s" begin="1.5s" fill="freeze" /><animate attributeName="opacity" values="0;0.8;0.3" dur="4s" begin="1.5s" fill="freeze" /></circle><g transform="translate(400, -100)"><animateTransform attributeName="transform" type="translate" from="400, -100" to="400, 200" dur="3s" begin="0.5s" fill="freeze" /><circle r="40" fill="white" opacity="0.3"><animate attributeName="r" values="40;60;40" dur="2s" repeatCount="indefinite" /></circle><path d="M-15 40 L15 40 L12 -30 L-12 -30 Z" fill="white" /><circle cy="-45" r="15" fill="white" /><path d="M-12 -20 L-40 -40 M12 -20 L40 -40" stroke="white" stroke-width="8" stroke-linecap="round" /></g><text x="400" y="420" text-anchor="middle" fill="white" font-weight="bold" font-size="20" opacity="0">LA MORT EST VAINCUE<animate attributeName="opacity" from="0" to="1" dur="1s" begin="3.5s" fill="freeze" /></text></svg>`,
                 event: "La descente du Christ aux enfers le Samedi Saint.",
                 verse: "« J'étais mort; et voici, je suis vivant aux siècles des siècles. »",
                 rite: "Lecture de l'Apocalypse pendant toute la nuit sainte.",
@@ -590,31 +476,7 @@
                 day: "Dimanche de Pâques", 
                 img: "https://res.cloudinary.com/dx4uwptap/image/upload/v1774448767/dimanche_de_paque_resurrection_smqrmj.jpg",
                 desc: "Alléluia ! La pierre est roulée, le tombeau est vide. Le Christ est ressuscité d'entre les morts, foulant aux pieds la mort par Sa propre mort.",
-                animation: `
-                <svg viewBox="0 0 800 450" class="w-full h-full">
-                    <rect width="800" height="450" fill="#F4D03F">
-                        <animate attributeName="fill" values="#F4D03F;#FEF9E7;#F4D03F" dur="4s" repeatCount="indefinite" />
-                    </rect>
-                    <!-- Tomb -->
-                    <path d="M200 450 L200 200 Q400 100 600 200 L600 450" fill="#95A5A6" />
-                    <rect x="300" y="250" width="200" height="200" fill="#2C3E50" />
-                    
-                    <!-- Rolling Stone -->
-                    <circle cx="400" cy="350" r="120" fill="#5F6A6A">
-                        <animate attributeName="cx" from="400" to="700" dur="3s" fill="freeze" />
-                        <animateTransform attributeName="transform" type="rotate" from="0 400 350" to="360 400 350" dur="3s" fill="freeze" additive="sum" />
-                    </circle>
-
-                    <!-- Rays of Light -->
-                    <g transform="translate(400, 350)" opacity="0">
-                        <animate attributeName="opacity" from="0" to="1" dur="2s" begin="2s" fill="freeze" />
-                        <path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(0)" />
-                        <path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(45)" />
-                        <path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(90)" />
-                        <path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(135)" />
-                        <path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(180)" />
-                    </g>
-                </svg>`,
+                animation: `<svg viewBox="0 0 800 450" class="w-full h-full"><rect width="800" height="450" fill="#F4D03F"><animate attributeName="fill" values="#F4D03F;#FEF9E7;#F4D03F" dur="4s" repeatCount="indefinite" /></rect><path d="M200 450 L200 200 Q400 100 600 200 L600 450" fill="#95A5A6" /><rect x="300" y="250" width="200" height="200" fill="#2C3E50" /><circle cx="400" cy="350" r="120" fill="#5F6A6A"><animate attributeName="cx" from="400" to="700" dur="3s" fill="freeze" /><animateTransform attributeName="transform" type="rotate" from="0 400 350" to="360 400 350" dur="3s" fill="freeze" additive="sum" /></circle><g transform="translate(400, 350)" opacity="0"><animate attributeName="opacity" from="0" to="1" dur="2s" begin="2s" fill="freeze" /><path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(0)" /><path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(45)" /><path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(90)" /><path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(135)" /><path d="M0 -300 L20 -300 L5 0 L-5 0 Z" fill="white" transform="rotate(180)" /></g></svg>`,
                 event: "La Résurrection triomphale du Christ d'entre les morts.",
                 verse: "« Il n'est pas ici; il est ressuscité comme il l'avait dit. »",
                 rite: "Grande Procession de la Résurrection et fin du jeûne.",
@@ -653,8 +515,6 @@
             stepsData.forEach((step, i) => {
                 const segment = document.createElement('div');
                 segment.className = 'scenery-segment';
-                
-                // Maison
                 const bx = 150 + Math.random()*200;
                 state.buildingXPositions.push(totalWidth + bx);
                 const building = document.createElement('div');
@@ -664,8 +524,7 @@
                 building.style.height = '280px';
                 building.innerHTML = `<div class="dome" style="top:-90px; left:20px; width:180px; height:180px"></div><div class="arch" style="position:absolute; bottom:0; left:75px; width:70px; height:110px; background:#4A3728; border-radius:35px 35px 0 0"></div>`;
                 segment.appendChild(building);
-
-                // Décorations SVG
+                
                 let decorHTML = '';
                 for(let d=0; d<8; d++) {
                     const rx = 100 + (d * 120) + (Math.random()*40);
@@ -674,6 +533,12 @@
                         case 'palm_cloth':
                             if(d % 2 === 0) decorHTML += SVG_ASSETS.palm(rx, ry + 110);
                             else decorHTML += SVG_ASSETS.cloth(rx, ry + 120, ['#e74c3c', '#3498db', '#f1c40f'][d%3]);
+                            break;
+                        case 'figTrees':
+                            decorHTML += SVG_ASSETS.figTree(rx, 150);
+                            break;
+                        case 'lamps':
+                            decorHTML += SVG_ASSETS.oilLamp(rx, 130);
                             break;
                         case 'coins':
                             decorHTML += SVG_ASSETS.coin(rx + Math.random()*50, ry + 130);
@@ -688,8 +553,9 @@
                         case 'easter':
                             decorHTML += SVG_ASSETS.flower(rx, ry + 115);
                             break;
-                        case 'withered': decorHTML += `<text x="${rx}" y="${450-ry}" font-size="25">🍂</text>`; break;
-                        case 'light': decorHTML += `<text x="${rx}" y="${450-ry}" font-size="25">🕯️</text>`; break;
+                        case 'light': 
+                            decorHTML += `<text x="${rx}" y="${450-ry}" font-size="25">🕯️</text>`; 
+                            break;
                     }
                 }
                 segment.innerHTML += decorHTML;
@@ -697,25 +563,20 @@
                 const ground = document.createElement('div');
                 ground.className = 'ground';
                 segment.appendChild(ground);
-
-                // Panneau
                 const signX = totalWidth + 1000;
                 state.signXPositions.push(signX);
                 const sign = document.createElement('div');
                 sign.className = 'absolute bottom-[150px] left-[1000px] flex flex-col items-center z-20';
                 sign.innerHTML = `<img src="${step.img}" class="w-48 h-36 border-4 border-white shadow-xl rounded-lg object-cover"><div class="w-2 h-20 bg-amber-900"></div>`;
                 segment.appendChild(sign);
-
                 world.appendChild(segment);
                 totalWidth += 1200;
             });
-            
             const lastSegment = document.createElement('div');
             lastSegment.className = 'scenery-segment';
             lastSegment.style.width = '800px';
             lastSegment.innerHTML = `<div class="ground" style="width:100%"></div>`;
             world.appendChild(lastSegment);
-
             currentDayLabel.innerText = "Jour : " + stepsData[0].day;
             requestAnimationFrame(gameLoop);
         }
@@ -724,15 +585,12 @@
             if (state.walkDir !== 0 && !state.isInside && !state.isEnigma) {
                 state.worldX -= state.walkDir * 3.5; 
                 if (state.worldX > 0) state.worldX = 0;
-                
                 const totalWorldWidth = (stepsData.length * 1200) + 800;
                 const maxScroll = -(totalWorldWidth - 250); 
                 if (state.worldX < maxScroll) state.worldX = maxScroll;
-
                 world.style.transform = `translateX(${state.worldX}px)`;
                 character.classList.add('walking');
                 character.style.transform = state.walkDir === -1 ? 'scaleX(-1)' : 'scaleX(1)';
-
                 checkInteractions();
             } else {
                 character.classList.remove('walking');
@@ -747,7 +605,6 @@
                 return isNear && idx === state.currentStep;
             });
             prompt.style.display = nearBuilding ? 'block' : 'none';
-
             if (state.currentStep < stepsData.length) {
                 const nextSignX = state.signXPositions[state.currentStep];
                 if (Math.abs(playerWorldX - nextSignX) < 40) {
@@ -788,13 +645,11 @@
             state.isEnigma = true;
             state.currentDayAttempts = 0;
             state.selections = { event: null, verse: null, rite: null };
-            
             const step = stepsData[state.currentStep];
             document.getElementById('enigma-title').innerText = "Témoignage : " + step.day;
             document.getElementById('potential-points').innerText = "3";
             document.getElementById('hint-box').classList.add('hidden');
             document.getElementById('error-msg').classList.add('hidden');
-            
             ['event', 'verse', 'rite'].forEach(type => {
                 const container = document.getElementById(`choices-${type}`);
                 container.innerHTML = '';
@@ -804,7 +659,9 @@
                     card.className = 'choice-card';
                     card.innerText = opt;
                     card.onclick = () => {
-                        Array.from(container.children).forEach(c => c.classList.remove('selected'));
+                        Array.from(container.children).forEach(c => {
+                            c.classList.remove('selected', 'border-red-500', 'bg-red-50', 'text-red-700', 'border-green-500', 'bg-green-50', 'text-green-700');
+                        });
                         card.classList.add('selected');
                         state.selections[type] = opt;
                         updateValidateButton();
@@ -812,7 +669,6 @@
                     container.appendChild(card);
                 });
             });
-            
             updateValidateButton();
             document.getElementById('enigma-screen').classList.add('active');
         }
@@ -843,7 +699,6 @@
                 state.selections.verse === step.verse && 
                 state.selections.rite === step.rite
             );
-
             if (isCorrect) {
                 const earned = (state.currentDayAttempts === 0) ? 3 : 1;
                 state.score += earned;
@@ -864,6 +719,21 @@
             } else {
                 state.totalErrors++;
                 state.currentDayAttempts++;
+                ['event', 'verse', 'rite'].forEach(type => {
+                    const container = document.getElementById(`choices-${type}`);
+                    const cards = Array.from(container.children);
+                    cards.forEach(card => {
+                        if (card.classList.contains('selected')) {
+                            if (state.selections[type] === step[type]) {
+                                card.classList.remove('selected');
+                                card.classList.add('border-green-500', 'bg-green-50', 'text-green-700');
+                            } else {
+                                card.classList.remove('selected');
+                                card.classList.add('border-red-500', 'bg-red-50', 'text-red-700');
+                            }
+                        }
+                    });
+                });
                 const modal = document.getElementById('enigma-modal');
                 modal.classList.add('shake');
                 setTimeout(() => modal.classList.remove('shake'), 500);
@@ -900,12 +770,10 @@
         document.getElementById('btn-back').onmousedown = () => { if(!state.isInside && !state.isEnigma) state.walkDir = -1; };
         document.getElementById('btn-up').onclick = triggerScene;
         window.onmouseup = () => state.walkDir = 0;
-
         document.getElementById('btn-walk').ontouchstart = (e) => { e.preventDefault(); if(!state.isInside && !state.isEnigma) state.walkDir = 1; };
         document.getElementById('btn-back').ontouchstart = (e) => { e.preventDefault(); if(!state.isInside && !state.isEnigma) state.walkDir = -1; };
         document.getElementById('btn-walk').ontouchend = () => state.walkDir = 0;
         document.getElementById('btn-back').ontouchend = () => state.walkDir = 0;
-
         initWorld();
     </script>
 </body>

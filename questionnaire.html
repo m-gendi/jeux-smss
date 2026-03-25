@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frise Interactive - Semaine Sainte</title>
+    <!-- Tailwind CSS pour le style -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Personnalisation de la barre de défilement */
+        .custom-scrollbar::-webkit-scrollbar { height: 14px; width: 14px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #94a3b8; border-radius: 8px; border: 3px solid #e2e8f0; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
+        
+        /* Animations fluides */
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans flex flex-col min-h-screen relative overflow-x-hidden">
+
+    <!-- Header -->
+    <header class="bg-amber-800 text-white p-4 shadow-md z-10 flex-shrink-0">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-2">
+                    🌿 Frise de la Sainte Pascha
+                </h1>
+                <p class="text-amber-100 text-sm opacity-90">Cliquez sur les cases vides pour les remplir</p>
+            </div>
+            
+            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                <div id="progression-counter" class="bg-amber-950/40 px-4 py-2 rounded-full font-bold text-sm">
+                    Progression : 0 / 24
+                </div>
+                <button onclick="resetGame()" class="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 px-4 py-2 rounded-lg transition text-sm font-medium shadow-sm">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    Recommencer
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl font-medium z-50 flex items-center gap-2 opacity-0 pointer-events-none transition-opacity duration-300">
+        <i id="toast-icon" data-lucide="check-circle" class="w-5 h-5"></i>
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col overflow-hidden w-full p-4 md:p-6 pb-24" id="main-container">
+        <!-- Rempli dynamiquement par JS -->
+    </main>
+
+    <!-- Barre d'action fixe en bas -->
+    <div id="bottom-bar" class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-20 flex justify-center items-center">
+        <!-- Rempli dynamiquement par JS -->
+    </div>
+
+    <!-- Fenêtre Modale -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col fade-in">
+            <!-- Header Modale -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50 rounded-t-2xl">
+                <div>
+                    <h3 class="font-bold text-xl text-slate-800">
+                        Choisir un(e) <span id="modal-type-label" class="capitalize text-amber-600"></span>
+                    </h3>
+                    <p class="text-sm text-slate-500" id="modal-day-label"></p>
+                </div>
+                <button onclick="closeModal()" class="p-2 bg-slate-200 hover:bg-rose-100 hover:text-rose-600 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <!-- Contenu Modale -->
+            <div id="modal-content" class="p-4 overflow-y-auto bg-slate-100 flex-1 custom-scrollbar">
+                <!-- Rempli dynamiquement par JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DONNÉES DU COURS ---
+        const DAYS = [
+            { id: 'j1_rameaux', title: 'Dimanche des Rameaux', theme: 'light' },
+            { id: 'j2_lundi', title: 'Lundi Saint', theme: 'dark' },
+            { id: 'j3_mardi', title: 'Mardi Saint', theme: 'dark' },
+            { id: 'j4_mercredi', title: 'Mercredi Saint', theme: 'dark' },
+            { id: 'j5_jeudi', title: "Jeudi de l'Alliance", theme: 'dark' },
+            { id: 'j6_vendredi', title: 'Grand Vendredi', theme: 'dark' },
+            { id: 'j7_samedi', title: 'Samedi de Joie', theme: 'light' },
+            { id: 'j8_dimanche', title: 'Dimanche de la Résurrection', theme: 'light' },
+        ];
+
+        const ALL_ITEMS = [
+            // Images
+            { id: 'img_1', type: 'image', dayId: 'j1_rameaux', content: 'La foule et l\'ânon', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448542/Dimanche_des_rameaux_ihepng.jpg' },
+            { id: 'img_2', type: 'image', dayId: 'j2_lundi', content: 'L\'arbre stérile', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448542/Lundi_saint_elkqi2.jpg' },
+            { id: 'img_3', type: 'image', dayId: 'j3_mardi', content: 'Les lampes préparées', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/Mardi_saint_a0scnl.jpg' },
+            { id: 'img_4', type: 'image', dayId: 'j4_mercredi', content: 'Les pièces d\'argent', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448542/Mercredi_saint_dx4hmu.jpg' },
+            { id: 'img_5', type: 'image', dayId: 'j5_jeudi', content: 'Le bassin et l\'eau', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/Jeudi_saint_i986xe.jpg' },
+            { id: 'img_6', type: 'image', dayId: 'j6_vendredi', content: 'Le Golgotha', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/vendredi_saint_l6rhml.jpg' },
+            { id: 'img_7', type: 'image', dayId: 'j7_samedi', content: 'Les portes de l\'Hadès', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448541/Samedi_de_la_lumie%CC%80re_lijv4e.jpg' },
+            { id: 'img_8', type: 'image', dayId: 'j8_dimanche', content: 'La pierre roulée', imageUrl: 'https://res.cloudinary.com/dx4uwptap/image/upload/v1774448767/dimanche_de_paque_resurrection_smqrmj.jpg' },
+            
+            // Versets
+            { id: 'ver_1', type: 'verset', dayId: 'j1_rameaux', content: '« La foule (...) prit des branches de palmiers, et alla au-devant de lui, en criant: Hosanna! Béni soit celui qui vient au nom du Seigneur ! » (Jean 12:12-13)' },
+            { id: 'ver_2', type: 'verset', dayId: 'j2_lundi', content: '« En voyant un figuier sur le bord du chemin, il s\'en approcha (...) et il lui dit: Que jamais fruit ne naisse de toi ! Et à l\'instant le figuier sécha. » (Matthieu 21:19)' },
+            { id: 'ver_3', type: 'verset', dayId: 'j3_mardi', content: '« Veillez donc, puisque vous ne savez ni le jour, ni l\'heure. » (Matthieu 25:13)' },
+            { id: 'ver_4', type: 'verset', dayId: 'j4_mercredi', content: '« Alors l\'un des douze, appelé Judas Iscariot (...) dit : Que voulez-vous me donner, et je vous le livrerai? Et ils lui payèrent trente pièces d\'argent. » (Matthieu 26:14-15)' },
+            { id: 'ver_5', type: 'verset', dayId: 'j5_jeudi', content: '« Si donc je vous ai lavé les pieds, moi, le Seigneur et le Maître, vous devez aussi vous laver les pieds les uns aux autres. » (Jean 13:14)' },
+            { id: 'ver_6', type: 'verset', dayId: 'j6_vendredi', content: '« Quand Jésus eut pris le vinaigre, il dit: Tout est accompli. Et, baissant la tête, il rendit l\'esprit. » (Jean 19:30)' },
+            { id: 'ver_7', type: 'verset', dayId: 'j7_samedi', content: '« Ne pleure point; voici, le lion de la tribu de Juda, le rejeton de David, a vaincu... » (Apocalypse 5:5)' },
+            { id: 'ver_8', type: 'verset', dayId: 'j8_dimanche', content: '« Il n\'est pas ici, car il est ressuscité, comme il l\'avait dit. Venez, voyez le lieu où il était couché. » (Matthieu 28:6)' },
+            
+            // Rites
+            { id: 'rit_1', type: 'rite', dayId: 'j1_rameaux', content: 'Marche avec les palmes et prière de l\'eau pour tous les défunts' },
+            { id: 'rit_2', type: 'rite', dayId: 'j2_lundi', content: 'Tentures sombres et première hymne de la Puissance ("Thok Te Ti Gom") hors du chœur' },
+            { id: 'rit_3', type: 'rite', dayId: 'j3_mardi', content: 'Heures de prière axées sur l\'attente de l\'Époux et l\'éveil spirituel' },
+            { id: 'rit_4', type: 'rite', dayId: 'j4_mercredi', content: 'Lecture complète de l\'histoire de l\'Ancien Testament sur l\'homme juste qui a tout perdu' },
+            { id: 'rit_5', type: 'rite', dayId: 'j5_jeudi', content: 'Bénédiction de l\'eau et lavement des pieds par le prêtre envers les fidèles' },
+            { id: 'rit_6', type: 'rite', dayId: 'j6_vendredi', content: '400 Kirié eleyson (métanies) aux 4 points cardinaux et ensevelissement sous les fleurs' },
+            { id: 'rit_7', type: 'rite', dayId: 'j7_samedi', content: 'Veillée lumineuse et lecture intégrale du dernier livre de la Bible' },
+            { id: 'rit_8', type: 'rite', dayId: 'j8_dimanche', content: 'Dialogue théâtral devant les portes fermées pour annoncer l\'entrée du Roi de Gloire' },
+        ];
+
+        // --- ÉTAT DE L'APPLICATION ---
+        let bankItems = [];
+        let placedItems = {};
+        let isValidated = false;
+        let finalScore = 0;
+        let activeModalSlot = null; // { dayId, type, dayTitle }
+        let imageErrors = {}; // Pour cacher les images brisées
+        let toastTimeout = null;
+
+        // --- FONCTIONS UTILITAIRES ---
+        function shuffleArray(array) {
+            let newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const message = document.getElementById('toast-message');
+
+            toast.className = `fixed top-20 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl font-medium z-50 flex items-center gap-2 transition-opacity duration-300 ${isError ? 'bg-rose-600 text-white' : 'bg-emerald-600 text-white'}`;
+            icon.setAttribute('data-lucide', isError ? 'alert-circle' : 'check-circle');
+            message.innerText = msg;
+            
+            lucide.createIcons({ icons: isError ? ['alert-circle'] : ['check-circle'], attrs: { class: "w-5 h-5" }, nameAttr: 'data-lucide' });
+            
+            toast.classList.remove('opacity-0');
+            toast.classList.add('animate-bounce');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0');
+                toast.classList.remove('animate-bounce');
+            }, 3000);
+        }
+
+        // --- LOGIQUE MÉTIER ---
+        function resetGame() {
+            bankItems = shuffleArray(ALL_ITEMS);
+            placedItems = {};
+            isValidated = false;
+            finalScore = 0;
+            activeModalSlot = null;
+            imageErrors = {};
+            renderApp();
+        }
+
+        function handleSlotClick(dayId, type, dayTitle) {
+            if (isValidated) return;
+
+            const slotKey = `${dayId}-${type}`;
+            if (placedItems[slotKey]) {
+                // Retirer l'élément
+                const itemToReturn = placedItems[slotKey];
+                delete placedItems[slotKey];
+                bankItems.unshift(itemToReturn);
+                renderApp();
+            } else {
+                // Ouvrir modale
+                activeModalSlot = { dayId, type, dayTitle };
+                renderModal();
+            }
+        }
+
+        function handleSelectItemFromModal(itemId) {
+            if (!activeModalSlot) return;
+
+            const itemIndex = bankItems.findIndex(i => i.id === itemId);
+            if (itemIndex > -1) {
+                const item = bankItems[itemIndex];
+                placedItems[`${activeModalSlot.dayId}-${activeModalSlot.type}`] = item;
+                bankItems.splice(itemIndex, 1);
+                closeModal();
+                renderApp();
+            }
+        }
+
+        function closeModal() {
+            activeModalSlot = null;
+            document.getElementById('modal-container').classList.add('hidden');
+            document.getElementById('modal-container').classList.remove('flex');
+        }
+
+        function validateAnswers() {
+            let score = 0;
+            for (const [slotKey, item] of Object.entries(placedItems)) {
+                const slotDayId = slotKey.split('-')[0];
+                if (item.dayId === slotDayId) {
+                    score += 1;
+                }
+            }
+            finalScore = score;
+            isValidated = true;
+            
+            if (score === ALL_ITEMS.length) {
+                showToast("Parfait ! Tout est juste !", false);
+            } else {
+                showToast(`Vous avez ${score} bonnes réponses sur ${ALL_ITEMS.length}.`, true);
+            }
+            renderApp();
+        }
+
+        function handleImageError(element, id) {
+            imageErrors[id] = true;
+            renderApp(); // Force le re-rendu pour afficher le fallback d'erreur
+        }
+
+        // --- RENDU HTML (DOM) ---
+        function renderApp() {
+            const itemsPlacedCount = Object.keys(placedItems).length;
+            const isAllPlaced = itemsPlacedCount === ALL_ITEMS.length;
+
+            // Header counter
+            document.getElementById('progression-counter').innerText = `Progression : ${itemsPlacedCount} / ${ALL_ITEMS.length}`;
+
+            const mainContainer = document.getElementById('main-container');
+            const bottomBar = document.getElementById('bottom-bar');
+
+            if (isValidated && finalScore === ALL_ITEMS.length) {
+                // ECRAN VICTOIRE
+                mainContainer.innerHTML = `
+                    <div class="flex-1 flex flex-col items-center justify-center p-8 bg-white rounded-2xl shadow-xl max-w-2xl mx-auto w-full border border-amber-200 fade-in">
+                        <i data-lucide="award" class="w-24 h-24 mb-6 text-amber-500 animate-[pulse_2s_ease-in-out_infinite]"></i>
+                        <h2 class="text-4xl font-extrabold mb-4 text-slate-800 text-center">Score Parfait !</h2>
+                        <p class="text-lg text-slate-600 mb-8 text-center">Félicitations ! Vous avez reconstitué parfaitement toute la chronologie de la Semaine Sainte Copte Orthodoxe.</p>
+                        <button onclick="resetGame()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-10 rounded-full shadow-lg transition-transform hover:scale-105 flex items-center gap-3 text-lg">
+                            <i data-lucide="refresh-cw" class="w-6 h-6"></i> Rejouer la partie
+                        </button>
+                    </div>
+                `;
+                bottomBar.classList.add('hidden');
+            } else {
+                // FRISE CHRONOLOGIQUE
+                let friseHtml = `<div class="flex-1 overflow-x-auto rounded-xl shadow-inner bg-slate-200 border-2 border-slate-300 p-4 md:p-6 custom-scrollbar fade-in"><div class="flex gap-6 min-w-max pb-4 h-full items-stretch">`;
+                
+                DAYS.forEach(day => {
+                    const isDark = day.theme === 'dark';
+                    const cardClass = isDark ? 'bg-slate-800 text-slate-100 border-slate-900 shadow-xl' : 'bg-amber-50 text-amber-950 border-amber-200 shadow-xl';
+                    const headerClass = isDark ? 'border-b-2 border-slate-700 bg-slate-800/50' : 'border-b-2 border-amber-200 bg-amber-100/50';
+
+                    friseHtml += `
+                        <div class="w-80 rounded-2xl flex flex-col border-2 ${cardClass} flex-shrink-0 overflow-hidden">
+                            <div class="p-4 text-center font-extrabold text-lg ${headerClass}">
+                                ${day.title}
+                            </div>
+                            <div class="p-4 flex flex-col gap-4 flex-1">
+                                ${renderSlot(day, 'image', 'Icône Copte', 'image')}
+                                ${renderSlot(day, 'verset', 'Verset Biblique', 'book-open')}
+                                ${renderSlot(day, 'rite', 'Rite de l\'Église', 'activity')}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                friseHtml += `</div></div>`;
+                mainContainer.innerHTML = friseHtml;
+
+                // BOTTOM BAR
+                bottomBar.classList.remove('hidden');
+                if (!isValidated) {
+                    if (isAllPlaced) {
+                        bottomBar.innerHTML = `
+                            <button onclick="validateAnswers()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-12 rounded-full shadow-lg text-lg transition-transform hover:scale-105 flex items-center gap-2 animate-[pulse_2s_ease-in-out_infinite]">
+                                <i data-lucide="check-circle" class="w-6 h-6"></i> Valider mes réponses
+                            </button>
+                        `;
+                    } else {
+                        bottomBar.innerHTML = `
+                            <p class="text-slate-500 font-medium flex items-center gap-2">
+                                <i data-lucide="mouse-pointer-click" class="w-5 h-5"></i>
+                                Cliquez sur les cases vides pour placer les ${ALL_ITEMS.length - itemsPlacedCount} éléments restants.
+                            </p>
+                        `;
+                    }
+                } else {
+                    bottomBar.innerHTML = `
+                        <button onclick="resetGame()" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-12 rounded-full shadow-lg text-lg transition-transform hover:scale-105 flex items-center gap-2">
+                            <i data-lucide="refresh-cw" class="w-6 h-6"></i> Retenter ma chance
+                        </button>
+                    `;
+                }
+            }
+            
+            // Initialiser les icônes injectées
+            lucide.createIcons();
+        }
+
+        function renderSlot(day, type, label, iconName) {
+            const item = placedItems[`${day.id}-${type}`];
+            const isDark = day.theme === 'dark';
+            
+            let isCorrect = false, isWrong = false;
+            if (isValidated && item) {
+                isCorrect = item.dayId === day.id;
+                isWrong = item.dayId !== day.id;
+            }
+
+            let bgClasses = "";
+            let baseClasses = "rounded-xl border-2 p-3 min-h-[130px] flex flex-col transition-all relative group focus:outline-none focus:ring-4 focus:ring-amber-500/50";
+            
+            if (isValidated) {
+                if (isCorrect) bgClasses = "border-solid border-emerald-500 bg-emerald-50 text-emerald-900 cursor-default shadow-[0_0_15px_rgba(16,185,129,0.3)]";
+                else if (isWrong) bgClasses = "border-solid border-rose-500 bg-rose-50 text-rose-900 cursor-default";
+                else bgClasses = "border-dashed border-slate-300 bg-slate-100/50 text-slate-400 cursor-default opacity-50"; 
+            } else {
+                if (item) {
+                    bgClasses = isDark ? "border-solid border-slate-400 bg-slate-700 text-slate-100 cursor-pointer hover:border-amber-400 hover:shadow-lg" : "border-solid border-amber-400 bg-white text-amber-950 cursor-pointer hover:border-amber-500 hover:shadow-lg";
+                } else {
+                    bgClasses = isDark ? "border-dashed border-slate-600 bg-slate-700/40 hover:bg-slate-700/80 text-slate-400 cursor-pointer" : "border-dashed border-amber-300 bg-amber-100/40 hover:bg-amber-100/80 text-amber-600 cursor-pointer";
+                }
+            }
+
+            let contentHtml = "";
+            let topIconHtml = `
+                <div class="text-xs font-bold uppercase mb-3 flex items-center gap-1.5 opacity-80 border-b pb-1.5 ${isDark && !item && !isValidated ? 'border-slate-600' : 'border-current/20'}">
+                    <i data-lucide="${iconName}" class="w-5 h-5"></i> ${label}
+                </div>
+            `;
+
+            if (item) {
+                if (item.type === 'image' && item.imageUrl) {
+                    if (imageErrors[item.id]) {
+                        contentHtml = `
+                            <div class="w-full h-24 bg-slate-200/50 rounded mb-2 flex flex-col items-center justify-center text-slate-500 border border-slate-300">
+                                <i data-lucide="image-off" class="w-6 h-6 mb-1 opacity-50"></i>
+                                <span class="text-[10px] text-center px-1 opacity-75">${item.content} (Lien bloqué)</span>
+                            </div>
+                        `;
+                    } else {
+                        contentHtml = `
+                            <img src="${item.imageUrl}" alt="${item.content}" onerror="handleImageError(this, '${item.id}')" class="w-full h-24 object-cover rounded-md shadow-sm pointer-events-none mb-2 border border-slate-200/50 bg-slate-100" />
+                            <span class="text-xs text-center font-bold leading-tight">${item.content}</span>
+                        `;
+                    }
+                } else {
+                    contentHtml = `<div class="text-sm font-medium leading-snug text-center">${item.content}</div>`;
+                }
+
+                if (!isValidated) {
+                    contentHtml += `
+                        <div class="absolute inset-0 bg-rose-500/10 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 rounded-xl transition-opacity flex items-center justify-center">
+                            <span class="bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">Retirer</span>
+                        </div>
+                    `;
+                }
+            } else {
+                if (!isValidated) {
+                    contentHtml = `
+                        <div class="flex-1 flex flex-col items-center justify-center text-sm opacity-60 group-hover:opacity-100 transition-opacity">
+                            <div class="p-2 rounded-full mb-1 ${isDark ? 'bg-slate-600 text-slate-300' : 'bg-amber-200 text-amber-700'}">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                            </div>
+                            <span class="font-medium text-xs">Cliquez pour ajouter</span>
+                        </div>
+                    `;
+                }
+            }
+
+            let resultIcons = "";
+            if (isValidated && isCorrect) resultIcons = `<div class="absolute -top-3 -right-3 bg-white rounded-full shadow-lg border-2 border-emerald-500"><i data-lucide="check-circle" class="w-7 h-7 text-emerald-500"></i></div>`;
+            if (isValidated && isWrong) resultIcons = `<div class="absolute -top-3 -right-3 bg-white rounded-full shadow-lg border-2 border-rose-500"><i data-lucide="x-circle" class="w-7 h-7 text-rose-500"></i></div>`;
+
+            // On échappe le jour title pour le onclick
+            const safeDayTitle = day.title.replace(/'/g, "\\'");
+
+            return `
+                <button class="${baseClasses} ${bgClasses}" ${isValidated ? 'disabled' : ''} onclick="handleSlotClick('${day.id}', '${type}', '${safeDayTitle}')" title="${isValidated ? '' : (item ? 'Cliquez pour retirer cet élément' : `Cliquez pour choisir un(e) ${type}`)}">
+                    ${topIconHtml}
+                    <div class="flex-1 flex flex-col items-center justify-center w-full">
+                        ${contentHtml}
+                    </div>
+                    ${resultIcons}
+                </button>
+            `;
+        }
+
+        function renderModal() {
+            if (!activeModalSlot) return;
+
+            document.getElementById('modal-type-label').innerText = activeModalSlot.type;
+            document.getElementById('modal-day-label').innerText = `Pour : ${activeModalSlot.dayTitle}`;
+            
+            const contentDiv = document.getElementById('modal-content');
+            const modalItems = bankItems.filter(item => item.type === activeModalSlot.type);
+
+            if (modalItems.length === 0) {
+                contentDiv.innerHTML = `
+                    <div class="text-center p-8 text-slate-500 italic">
+                        Tous les éléments de ce type ont déjà été placés sur la frise.<br/>
+                        Retirez-en un de la frise pour le voir réapparaître ici.
+                    </div>
+                `;
+            } else {
+                let gridHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">`;
+                
+                modalItems.forEach(item => {
+                    let imageHtml = "";
+                    if (item.type === 'image' && item.imageUrl) {
+                        if (imageErrors[item.id]) {
+                            imageHtml = `
+                                <div class="w-full h-32 bg-slate-100 rounded-lg flex flex-col items-center justify-center text-slate-400 border border-slate-200">
+                                    <i data-lucide="image-off" class="w-8 h-8 mb-2"></i>
+                                    <span class="text-xs text-center px-2">Image bloquée</span>
+                                </div>
+                            `;
+                        } else {
+                            imageHtml = `<img src="${item.imageUrl}" alt="${item.content}" onerror="handleImageError(this, '${item.id}')" class="w-full h-32 object-cover rounded-lg border border-slate-100 group-hover:opacity-90 transition-opacity bg-slate-50" />`;
+                        }
+                    }
+
+                    gridHtml += `
+                        <button onclick="handleSelectItemFromModal('${item.id}')" class="text-left bg-white border-2 border-slate-200 hover:border-amber-400 hover:shadow-md rounded-xl p-4 flex flex-col gap-2 transition-all group">
+                            ${imageHtml}
+                            <span class="font-medium text-slate-700 leading-snug">${item.content}</span>
+                            <div class="mt-auto pt-2 flex justify-end w-full">
+                                <span class="text-xs font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-full group-hover:bg-amber-100">
+                                    Sélectionner
+                                </span>
+                            </div>
+                        </button>
+                    `;
+                });
+                
+                gridHtml += `</div>`;
+                contentDiv.innerHTML = gridHtml;
+            }
+
+            const modalContainer = document.getElementById('modal-container');
+            modalContainer.classList.remove('hidden');
+            modalContainer.classList.add('flex');
+            
+            lucide.createIcons();
+        }
+
+        // Initialisation au chargement de la page
+        document.addEventListener('DOMContentLoaded', () => {
+            resetGame();
+        });
+
+    </script>
+</body>
+</html>

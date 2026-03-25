@@ -168,6 +168,7 @@
             justify-content: center;
             color: white;
             text-align: center;
+            padding: 20px;
         }
         #finish-screen.active { display: flex; }
 
@@ -199,9 +200,6 @@
                 <div class="h-4 w-px bg-stone-300"></div>
                 <span class="text-blue-600 font-bold">Score: <span id="score-display">0</span></span>
             </div>
-            <a href="questionnaire.html" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-full font-bold shadow-lg border border-purple-400 pointer-events-auto flex items-center gap-2 transition-transform hover:scale-105">
-                📝 Questionnaire
-            </a>
             <div class="bg-amber-100/90 text-amber-900 px-4 py-2 rounded-full font-bold shadow-lg border border-amber-200 pointer-events-auto">
                 🕊️ <span id="token-count">0</span>
             </div>
@@ -323,9 +321,15 @@
             </div>
         </div>
 
-        <button onclick="location.reload()" class="bg-white text-emerald-600 px-12 py-4 rounded-full font-bold text-xl shadow-2xl hover:scale-105 transition-transform">
-            Recommencer le Chemin
-        </button>
+        <!-- Section des boutons de fin -->
+        <div class="flex flex-col sm:flex-row gap-4">
+            <button onclick="window.location.href='questionnaire.html'" class="bg-amber-500 text-white px-10 py-4 rounded-full font-extrabold text-xl shadow-2xl hover:scale-105 hover:bg-amber-600 transition-all">
+                Répondre au Questionnaire
+            </button>
+            <button onclick="location.reload()" class="bg-white text-emerald-600 px-10 py-4 rounded-full font-bold text-xl shadow-2xl hover:scale-105 transition-transform">
+                Recommencer le Chemin
+            </button>
+        </div>
     </div>
 
     <script>
@@ -400,11 +404,9 @@
                     <!-- Background light from window -->
                     <rect x="300" y="50" width="200" height="150" fill="#604D3C" />
                     <path d="M300 125 L500 125 M400 50 L400 200" stroke="#2C1B0E" stroke-width="2" />
-
                     <!-- Long Table -->
                     <rect x="50" y="320" width="700" height="80" fill="#8B4513" rx="5" />
                     <rect x="60" y="310" width="680" height="10" fill="#5D4037" />
-
                     <!-- Disciples Left (6) -->
                     <g transform="translate(100, 280)">
                         ${[0, 1, 2, 3, 4, 5].map(i => `
@@ -414,7 +416,6 @@
                             </g>
                         `).join('')}
                     </g>
-
                     <!-- Jesus Center -->
                     <g transform="translate(400, 260)">
                         <!-- Divine Glow -->
@@ -428,7 +429,6 @@
                         <circle cx="0" cy="55" r="10" fill="#F5CBA7" /> <!-- Bread -->
                         <path d="M15 45 L35 45 L30 75 L20 75 Z" fill="#F1C40F" /> <!-- Cup -->
                     </g>
-
                     <!-- Disciples Right (6) -->
                     <g transform="translate(470, 280)">
                         ${[0, 1, 2, 3, 4, 5].map(i => `
@@ -438,7 +438,6 @@
                             </g>
                         `).join('')}
                     </g>
-                    
                     <text x="400" y="420" text-anchor="middle" fill="white" font-size="20" font-weight="bold" opacity="0.8">« CECI EST MON CORPS... CECI EST MON SANG »</text>
                 </svg>`,
                 event: "L'institution de l'Eucharistie et le lavement des pieds.",

@@ -2,26 +2,310 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Menu Déroulant des Jeux</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Jeux Coptes</title>
     <style>
-        /* Un peu de style pour le confort */
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        label { margin-right: 10px; }
-        select { padding: 5px; border-radius: 4px; }
+        :root {
+            --copte-gold: #c6a35f;
+            --copte-red: #800000;
+            --bg-body: #f4eeda; /* Ton parchemin clair */
+            --bg-card: #ffffff;
+            --text-main: #2c1a0a; /* Brun foncé */
+            --border: #d2b48c;
+        }
+
+        body {
+            font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, serif; /* Police plus ecclésiastique */
+            background-color: var(--bg-body);
+            /* Fond avec texture parchemin et icône Copte en filigrane */
+            background-image: 
+                linear-gradient(rgba(244, 238, 218, 0.9), rgba(244, 238, 218, 0.9)),
+                url('https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Ethiopian_Icon_of_Virgin_Mary.jpg/480px-Ethiopian_Icon_of_Virgin_Mary.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-card {
+            background: var(--bg-card);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            border: 3px solid var(--copte-gold);
+            position: relative;
+        }
+
+        /* Grande Croix Copte stylisée en fond de carte */
+        .card-bg-cross {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: auto;
+            opacity: 0.05;
+            pointer-events: none;
+        }
+
+        h2 {
+            margin: 0 0 1rem 0;
+            font-size: 1.8rem;
+            color: var(--copte-red);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .bible-verse {
+            font-style: italic;
+            font-size: 0.9rem;
+            color: #5d4037;
+            margin-bottom: 2rem;
+            padding: 0 10px;
+        }
+
+        .copte-text {
+            font-family: 'Coptic', serif; /* Nécessite une police copte installée ou générique */
+            display: block;
+            margin-top: 5px;
+            color: var(--copte-gold);
+        }
+
+        /* --- STYLE DU FAUX DROPDOWN (CUSTOM) --- */
+        
+        .custom-dropdown {
+            position: relative;
+            text-align: left;
+            z-index: 5;
+        }
+
+        .dropdown-button {
+            width: 100%;
+            padding: 16px 20px;
+            background: #ffffff;
+            border: 2px solid var(--copte-gold);
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-button:hover {
+            background: #fff8e1;
+            box-shadow: 0 0 10px rgba(198, 163, 95, 0.3);
+        }
+
+        .button-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Petite Croix Copte Traditionnelle dans le bouton */
+        .btn-cross-icon {
+            width: 24px;
+            height: 24px;
+            fill: var(--copte-red);
+        }
+
+        .arrow-icon {
+            width: 12px;
+            height: 12px;
+            fill: #94a3b8;
+            transition: transform 0.2s ease;
+        }
+
+        .custom-dropdown.open .arrow-icon {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            width: 100%;
+            background: #ffffff;
+            border: 2px solid var(--copte-gold);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .custom-dropdown.open .dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: #fff8e1;
+            color: var(--copte-red);
+        }
+
+        /* --- STYLE DES ICÔNES DES JEUX --- */
+        
+        /* Conteneur pour l'icône 50 PNG */
+        .icon-50-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background-color: var(--copte-red); /* Rouge Copte pour le fond du 50 */
+            border-radius: 8px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            border: 1px solid var(--copte-gold);
+        }
+
+        .icon-50-image {
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+        }
+
+        /* Style pour les emojis génériques */
+        .entry-emoji {
+            font-size: 1.5rem;
+            margin-right: 12px;
+            width: 32px;
+            text-align: center;
+        }
+
+        /* --- ILLUSTRATION DU DIACRE --- */
+        .diacre-illustration {
+            width: 80px;
+            height: auto;
+            margin-top: 10px;
+            opacity: 0.8;
+        }
+
     </style>
 </head>
 <body>
 
-    <h2>Navigation</h2>
-    
-    <label for="page-select">Choisir une sous-page :</label>
+    <div class="main-container">
+        
+        <div class="nav-card">
+            <svg class="card-bg-cross" viewBox="0 0 100 100">
+                <path d="M45 5H55V25H75V35H55V55H75V65H55V85H75V95H25V85H45V65H25V55H45V35H25V25H45V5Z" fill="var(--copte-gold)"/>
+                <path d="M48 8H52V28H72V32H52V52H72V62H52V82H72V92H28V82H48V62H28V52H48V32H28V28H48V8Z" fill="white"/>
+            </svg>
 
-    <select name="pages" id="page-select" onchange="location = this.value;">
-        <option value="">-- Choisis un jeu --</option>
-        <option value="questionnaire.html">Frise Chronologique de la Semaine Sainte</option>
-        <option value="jeu-semaine-sainte.html">Jeu de la Semaine Sainte</option>
-        <option value="jeu-khamaseen.html">Jeu des Khamasees (50 jours)</option>
-    </select>
+            <h2>Choisi ton jeu</h2>
+
+            <p class="bible-verse">
+                "C'est ici la journée que l'Éternel a faite; Qu'elle soit pour nous un sujet d'allégresse et de joie!"
+                <br>(Psaume 118:24)
+                <span class="copte-text">Ⲡⲁⲓ ⲡⲉ ⲡⲓⲉϩⲟⲟⲩ ⲉⲧⲁ Ⲡϭⲟⲓⲥ ⲑⲁⲙⲓⲟϥ</span>
+            </p>
+            
+            <div class="custom-dropdown" id="myDropdown">
+                
+                <button class="dropdown-button" onclick="toggleDropdown()">
+                    <div class="button-content">
+                        <svg class="btn-cross-icon" viewBox="0 0 100 100">
+                            <path d="M45 10H55V35H80V45H55V70H80V80H55V95H45V80H20V70H45V45H20V35H45V10Z"/>
+                            <circle cx="50" cy="50" r="5" fill="white"/>
+                        </svg>
+                        <span id="dropdown-label">Clique ici pour choisir...</span>
+                    </div>
+                    <svg class="arrow-icon" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                </button>
+
+                <div class="dropdown-menu">
+                    
+                    <a href="jeu-khamaseen.html" class="dropdown-item">
+                        <div class="icon-50-container">
+                            <img src="https://img.icons8.com/ios-filled/50/ffffff/50.png" alt="50" class="icon-50-image">
+                        </div>
+                        Jeu Khamaseen
+                    </a>
+
+                    <a href="jeu-semaine-sainte.html" class="dropdown-item">
+                        <span class="entry-emoji">⛪</span>
+                        Jeu Semaine Sainte
+                    </a>
+
+                    <a href="questionnaire.html" class="dropdown-item">
+                        <span class="entry-emoji">📝</span>
+                        Questionnaire
+                    </a>
+
+                </div>
+            </div>
+            </div>
+
+        <svg class="diacre-illustration" viewBox="0 0 60 100">
+            <path d="M10 20 L50 20 L55 90 L5 90 Z" fill="#e0f7fa" stroke="#b2ebf2" stroke-width="2"/>
+            <circle cx="30" cy="10" r="8" fill="#ffe0b2"/>
+            <path d="M15 20 L30 50 L45 20 L40 18 L30 45 L20 18 Z" fill="#b71c1c"/>
+            <path d="M30 50 L15 90 L20 92 L30 55 L40 92 L45 90 Z" fill="#b71c1c"/>
+            <path d="M28 25 H32 M30 23 V27" stroke="var(--copte-gold)" stroke-width="1"/>
+            <path d="M28 60 H32 M30 58 V62" stroke="var(--copte-gold)" stroke-width="1"/>
+            <path d="M18 80 H22 M20 78 V82" stroke="var(--copte-gold)" stroke-width="1"/>
+            <path d="M38 80 H42 M40 78 V82" stroke="var(--copte-gold)" stroke-width="1"/>
+        </svg>
+
+    </div>
+
+    <script>
+        function toggleDropdown() {
+            document.getElementById('myDropdown').classList.toggle('open');
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.matches('.dropdown-button') && !event.target.closest('.dropdown-button')) {
+                var dropdowns = document.getElementsByClassName("custom-dropdown");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    if (dropdowns[i].classList.contains('open')) {
+                        dropdowns[i].classList.remove('open');
+                    }
+                }
+            }
+        }
+    </script>
 
 </body>
 </html>

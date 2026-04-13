@@ -21,11 +21,55 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Ton image Cloudinary en arrière-plan */
             background: url('https://res.cloudinary.com/dx4uwptap/image/upload/v1776104207/background_jeux_bcfvj6.png') no-repeat center center fixed;
             background-size: cover;
         }
 
+        .main-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        /* Bandeau du verset */
+        .verse-box {
+            background-color: rgba(255, 250, 240, 0.85);
+            border-left: 5px solid var(--copte-gold);
+            border-right: 5px solid var(--copte-gold);
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 500px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .verse-text {
+            color: var(--copte-blue);
+            font-style: italic;
+            font-size: 1rem;
+            margin: 0 0 8px 0;
+            line-height: 1.4;
+        }
+
+        .verse-ref {
+            color: #5d4037;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .copte-text {
+            color: var(--copte-gold);
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        /* Dropdown */
         .dropdown-container {
             position: relative;
             z-index: 1000;
@@ -61,9 +105,7 @@
             transition: transform 0.3s ease;
         }
 
-        .open .arrow {
-            transform: rotate(180deg);
-        }
+        .open .arrow { transform: rotate(180deg); }
 
         .dropdown-menu {
             position: absolute;
@@ -107,11 +149,9 @@
         .icon-box {
             margin-right: 15px;
             width: 30px;
-            text-align: center;
-            font-size: 1.3rem;
             display: flex;
             justify-content: center;
-            align-items: center;
+            font-size: 1.3rem;
         }
 
         .badge-50 {
@@ -121,52 +161,53 @@
             font-weight: 900;
             padding: 2px 5px;
             border-radius: 4px;
-            line-height: 1;
             border: 1px solid var(--copte-blue);
         }
-
     </style>
 </head>
 <body>
 
-    <div class="dropdown-container" id="navDropdown">
-        <button class="dropdown-button" onclick="toggleDropdown()">
-            <span>Choisir un jeu</span>
-            <span class="arrow">▼</span>
-        </button>
-        
-        <ul class="dropdown-menu">
-            <li class="menu-item">
-                <a href="jeu-khamaseen.html">
-                    <span class="icon-box"><span class="badge-50">50</span></span> Jeu Khamaseen
-                </a>
-            </li>
-            <li class="menu-item">
-                <a href="jeu-semaine-sainte.html">
-                    <span class="icon-box">⛪</span> Jeu Semaine Sainte
-                </a>
-            </li>
-            <li class="menu-item">
-                <a href="questionnaire.html">
-                    <span class="icon-box">⏳</span> Frise Chronologique Semaine Sainte
-                </a>
-            </li>
-        </ul>
+    <div class="main-wrapper">
+        <div class="verse-box">
+            <p class="verse-text">"C'est ici la journée que l'Éternel a faite; Qu'elle soit pour nous un sujet d'allégresse et de joie!"</p>
+            <span class="verse-ref">(Psaume 118:24)</span>
+            <span class="copte-text">Ⲡⲁⲓ ⲡⲉ ⲡⲓⲉϩⲟⲟⲩ ⲉⲧⲁ Ⲡϭⲟⲓⲥ ⲑⲁⲙⲓⲟϥ</span>
+        </div>
+
+        <div class="dropdown-container" id="navDropdown">
+            <button class="dropdown-button" onclick="toggleDropdown()">
+                <span>Choisir un jeu</span>
+                <span class="arrow">▼</span>
+            </button>
+            
+            <ul class="dropdown-menu">
+                <li class="menu-item">
+                    <a href="jeu-khamaseen.html">
+                        <span class="icon-box"><span class="badge-50">50</span></span> Jeu Khamaseen
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="jeu-semaine-sainte.html">
+                        <span class="icon-box">⛪</span> Jeu Semaine Sainte
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a href="questionnaire.html">
+                        <span class="icon-box">⏳</span> Frise Chronologique
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 
     <script>
         function toggleDropdown() {
-            const container = document.getElementById('navDropdown');
-            container.classList.toggle('open');
+            document.getElementById('navDropdown').classList.toggle('open');
         }
 
-        // Fermeture automatique si on clique ailleurs
         window.onclick = function(event) {
             if (!event.target.closest('.dropdown-container')) {
-                const container = document.getElementById('navDropdown');
-                if (container.classList.contains('open')) {
-                    container.classList.remove('open');
-                }
+                document.getElementById('navDropdown').classList.remove('open');
             }
         }
     </script>

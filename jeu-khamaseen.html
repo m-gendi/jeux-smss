@@ -122,36 +122,7 @@
         .btn-close:hover {
             background: #e2e8f0;
         }
-        /* Mobile Controls */
-        #mobile-controls {
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            display: grid;
-            grid-template-columns: 60px 60px 60px;
-            grid-template-rows: 60px 60px;
-            gap: 10px;
-            pointer-events: auto;
-        }
-        .d-btn {
-            background: rgba(255, 255, 255, 0.5);
-            border: 2px solid rgba(0, 0, 0, 0.2);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            user-select: none;
-            cursor: pointer;
-        }
-        .d-btn:active {
-            background: rgba(255, 255, 255, 0.8);
-        }
-        #btn-up { grid-column: 2; grid-row: 1; }
-        #btn-left { grid-column: 1; grid-row: 2; }
-        #btn-down { grid-column: 2; grid-row: 2; }
-        #btn-right { grid-column: 3; grid-row: 2; }
-
+        
         /* Floating NPC Labels */
         .npc-label {
             position: absolute;
@@ -167,19 +138,6 @@
             white-space: nowrap;
         }
 
-        #interaction-hint {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            pointer-events: none;
-            display: none;
-        }
-
         #fade-overlay {
             position: absolute;
             top: 0;
@@ -191,6 +149,71 @@
             pointer-events: none;
             transition: opacity 1s ease;
             z-index: 9999;
+        }
+
+        /* --- CONTRÔLES MOBILE --- */
+        #joystick-zone {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            pointer-events: auto;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            pointer-events: none;
+            transform: translate(0px, 0px);
+        }
+        #btn-interact {
+            position: absolute;
+            bottom: 50px;
+            right: 30px;
+            width: 90px;
+            height: 90px;
+            background: #b45309;
+            color: white;
+            border-radius: 50%;
+            border: 3px solid #fbd38d;
+            font-weight: bold;
+            font-size: 13px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            display: none; 
+            z-index: 1000;
+            cursor: pointer;
+            touch-action: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #btn-interact:active {
+            background: #92400e;
+            transform: scale(0.95);
+        }
+        #pc-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
         }
 
         /* --- QUIZ UI --- */
@@ -301,7 +324,8 @@
         }
 
         @media (min-width: 768px) {
-            #mobile-controls { display: none; }
+            #joystick-zone { display: none !important; }
+            #btn-interact { display: none !important; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -313,10 +337,16 @@
     <div id="ui-layer">
         <div class="header">
             <h1>Pèlerinage des 50 Jours (Khamaseen)</h1>
-            <p>Utilisez les flèches pour marcher. Approchez les personnages pour méditer les Écritures.</p>
+            <p>Utilisez les contrôles pour marcher. Approchez les personnages pour méditer les Écritures.</p>
         </div>
 
-        <div id="interaction-hint">Appuyez sur ESPACE pour interagir</div>
+        <!-- Contrôles mobiles & PC -->
+        <div id="pc-hint">Appuyez sur ESPACE pour interagir</div>
+        <button id="btn-interact">ACTION</button>
+        
+        <div id="joystick-zone">
+            <div id="joystick-knob"></div>
+        </div>
 
         <div id="dialog-box">
             <div class="dialog-header" id="dialog-title">Titre</div>
@@ -332,13 +362,6 @@
             </div>
             <button class="btn-close" id="btn-close-dialog">Continuer le pèlerinage</button>
         </div>
-
-        <div id="mobile-controls">
-            <div class="d-btn" id="btn-up">↑</div>
-            <div class="d-btn" id="btn-left">←</div>
-            <div class="d-btn" id="btn-down">↓</div>
-            <div class="d-btn" id="btn-right">→</div>
-        </div>
         
         <div id="fade-overlay"></div>
     </div>
@@ -348,7 +371,7 @@
         <div id="quiz-container">
             <button id="btn-exit-quiz" title="Quitter le questionnaire">←</button>
             <h2 id="quiz-title">L'Épreuve du Témoin</h2>
-            <div id="quiz-progress">Question 1 / 10</div>
+            <div id="quiz-progress">Question 1 / 12</div>
             <div id="quiz-question">Question text</div>
             <div id="quiz-options"></div>
             <div id="quiz-feedback"></div>
@@ -419,16 +442,28 @@
                 title: "Sortir", quote: "", dogma: "", sources: "", action: "teleport_outside"
             },
             {
+                id: "tiberias", name: "La Mer de Tibériade", position: { x: -35, z: -60 }, color: 0xffffff,
+                title: "L'Apparition en Galilée", quote: "« Simon, fils de Jonas, m'aimes-tu ? » Il lui répondit : « Oui, Seigneur, tu sais que je t'aime. » Jésus lui dit : « Pais mes brebis. » (Jean 21:16)",
+                dogma: "La restauration de Pierre illustre le sacrement de la pénitence et le rôle pastoral.",
+                sources: "Bible : Jean 21:1-19.", action: "dialog"
+            },
+            {
+                id: "commission", name: "La mission des disciples", position: { x: 45, z: -78 }, color: 0xffffff,
+                title: "La Montagne en Galilée", quote: "« Les onze disciples allèrent en Galilée, sur la montagne que Jésus leur avait désignée. [...] Allez, faites de toutes les nations des disciples, les baptisant au nom du Père, du Fils et du Saint-Esprit. » (Matthieu 28:16,19)",
+                dogma: "Fondement dogmatique du sacrement du Baptême Trinitaire.",
+                sources: "Bible : Matthieu 28:16-20.", action: "dialog"
+            },
+            {
                 id: "ascension", name: "L'Ascension (Jour 40)", position: { x: 25, z: -60 }, color: 0x0284c7,
-                title: "Le Mont des Oliviers", quote: "« Ce Jésus, qui a été enlevé au ciel du milieu de vous, viendra de la même manière. » (Actes 1:11)",
-                dogma: "Procession uniquement dans le sanctuaire à partir de ce jour (symbole de l'entrée au ciel).",
-                sources: "Bible : Actes 1:9-11. Rite Copte.", action: "dialog"
+                title: "Le Mont des Oliviers", quote: "« Ce Jésus... viendra de la même manière. » (Actes 1:11)",
+                dogma: "Procession uniquement dans le sanctuaire à partir de ce jour.",
+                sources: "Bible : Actes 1:9-11.", action: "dialog"
             },
             {
                 id: "pentecost", name: "La Pentecôte (Jour 50)", position: { x: 0, z: -80 }, color: 0xfacc15,
                 title: "La Descente de l'Esprit Saint", quote: "« Et ils furent tous remplis du Saint-Esprit. » (Actes 2:4)",
-                dogma: "Fin du Khamaseen. Office de la Génuflexion (Sajda) le soir. L'Esprit procède du Père seul.",
-                sources: "Bible : Actes 2:1-4. Dogme : Credo de Nicée.", action: "dialog"
+                dogma: "Office de la Génuflexion (Sajda) le soir. L'Esprit procède du Père seul.",
+                sources: "Bible : Actes 2:1-4.", action: "dialog"
             },
             {
                 id: "finish_line", name: "Porte de l'Évangélisation (Fin)", position: { x: 0, z: -100 }, color: 0xf59e0b,
@@ -438,7 +473,7 @@
             }
         ];
 
-        // --- DONNÉES DU QUIZ (10 QUESTIONS) ---
+        // --- DONNÉES DU QUIZ (12 QUESTIONS) ---
         const quizData = [
             {
                 question: "Pendant les 50 jours du Khamaseen, qu'est-il strictement interdit de faire dans l'Église copte orthodoxe ?",
@@ -457,6 +492,18 @@
                 options: ["Sauveur !", "Roi !", "Dieu !", "Maître !"],
                 correctAnswer: 2,
                 explanation: "« Mon Seigneur et mon Dieu ! » (Jean 20:28). Ce 8ème jour affirme formellement la divinité absolue du Christ."
+            },
+            {
+                question: "Au bord de la mer de Tibériade, que demande Jésus trois fois à Pierre ?",
+                options: ["« M'aimes-tu ? »", "« Pourquoi m'as-tu renié ? »", "« As-tu pêché des poissons ? »", "« Veux-tu me suivre ? »"],
+                correctAnswer: 0,
+                explanation: "Il lui demande trois fois « M'aimes-tu ? » pour effacer son triple reniement et lui confier la charge pastorale (Jean 21)."
+            },
+            {
+                question: "Quel sacrement est fondé par le commandement : « baptisant au nom du Père, du Fils et du Saint-Esprit » (Grande Commission) ?",
+                options: ["L'Eucharistie", "Le Mariage", "Le Baptême Trinitaire", "L'Ordination"],
+                correctAnswer: 2,
+                explanation: "C'est le fondement scripturaire du sacrement du Baptême, administré obligatoirement au nom de la Sainte Trinité (Matthieu 28:19)."
             },
             {
                 question: "À partir du 40ème jour (l'Ascension), que se passe-t-il concernant la procession de la Résurrection à l'église ?",
@@ -507,18 +554,29 @@
             let scene, camera, renderer, player;
             let npcs = [];
             let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false };
+            
+            // --- JOYSTICK VARIABLES ---
+            let joyX = 0, joyY = 0;
+            let isDragging = false;
+            let joyCenterX, joyCenterY, maxJoyRadius = 35;
+            const joystickZone = document.getElementById('joystick-zone');
+            const joystickKnob = document.getElementById('joystick-knob');
+
             let isDialogActive = false;
             let isQuizStarted = false;
             let ascensionChrist = null;
             let flames = [];
+            let ripples = []; 
             const obstacles = [];
-            const baseSpeed = 0.22;
+            
+            const baseSpeed = 0.12; 
             const rotationSpeed = 0.05; 
             const interactionDistance = 4;
+            
             let currentQuestionIndex = 0;
             let quizScore = 0;
-            
             let currentLookAt = new THREE.Vector3(0, 12, 0);
+            let walkCycle = 0;
 
             init();
             animate();
@@ -535,12 +593,20 @@
                 renderer = new THREE.WebGLRenderer({ antialias: true });
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
                 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
                 const dirLight = new THREE.DirectionalLight(0xffdfb0, 0.8);
                 dirLight.position.set(20, 40, 20);
                 dirLight.castShadow = true;
+                dirLight.shadow.camera.left = -150;
+                dirLight.shadow.camera.right = 150;
+                dirLight.shadow.camera.top = 150;
+                dirLight.shadow.camera.bottom = -150;
+                dirLight.shadow.camera.far = 500;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
                 scene.add(dirLight);
 
                 const groundMat = new THREE.MeshStandardMaterial({ color: 0xe6c280, roughness: 0.9 });
@@ -552,9 +618,7 @@
                 function createGroundPatch(x, z, w, d, colorHex, yOffset = 0.02) {
                     const patchMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 1.0 });
                     const patch = new THREE.Mesh(new THREE.PlaneGeometry(w, d), patchMat);
-                    patch.rotation.x = -Math.PI / 2;
-                    patch.position.set(x, yOffset, z);
-                    patch.receiveShadow = true;
+                    patch.rotation.x = -Math.PI / 2; patch.position.set(x, yOffset, z); patch.receiveShadow = true;
                     scene.add(patch);
                 }
 
@@ -569,11 +633,8 @@
 
                 function createRock(x, z, size = 0.5, color = 0x78716c) {
                     const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(size, 0), new THREE.MeshStandardMaterial({ color: color }));
-                    rock.position.set(x, size/2, z);
-                    rock.rotation.set(Math.random(), Math.random(), Math.random());
-                    rock.castShadow = true;
-                    scene.add(rock);
-                    return rock;
+                    rock.position.set(x, size/2, z); rock.rotation.set(Math.random(), Math.random(), Math.random()); rock.castShadow = true;
+                    scene.add(rock); return rock;
                 }
 
                 const rockMat = new THREE.MeshStandardMaterial({ color: 0x78716c });
@@ -603,11 +664,19 @@
                 createGroundPatch(25, -75, 25, 45, 0x65a30d, 0.015);
                 for(let i=0; i<8; i++) createOliveTree(18 + Math.random()*15, -55 - Math.random()*25);
 
+                createGroundPatch(-45, -60, 30, 30, 0x0284c7, 0.01); // Eau bleue
+                createGroundPatch(-32, -60, 15, 30, 0xd4d4d8, 0.015);
+                const fireGeo = new THREE.ConeGeometry(0.5, 1, 8); const fireMat = new THREE.MeshBasicMaterial({ color: 0xff4500 });
+                const tiberiasFire = new THREE.Mesh(fireGeo, fireMat); tiberiasFire.position.set(-35, 0.5, -60); scene.add(tiberiasFire);
+                const net = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 4), new THREE.MeshStandardMaterial({ color: 0x8b4513, wireframe: true })); net.position.set(-38, 0.1, -58); scene.add(net);
+
+                createGroundPatch(45, -80, 25, 25, 0x4d7c0f, 0.01);
+                createRock(45, -80, 4, 0x78716c); obstacles.push({ minX: 41, maxX: 49, minZ: -84, maxZ: -76 });
+
                 const archMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b });
                 const pillar1 = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 1), archMat); pillar1.position.set(-4, 4, -100);
                 const pillar2 = new THREE.Mesh(new THREE.BoxGeometry(1, 8, 1), archMat); pillar2.position.set(4, 4, -100);
-                const archTop = new THREE.Mesh(new THREE.BoxGeometry(9, 1, 1), archMat); archTop.position.set(0, 8.5, -100);
-                scene.add(pillar1, pillar2, archTop);
+                const archTop = new THREE.Mesh(new THREE.BoxGeometry(9, 1, 1), archMat); archTop.position.set(0, 8.5, -100); scene.add(pillar1, pillar2, archTop);
 
                 // --- INTERIEURS ---
                 const sepulchreGroup = new THREE.Group();
@@ -617,36 +686,21 @@
                     const r = createRock(0, 0, 3 + Math.random()*2, 0x292524);
                     const angle = (i/15) * Math.PI * 2; r.position.set(Math.cos(angle)*7.5, 2.5, Math.sin(angle)*7.5); sepulchreGroup.add(r);
                 }
-                
-                // --- POSITION AMELIOREE DU TOMBEAU (Écarté du mur) ---
-                const stoneBed = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 3), new THREE.MeshStandardMaterial({color: 0x57534e})); 
-                stoneBed.position.set(0, 0.6, -1); // Déplacé de -4 à -1 pour l'éloigner du mur du fond
-                sepulchreGroup.add(stoneBed);
-                
-                const linens = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1.5), new THREE.MeshStandardMaterial({color: 0xffffff})); 
-                linens.position.set(-1, 1.25, -1); // Déplacé de -4 à -1
-                sepulchreGroup.add(linens);
-                
-                const suaire = new THREE.Mesh(new THREE.BoxGeometry(1, 0.4, 1), new THREE.MeshStandardMaterial({color: 0xf8fafc})); 
-                suaire.position.set(2, 1.4, -1); // Déplacé de -4 à -1
-                sepulchreGroup.add(suaire);
-
-                // Éclairage focalisé sur le nouveau centre
-                const sepSpot = new THREE.SpotLight(0xffffff, 1.5, 20);
-                sepSpot.position.set(0, 4, -1);
-                sepSpot.target = stoneBed;
-                sepulchreGroup.add(sepSpot);
-
+                const stoneBed = new THREE.Mesh(new THREE.BoxGeometry(6, 1.2, 3), new THREE.MeshStandardMaterial({color: 0x57534e})); stoneBed.position.set(0, 0.6, -1); sepulchreGroup.add(stoneBed);
+                const linens = new THREE.Mesh(new THREE.BoxGeometry(3, 0.1, 1.5), new THREE.MeshStandardMaterial({color: 0xffffff})); linens.position.set(-1, 1.25, -1); sepulchreGroup.add(linens);
+                const suaire = new THREE.Mesh(new THREE.BoxGeometry(1, 0.4, 1), new THREE.MeshStandardMaterial({color: 0xf8fafc})); suaire.position.set(2, 1.4, -1); sepulchreGroup.add(suaire);
+                const sepSpot = new THREE.SpotLight(0xffffff, 1.5, 20); sepSpot.position.set(0, 4, -1); sepSpot.target = stoneBed; sepulchreGroup.add(sepSpot);
                 sepulchreGroup.position.set(-500, 0, -500); scene.add(sepulchreGroup);
 
                 const cenacleGroup = new THREE.Group();
                 const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.MeshStandardMaterial({ color: 0x5c4033 })); floor.rotation.x = -Math.PI / 2; cenacleGroup.add(floor);
-                const wallN = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 1), houseMat); wallN.position.set(0, 5, -15);
-                const wallS = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 1), houseMat); wallS.position.set(0, 5, 15);
-                const wallE = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 30), houseMat); wallE.position.set(15, 5, 0);
-                const wallW = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 30), houseMat); wallW.position.set(-15, 5, 0);
+                const cenWallMat = new THREE.MeshStandardMaterial({ color: 0xebd5b3 });
+                const wallN = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 1), cenWallMat); wallN.position.set(0, 5, -15);
+                const wallS = new THREE.Mesh(new THREE.BoxGeometry(30, 10, 1), cenWallMat); wallS.position.set(0, 5, 15);
+                const wallE = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 30), cenWallMat); wallE.position.set(15, 5, 0);
+                const wallW = new THREE.Mesh(new THREE.BoxGeometry(1, 10, 30), cenWallMat); wallW.position.set(-15, 5, 0);
                 cenacleGroup.add(wallN, wallS, wallE, wallW);
-                const christ = createHuman(0xffffff, true); christ.position.set(0, 0, -10); cenacleGroup.add(christ);
+                const christCenacle = createHuman(0xffffff, true); christCenacle.position.set(0, 0, -10); cenacleGroup.add(christCenacle);
                 cenacleGroup.position.set(500, 0, 500); scene.add(cenacleGroup);
 
                 player = createHuman(0x3b82f6); scene.add(player);
@@ -674,6 +728,20 @@
                     } else if (data.id === "emmaus") {
                         npcMesh = createHuman(data.color); npcMesh.position.set(data.position.x - 1.5, 0, data.position.z);
                         const disc2 = createHuman(0xb45309); disc2.position.set(data.position.x + 1.5, 0, data.position.z); scene.add(disc2);
+                    } else if (data.id === "tiberias") {
+                        npcMesh = createHuman(0xffffff, true); npcMesh.position.set(data.position.x, 0, data.position.z);
+                        const peter = createHuman(0x2563eb); peter.position.set(data.position.x + 2, 0, data.position.z + 1); scene.add(peter);
+                        for(let i=0; i<3; i++) { 
+                            const d = createHuman(0x64748b); d.position.set(data.position.x - 3, 0, data.position.z + i*1.5); scene.add(d);
+                        }
+                    } else if (data.id === "commission") {
+                        npcMesh = createHuman(0xffffff, true); npcMesh.position.set(data.position.x, 4, data.position.z);
+                        for(let i=0; i<11; i++) { 
+                            const d = createHuman(0x64748b);
+                            const angle = (i/11) * Math.PI * 1.5 + Math.PI*0.25; 
+                            d.position.set(data.position.x + Math.cos(angle)*6, 0, data.position.z + 4 + Math.sin(angle)*3);
+                            scene.add(d);
+                        }
                     } else if (data.id === "finish_line") {
                         npcMesh = new THREE.Mesh(new THREE.BoxGeometry(6, 1, 1), new THREE.MeshBasicMaterial({ visible: false }));
                         npcMesh.position.set(data.position.x, 0, data.position.z);
@@ -683,10 +751,21 @@
                     document.getElementById('ui-layer').appendChild(label); npcs.push({ mesh: npcMesh, data: data, label: label });
                 });
 
+                // Écouteurs d'événements
                 window.addEventListener('keydown', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; if (e.key === ' ' && !isDialogActive) checkForInteraction(); });
                 window.addEventListener('keyup', (e) => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
-                setupTouchControls('btn-up', 'ArrowUp'); setupTouchControls('btn-down', 'ArrowDown');
-                setupTouchControls('btn-left', 'ArrowLeft'); setupTouchControls('btn-right', 'ArrowRight');
+                
+                joystickZone.addEventListener('touchstart', handleJoyStart, {passive: false});
+                joystickZone.addEventListener('touchmove', handleJoyMove, {passive: false});
+                joystickZone.addEventListener('touchend', handleJoyEnd);
+                joystickZone.addEventListener('mousedown', handleJoyStart);
+                document.addEventListener('mousemove', handleJoyMove);
+                document.addEventListener('mouseup', handleJoyEnd);
+
+                const actionBtn = document.getElementById('btn-interact');
+                actionBtn.addEventListener('click', checkForInteraction);
+                actionBtn.addEventListener('touchstart', (e) => { e.preventDefault(); checkForInteraction(); });
+
                 document.getElementById('btn-close-dialog').addEventListener('click', closeDialog);
                 document.getElementById('quiz-next-btn').addEventListener('click', () => { currentQuestionIndex++; loadQuizQuestion(); });
                 document.getElementById('quiz-restart-btn').addEventListener('click', () => { location.reload(); });
@@ -694,17 +773,45 @@
                 window.addEventListener('resize', onWindowResize);
             }
 
-            function createHuman(c, glow = false) {
-                const g = new THREE.Group(); const m = glow ? new THREE.MeshBasicMaterial({ color: c }) : new THREE.MeshStandardMaterial({ color: c });
-                const b = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.6, 1.5, 16), m); b.position.y = 0.75; b.castShadow = !glow;
-                const h = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), glow ? m : new THREE.MeshStandardMaterial({ color: 0xe0ac69 }));
-                h.position.y = 1.7; h.castShadow = !glow; g.add(b, h); return g;
+            function handleJoyStart(e) {
+                isDragging = true;
+                const rect = joystickZone.getBoundingClientRect();
+                joyCenterX = rect.left + rect.width / 2;
+                joyCenterY = rect.top + rect.height / 2;
+                handleJoyMove(e);
             }
 
-            function setupTouchControls(id, k) {
-                const el = document.getElementById(id); const act = (v) => (e) => { e.preventDefault(); keys[k] = v; };
-                el.addEventListener('touchstart', act(true)); el.addEventListener('touchend', act(false));
-                el.addEventListener('mousedown', act(true)); el.addEventListener('mouseup', act(false));
+            function handleJoyMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let dx = clientX - joyCenterX;
+                let dy = clientY - joyCenterY;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                if (distance > maxJoyRadius) { dx = (dx / distance) * maxJoyRadius; dy = (dy / distance) * maxJoyRadius; }
+                joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+                joyX = dx / maxJoyRadius; joyY = dy / maxJoyRadius;
+            }
+
+            function handleJoyEnd() { isDragging = false; joystickKnob.style.transform = `translate(0px, 0px)`; joyX = 0; joyY = 0; }
+
+            function createHuman(c, glow = false) {
+                const g = new THREE.Group(); 
+                const m = glow ? new THREE.MeshBasicMaterial({ color: c }) : new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 });
+                const skinMat = glow ? m : new THREE.MeshStandardMaterial({ color: 0xe0ac69, roughness: 0.5 });
+                const hairMat = glow ? m : new THREE.MeshStandardMaterial({ color: 0x2e1b0f, roughness: 0.9 });
+                const body = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.4, 1.1, 16), m); body.position.y = 0.55; body.castShadow = !glow;
+                const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16), m); shoulders.position.y = 1.1; shoulders.scale.set(1.5, 0.8, 1); shoulders.castShadow = !glow;
+                const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.15, 8), skinMat); neck.position.y = 1.25; neck.castShadow = !glow;
+                const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat); head.position.y = 1.45; head.castShadow = !glow;
+                const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.6, 8), m); armL.position.set(-0.35, 0.85, 0); armL.rotation.z = Math.PI / 10; armL.castShadow = !glow;
+                const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.6, 8), m); armR.position.set(0.35, 0.85, 0); armR.rotation.z = -Math.PI / 10; armR.castShadow = !glow;
+                const handL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), skinMat); handL.position.set(-0.45, 0.5, 0);
+                const handR = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), skinMat); handR.position.set(0.45, 0.5, 0);
+                g.add(body, shoulders, neck, head, armL, armR, handL, handR);
+                if (!glow) { const hair = new THREE.Mesh(new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.7), hairMat); hair.position.y = 1.46; hair.castShadow = true; g.add(hair); }
+                g.position.y = 0; return g;
             }
 
             function createBuilding(x, z, w, h, d, mat) {
@@ -719,7 +826,7 @@
                 npcs.forEach(npc => {
                     if (npc.data.id === "finish_line") return;
                     if (Math.abs(player.position.x - npc.data.position.x) < 50 && Math.abs(player.position.z - npc.data.position.z) < 50) {
-                        const pos = (npc.data.id === 'ascension') ? new THREE.Vector3(npc.data.position.x, 0, npc.data.position.z) : npc.mesh.position;
+                        const pos = (npc.data.id === 'ascension' || npc.data.id === 'commission') ? new THREE.Vector3(npc.data.position.x, 0, npc.data.position.z) : npc.mesh.position;
                         const d = player.position.distanceTo(pos); if (d < minD) { minD = d; closest = npc; }
                     }
                 });
@@ -735,7 +842,9 @@
                 isDialogActive = true; for (let k in keys) keys[k] = false;
                 document.getElementById('dialog-title').innerText = d.title; document.getElementById('dialog-quote').innerText = d.quote;
                 document.getElementById('dialog-dogma').innerText = d.dogma; document.getElementById('dialog-sources').innerText = "Sources : " + d.sources;
-                document.getElementById('dialog-box').classList.add('active'); document.getElementById('interaction-hint').style.display = 'none';
+                document.getElementById('dialog-box').classList.add('active'); 
+                document.getElementById('btn-interact').style.display = 'none';
+                document.getElementById('pc-hint').style.display = 'none';
             }
 
             function closeDialog() { isDialogActive = false; document.getElementById('dialog-box').classList.remove('active'); }
@@ -744,91 +853,99 @@
                 const o = document.getElementById('fade-overlay'); o.style.opacity = '1'; isDialogActive = true;
                 setTimeout(() => {
                     player.position.set(tx, 0, tz);
-                    if (tx < -400) { player.rotation.y = Math.PI; camera.position.set(tx, 1.7, tz); currentLookAt.set(tx, 1.7, tz - 5); camera.lookAt(currentLookAt); }
-                    else { camera.position.set(tx, 12, tz + 15); camera.lookAt(player.position); }
+                    if (tx < -400 || tx > 400) { 
+                        player.rotation.y = Math.PI; camera.position.set(tx, 1.5, tz); currentLookAt.set(tx, 1.5, tz - 5); camera.lookAt(currentLookAt); 
+                    } else { 
+                        camera.position.set(tx, 12, tz + 15); camera.lookAt(player.position); 
+                    }
                     setTimeout(() => { o.style.opacity = '0'; isDialogActive = false; }, 500);
                 }, 1000);
             }
 
             function startQuiz() {
                 if (isQuizStarted) return;
-                isQuizStarted = true; isDialogActive = true; for (let k in keys) keys[k] = false;
+                isQuizStarted = true; isDialogActive = true; for (let k in keys) keys[k] = false; joyX = 0; joyY = 0;
                 document.getElementById('ui-layer').style.display = 'none';
                 document.getElementById('quiz-overlay').style.display = 'flex';
                 currentQuestionIndex = 0; quizScore = 0; loadQuizQuestion();
             }
 
-            function closeQuiz() {
-                isQuizStarted = false; isDialogActive = false;
-                document.getElementById('quiz-overlay').style.display = 'none';
-                document.getElementById('ui-layer').style.display = 'flex';
-                player.position.z += 5;
-            }
+            function closeQuiz() { isQuizStarted = false; isDialogActive = false; document.getElementById('quiz-overlay').style.display = 'none'; document.getElementById('ui-layer').style.display = 'flex'; player.position.z += 5; }
 
             function loadQuizQuestion() {
-                const questionData = quizData[currentQuestionIndex];
-                const feedbackDiv = document.getElementById('quiz-feedback');
-                const nextBtn = document.getElementById('quiz-next-btn');
-                const optionsDiv = document.getElementById('quiz-options');
-                feedbackDiv.style.display = 'none'; nextBtn.style.display = 'none'; optionsDiv.innerHTML = '';
+                const qData = quizData[currentQuestionIndex]; const feedback = document.getElementById('quiz-feedback'); const next = document.getElementById('quiz-next-btn'); const options = document.getElementById('quiz-options');
+                feedback.style.display = 'none'; next.style.display = 'none'; options.innerHTML = '';
                 if (currentQuestionIndex >= quizData.length) { showFinalScore(); return; }
-                document.getElementById('quiz-progress').innerText = `Question ${currentQuestionIndex + 1} / ${quizData.length}`;
-                document.getElementById('quiz-question').innerText = questionData.question;
-                questionData.options.forEach((optText, index) => {
-                    const btn = document.createElement('button'); btn.className = 'quiz-option'; btn.innerText = optText;
-                    btn.onclick = () => handleAnswer(index, questionData.correctAnswer, questionData.explanation);
-                    optionsDiv.appendChild(btn);
-                });
+                document.getElementById('quiz-progress').innerText = `Question ${currentQuestionIndex + 1} / ${quizData.length}`; document.getElementById('quiz-question').innerText = qData.question;
+                qData.options.forEach((opt, i) => { const btn = document.createElement('button'); btn.className = 'quiz-option'; btn.innerText = opt; btn.onclick = () => handleAnswer(i, qData.correctAnswer, qData.explanation); options.appendChild(btn); });
             }
 
-            function handleAnswer(selectedIndex, correctIndex, explanation) {
-                const buttons = document.querySelectorAll('.quiz-option');
-                const feedbackDiv = document.getElementById('quiz-feedback');
-                const nextBtn = document.getElementById('quiz-next-btn');
-                buttons.forEach(btn => btn.disabled = true);
-                if (selectedIndex === correctIndex) { buttons[selectedIndex].classList.add('correct'); quizScore++; feedbackDiv.innerHTML = `<strong>Excellente réponse !</strong><br>${explanation}`; feedbackDiv.style.background = "#dcfce7"; feedbackDiv.style.color = "#166534"; }
-                else { buttons[selectedIndex].classList.add('wrong'); buttons[correctIndex].classList.add('correct'); feedbackDiv.innerHTML = `<strong>Erreur !</strong><br>${explanation}`; feedbackDiv.style.background = "#fee2e2"; feedbackDiv.style.color = "#991b1b"; }
-                feedbackDiv.style.display = 'block'; nextBtn.style.display = 'inline-block';
+            function handleAnswer(sel, corr, expl) {
+                const btns = document.querySelectorAll('.quiz-option'); const feedback = document.getElementById('quiz-feedback'); const next = document.getElementById('quiz-next-btn');
+                btns.forEach(b => b.disabled = true);
+                if (sel === corr) { btns[sel].classList.add('correct'); quizScore++; feedback.innerHTML = `<strong>Excellente réponse !</strong><br>${expl}`; feedback.style.background = "#dcfce7"; feedback.style.color = "#166534"; }
+                else { btns[sel].classList.add('wrong'); btns[corr].classList.add('correct'); feedback.innerHTML = `<strong>Erreur !</strong><br>${expl}`; feedback.style.background = "#fee2e2"; feedback.style.color = "#991b1b"; }
+                feedback.style.display = 'block'; next.style.display = 'inline-block';
             }
 
             function showFinalScore() {
-                document.getElementById('quiz-title').innerText = "Fin du Pèlerinage";
-                document.getElementById('quiz-progress').style.display = 'none';
-                document.getElementById('quiz-options').innerHTML = '';
-                document.getElementById('quiz-feedback').style.display = 'none';
-                document.getElementById('quiz-next-btn').style.display = 'none';
-                const questionDiv = document.getElementById('quiz-question');
-                let message = quizScore >= 7 ? "Parfait ! Vous êtes un excellent témoin des Khamaseen." : "Très bien ! N'hésitez pas à relire les sources pour parfaire vos connaissances.";
-                questionDiv.innerHTML = `<span style="font-size:3rem; display:block; color:#b45309;">${quizScore} / ${quizData.length}</span><br>${message}`;
+                const qDiv = document.getElementById('quiz-question');
+                qDiv.innerHTML = `<span style="font-size:3rem; display:block; color:#b45309;">${quizScore} / ${quizData.length}</span><br>${quizScore >= 9 ? "Parfait ! Vous êtes un excellent témoin." : "Très bien ! Relisez les sources pour parfaire vos connaissances."}`;
                 document.getElementById('quiz-restart-btn').style.display = 'inline-block';
             }
 
             function updateLabels() {
                 let near = false;
+                let closestActionText = "ACTION";
+                let minD = interactionDistance;
+
                 npcs.forEach(npc => {
                     let d = 999;
                     if (Math.abs(player.position.x - npc.data.position.x) < 50 && Math.abs(player.position.z - npc.data.position.z) < 50) {
-                        const pos = (npc.data.id === 'ascension' || npc.data.id === 'finish_line') ? new THREE.Vector3(npc.data.position.x, 0, npc.data.position.z) : npc.mesh.position;
+                        const pos = (npc.data.id === 'ascension' || npc.data.id === 'finish_line' || npc.data.id === 'commission') ? new THREE.Vector3(npc.data.position.x, 0, npc.data.position.z) : npc.mesh.position;
                         d = player.position.distanceTo(pos);
                     }
-                    if (d < interactionDistance) near = true;
-                    const v = npc.mesh.position.clone();
-                    v.y += (npc.data.id === 'pentecost') ? 3.8 : 2.2; if (npc.data.id === 'finish_line') v.y += 2.0; 
-                    v.project(camera);
-                    const x = (v.x * .5 + .5) * window.innerWidth;
-                    const y = (v.y * -.5 + .5) * window.innerHeight;
-                    if (v.z > 1) { npc.label.style.opacity = '0'; }
-                    else { npc.label.style.opacity = '1'; npc.label.style.left = `${x}px`; npc.label.style.top = `${y}px`; }
+                    
+                    if (d < minD) {
+                        near = true;
+                        minD = d;
+                        // Déterminer le libellé en fonction de l'action
+                        if (npc.data.action === "dialog") closestActionText = "MÉDITER";
+                        else if (npc.data.action.includes("inside")) closestActionText = "ENTRER";
+                        else if (npc.data.action.includes("outside")) closestActionText = "SORTIR";
+                        else if (npc.data.action === "start_quiz") closestActionText = "ÉPREUVE";
+                    }
+
+                    const v = npc.mesh.position.clone(); v.y += (npc.data.id === 'pentecost') ? 3.8 : 2.2; 
+                    if (npc.data.id === 'finish_line') v.y += 2.0; if (npc.data.id === 'commission') v.y += 4.0;
+                    v.project(camera); const x = (v.x * .5 + .5) * window.innerWidth; const y = (v.y * -.5 + .5) * window.innerHeight;
+                    if (v.z > 1) { npc.label.style.opacity = '0'; } else { npc.label.style.opacity = '1'; npc.label.style.left = `${x}px`; npc.label.style.top = `${y}px`; }
                 });
-                document.getElementById('interaction-hint').style.display = (near && !isDialogActive) ? 'block' : 'none';
+                
+                const isMobile = window.innerWidth < 768;
+                const interactBtn = document.getElementById('btn-interact');
+                const pcHint = document.getElementById('pc-hint');
+
+                if (near && !isDialogActive && !isQuizStarted) {
+                    if(isMobile) {
+                        interactBtn.innerText = closestActionText;
+                        interactBtn.style.display = 'flex';
+                        pcHint.style.display = 'none';
+                    } else {
+                        interactBtn.style.display = 'none';
+                        pcHint.innerText = `Appuyez sur ESPACE pour ${closestActionText.toLowerCase()}`;
+                        pcHint.style.display = 'block';
+                    }
+                } else {
+                    interactBtn.style.display = 'none';
+                    pcHint.style.display = 'none';
+                }
             }
 
             function checkCollision(x, z) {
                 if (Math.abs(x) > 400) return false;
                 const margin = 0.5;
-                for (let obs of obstacles) {
-                    if (x + margin > obs.minX && x - margin < obs.maxX && z + margin > obs.minZ && z - margin < obs.maxZ) return true;
-                }
+                for (let obs of obstacles) { if (x + margin > obs.minX && x - margin < obs.maxX && z + margin > obs.minZ && z - margin < obs.maxZ) return true; }
                 return false;
             }
 
@@ -836,37 +953,51 @@
                 requestAnimationFrame(animate);
                 const inSepulchre = player.position.x < -400;
                 const inCenacle = player.position.x > 400;
-                const currentSpeed = inSepulchre ? baseSpeed * 0.25 : baseSpeed;
+                const isFirstPerson = inSepulchre || inCenacle;
+                const currentSpeed = isFirstPerson ? baseSpeed * 0.3 : baseSpeed;
+                let isMoving = false;
 
                 if (!isDialogActive && !isQuizStarted) {
-                    if (inSepulchre) {
+                    if (isFirstPerson) {
                         if (keys.ArrowLeft || keys.a) player.rotation.y += rotationSpeed;
                         if (keys.ArrowRight || keys.d) player.rotation.y -= rotationSpeed;
+                        if (Math.abs(joyX) > 0.1) player.rotation.y -= joyX * rotationSpeed;
                         let moveDir = 0; if (keys.ArrowUp || keys.w) moveDir = 1; if (keys.ArrowDown || keys.s) moveDir = -1;
+                        if (Math.abs(joyY) > 0.1) moveDir = -joyY;
                         if (moveDir !== 0) {
                             let nextX = player.position.x + Math.sin(player.rotation.y) * currentSpeed * moveDir;
                             let nextZ = player.position.z + Math.cos(player.rotation.y) * currentSpeed * moveDir;
-                            if (nextX > -507 && nextX < -493 && nextZ > -507 && nextZ < -492) { player.position.x = nextX; player.position.z = nextZ; }
+                            if (inSepulchre) { if (nextX > -507 && nextX < -493 && nextZ > -507 && nextZ < -492) { player.position.x = nextX; player.position.z = nextZ; isMoving = true; } }
+                            else if (inCenacle) { if (nextX > 486 && nextX < 514 && nextZ > 486 && nextZ < 514) { player.position.x = nextX; player.position.z = nextZ; isMoving = true; } }
                         }
                     } else {
-                        let nextX = player.position.x; let nextZ = player.position.z;
-                        if (keys.ArrowUp || keys.w) { nextZ -= currentSpeed; player.rotation.y = Math.PI; }
-                        if (keys.ArrowDown || keys.s) { nextZ += currentSpeed; player.rotation.y = 0; }
-                        if (keys.ArrowLeft || keys.a) { nextX -= currentSpeed; player.rotation.y = -Math.PI / 2; }
-                        if (keys.ArrowRight || keys.d) { nextX += currentSpeed; player.rotation.y = Math.PI / 2; }
-                        if (!checkCollision(nextX, nextZ)) { player.position.x = nextX; player.position.z = nextZ; }
+                        let moveX = 0, moveZ = 0;
+                        if (keys.ArrowUp || keys.w) moveZ -= 1; if (keys.ArrowDown || keys.s) moveZ += 1;
+                        if (keys.ArrowLeft || keys.a) moveX -= 1; if (keys.ArrowRight || keys.d) moveX += 1;
+                        if (Math.abs(joyX) > 0.1) moveX = joyX; if (Math.abs(joyY) > 0.1) moveZ = joyY;
+                        if (moveX !== 0 || moveZ !== 0) {
+                            isMoving = true; const len = Math.sqrt(moveX*moveX + moveZ*moveZ);
+                            let nextX = player.position.x + (moveX/len) * currentSpeed; let nextZ = player.position.z + (moveZ/len) * currentSpeed;
+                            if (!checkCollision(nextX, nextZ)) { player.position.x = nextX; player.position.z = nextZ; player.rotation.y = Math.atan2(moveX, moveZ); }
+                        }
                     }
                     if (player.position.distanceTo(new THREE.Vector3(0, 0, -100)) < 2.5) startQuiz();
                 }
 
-                if (inSepulchre) {
-                    player.visible = false; camera.position.copy(player.position); camera.position.y = 1.7;
-                    const targetLookAt = new THREE.Vector3(player.position.x + Math.sin(player.rotation.y) * 5, 1.7, player.position.z + Math.cos(player.rotation.y) * 5);
+                if (isMoving) { walkCycle += 0.15; player.position.y = Math.abs(Math.sin(walkCycle)) * 0.15;
+                    const inWater = player.position.x > -60 && player.position.x < -30 && player.position.z > -75 && player.position.z < -45;
+                    if (inWater && Math.random() < 0.15 && !isFirstPerson) {
+                        const ripple = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.4, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide }));
+                        ripple.rotation.x = -Math.PI / 2; ripple.position.set(player.position.x, 0.015, player.position.z); scene.add(ripple); ripples.push(ripple);
+                    }
+                } else { player.position.y = 0; }
+                
+                for (let i = ripples.length - 1; i >= 0; i--) { let r = ripples[i]; r.scale.addScalar(0.04); r.material.opacity -= 0.02; if (r.material.opacity <= 0) { scene.remove(r); r.geometry.dispose(); r.material.dispose(); ripples.splice(i, 1); } }
+
+                if (isFirstPerson) {
+                    player.visible = false; camera.position.copy(player.position); camera.position.y += 1.5; 
+                    const targetLookAt = new THREE.Vector3(player.position.x + Math.sin(player.rotation.y) * 5, camera.position.y, player.position.z + Math.cos(player.rotation.y) * 5);
                     currentLookAt.lerp(targetLookAt, 0.1); camera.lookAt(currentLookAt);
-                } else if (inCenacle) {
-                    player.visible = true; player.position.x = Math.max(486, Math.min(514, player.position.x)); player.position.z = Math.max(486, Math.min(514, player.position.z));
-                    camera.position.x += (player.position.x - camera.position.x) * 0.1; camera.position.y += (12 - camera.position.y) * 0.1;
-                    camera.position.z += (player.position.z + 15 - camera.position.z) * 0.1; camera.lookAt(player.position);
                 } else {
                     player.visible = true; player.position.x = Math.max(-95, Math.min(95, player.position.x)); player.position.z = Math.max(-110, Math.min(145, player.position.z));
                     camera.position.x += (player.position.x - camera.position.x) * 0.1; camera.position.y += (12 - camera.position.y) * 0.1;
@@ -875,18 +1006,12 @@
                 updateLabels();
                 if (ascensionChrist) {
                     const dA = player.position.distanceTo(new THREE.Vector3(25, 0, -60));
-                    if (dA < 20) { if (ascensionChrist.position.y < 6) ascensionChrist.position.y += 0.015; }
-                    else { ascensionChrist.position.y = 0; }
+                    if (dA < 20) { if (ascensionChrist.position.y < 6) ascensionChrist.position.y += 0.015; } else { ascensionChrist.position.y = 0; }
                 }
                 if (flames.length > 0) {
-                    const dP = player.position.distanceTo(new THREE.Vector3(0, 0, -80));
-                    const t = Date.now() * 0.005;
-                    if (dP < 25) {
-                        flames.forEach((f, i) => {
-                            const ty = 2.4 + Math.sin(t + i) * 0.1; if (f.position.y > ty + 0.1) f.position.y -= 0.04; else f.position.y = ty;
-                            const s = 1 + Math.sin(t * 3 + i) * 0.2; f.scale.set(s, s, s);
-                        });
-                    } else { flames.forEach(f => { f.position.y = 8 + Math.random() * 2; }); }
+                    const dP = player.position.distanceTo(new THREE.Vector3(0, 0, -80)); const t = Date.now() * 0.005;
+                    if (dP < 25) { flames.forEach((f, i) => { const ty = 2.4 + Math.sin(t + i) * 0.1; if (f.position.y > ty + 0.1) f.position.y -= 0.04; else f.position.y = ty; const s = 1 + Math.sin(t * 3 + i) * 0.2; f.scale.set(s, s, s); }); }
+                    else { flames.forEach(f => { f.position.y = 8 + Math.random() * 2; }); }
                 }
                 renderer.render(scene, camera);
             }

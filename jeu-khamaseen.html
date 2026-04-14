@@ -163,7 +163,8 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            pointer-events: none;
+            pointer-events: auto;
+            touch-action: none;
             display: none; 
             justify-content: center;
             align-items: center;
@@ -172,7 +173,7 @@
         #joystick-knob {
             width: 50px;
             height: 50px;
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.8);
             border-radius: 50%;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             pointer-events: none;
@@ -180,8 +181,8 @@
         }
         #btn-interact {
             position: absolute;
-            bottom: 40px;
-            right: 40px;
+            bottom: 50px;
+            right: 30px;
             width: 90px;
             height: 90px;
             background: #b45309;
@@ -195,16 +196,29 @@
             display: none; 
             z-index: 1001;
             cursor: pointer;
-            touch-action: manipulation;
+            touch-action: none;
             align-items: center;
             justify-content: center;
             text-align: center;
             transition: background 0.2s, transform 0.1s;
             user-select: none;
+            flex-direction: column;
         }
         #btn-interact:active {
             background: #92400e;
             transform: scale(0.95);
+        }
+        #pc-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
         }
 
         /* --- QUIZ UI CORRIGÉ POUR LE SCROLL --- */
@@ -236,13 +250,28 @@
         }
         #btn-exit-quiz {
             position: absolute;
-            top: 15px;
-            left: 15px;
+            top: 20px;
+            left: 20px;
             background: none;
             border: none;
             font-size: 1.5rem;
             color: #b45309;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        #btn-exit-quiz:hover {
+            transform: scale(1.2);
+        }
+        #quiz-title {
+            color: #b45309;
+            margin-top: 0;
+            font-size: 1.8rem;
+        }
+        #quiz-question {
+            font-size: 1.2rem;
+            color: #1e293b;
+            margin: 20px 0;
+            font-weight: bold;
         }
         .quiz-option {
             display: block;
@@ -261,12 +290,45 @@
             background: #e2e8f0;
             border-color: #94a3b8;
         }
-        .quiz-option.correct { background: #dcfce7; border-color: #22c55e; color: #166534; }
-        .quiz-option.wrong { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
-        #quiz-feedback { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; font-size: 0.95rem; text-align: left; }
-        #quiz-next-btn, #quiz-restart-btn { margin-top: 20px; padding: 12px 25px; background: #b45309; color: white; border: none; border-radius: 8px; cursor: pointer; display: none; margin-left: auto; margin-right: auto; }
-        #quiz-next-btn:hover, #quiz-restart-btn:hover { background: #92400e; }
-        #quiz-progress { font-size: 0.9rem; color: #64748b; margin-bottom: 15px; }
+        .quiz-option.correct {
+            background: #dcfce7;
+            border-color: #22c55e;
+            color: #166534;
+        }
+        .quiz-option.wrong {
+            background: #fee2e2;
+            border-color: #ef4444;
+            color: #991b1b;
+        }
+        #quiz-feedback {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            font-size: 0.95rem;
+            text-align: left;
+        }
+        #quiz-next-btn, #quiz-restart-btn {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: #b45309;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: none;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #quiz-next-btn:hover, #quiz-restart-btn:hover {
+            background: #92400e;
+        }
+        #quiz-progress {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 15px;
+        }
 
         @media (min-width: 768px) {
             #joystick-zone { display: none !important; }
@@ -308,6 +370,7 @@
         <div id="fade-overlay"></div>
     </div>
 
+    <!-- Interface du Questionnaire -->
     <div id="quiz-overlay">
         <div id="quiz-container">
             <button id="btn-exit-quiz" title="Quitter le questionnaire">←</button>
@@ -331,7 +394,7 @@
                 sources: "Bible : Jean 20:1-18. Rite : Synaxaire Copte.", action: "dialog"
             },
             {
-                id: "sepulchre_door", name: "Entrée du Sépulcre", position: { x: -15, z: -8 }, color: 0x475569,
+                id: "sepulchre_door", name: "Entrée du Sépulcre", position: { x: -15, z: -10 }, color: 0x475569,
                 title: "Entrer dans le Tombeau", quote: "", dogma: "", sources: "", action: "teleport_sepulchre_inside"
             },
             {
@@ -341,7 +404,7 @@
                 sources: "Bible : Jean 20:6-7. Exégèse copte.", action: "dialog"
             },
             {
-                id: "sepulchre_exit", name: "Sortir du Tombeau", position: { x: -500, z: -495 }, color: 0x475569,
+                id: "sepulchre_exit", name: "Sortir du Tombeau", position: { x: -500, z: -492 }, color: 0x475569,
                 title: "Sortir", quote: "", dogma: "", sources: "", action: "teleport_sepulchre_outside"
             },
             {
@@ -383,7 +446,7 @@
                 title: "Sortir", quote: "", dogma: "", sources: "", action: "teleport_outside"
             },
             {
-                id: "tiberias", name: "La Mer de Tibériade", position: { x: -35, z: -60 }, color: 0xffffff,
+                id: "tiberias", name: "Le Lac de Tibériade", position: { x: -35, z: -60 }, color: 0xffffff,
                 title: "L'Apparition en Galilée", quote: "« Simon, fils de Jonas, m'aimes-tu ? » Il lui répondit : « Oui, Seigneur, tu sais que je t'aime. » Jésus lui dit : « Pais mes brebis. » (Jean 21:16)",
                 dogma: "La restauration de Pierre illustre le sacrement de la pénitence et le rôle pastoral.",
                 sources: "Bible : Jean 21:1-19.", action: "dialog"
@@ -414,85 +477,26 @@
             }
         ];
 
-        // --- DONNÉES DU QUIZ ---
         const quizData = [
-            {
-                question: "Pendant les 50 jours du Khamaseen, qu'est-il strictement interdit de faire dans l'Église copte orthodoxe ?",
-                options: ["Prier le soir", "Jeûner et faire des métanies (prosternations)", "Lire l'Ancien Testament", "Chanter des louanges"],
-                correctAnswer: 1,
-                explanation: "Le Khamaseen est une période de fête continue. L'Église interdit le jeûne et les métanies de pénitence car l'Époux est avec nous (Marc 2:19)."
-            },
-            {
-                question: "Que prouvent dogmatiquement les linges parfaitement pliés trouvés par Jean et Pierre dans le tombeau vide ?",
-                options: ["Que les apôtres ont nettoyé le tombeau", "Que Jésus était pauvre", "Que le corps n'a pas été volé en hâte", "Que les anges portaient ces linges"],
-                correctAnswer: 2,
-                explanation: "L'ordre parfait réfute la rumeur d'un vol de corps. Des voleurs n'auraient pas pris le temps de séparer les linges et de plier le suaire à part (Jean 20:7)."
-            },
-            {
-                question: "Complétez la confession de foi de Saint Thomas le 8ème jour : « Mon Seigneur et mon... »",
-                options: ["Sauveur !", "Roi !", "Dieu !", "Maître !"],
-                correctAnswer: 2,
-                explanation: "« Mon Seigneur et mon Dieu ! » (Jean 20:28). Ce 8ème jour affirme formellement la divinité absolue du Christ."
-            },
-            {
-                question: "Au bord de la mer de Tibériade, que demande Jésus trois fois à Pierre ?",
-                options: ["« M'aimes-tu ? »", "« Pourquoi m'as-tu renié ? »", "« As-tu pêché des poissons ? »", "« Veux-tu me suivre ? »"],
-                correctAnswer: 0,
-                explanation: "Il lui demande trois fois « M'aimes-tu ? » pour effacer son triple reniement et lui confier la charge pastorale (Jean 21)."
-            },
-            {
-                question: "Quel sacrement est fondé par le commandement : « baptisant au nom du Père, du Fils et du Saint-Esprit » (Grande Commission) ?",
-                options: ["L'Eucharistie", "Le Mariage", "Le Baptême Trinitaire", "L'Ordination"],
-                correctAnswer: 2,
-                explanation: "C'est le fondement scripturaire du sacrement du Baptême, administré obligatoirement au nom de la Sainte Trinité (Matthieu 28:19)."
-            },
-            {
-                question: "À partir du 40ème jour (l'Ascension), que se passe-t-il concernant la procession de la Résurrection à l'église ?",
-                options: ["Elle se fait uniquement dans le sanctuaire", "Elle sort dans les rues de la ville", "Elle se fait sans utiliser d'encens", "Elle est complètement annulée"],
-                correctAnswer: 0,
-                explanation: "La procession ne se fait plus dans la nef mais uniquement dans le sanctuaire, symbolisant l'entrée du Christ au ciel."
-            },
-            {
-                question: "Que marque l'office de la Génuflexion (Sajda) célébré le soir de la Pentecôte ?",
-                options: ["La fin définitive des prières de l'année", "Le retour autorisé des prosternations et le don de l'Esprit", "Le début de l'année copte", "La montée de Jésus au ciel"],
-                correctAnswer: 1,
-                explanation: "Après 50 jours d'interdiction, les croyants fléchissent de nouveau les genoux pour adorer la Trinité et le Saint-Esprit (Livre de la Sajda)."
-            },
-            {
-                question: "Selon l'Évangile, qui est la première personne à avoir vu le Christ ressuscité au matin de Pâques ?",
-                options: ["Saint Pierre", "Saint Jean", "La Vierge Marie", "Marie-Madeleine"],
-                correctAnswer: 3,
-                explanation: "Marie-Madeleine est la première à voir le Christ près du tombeau (Jean 20:14-16) et à annoncer la nouvelle aux apôtres."
-            },
-            {
-                question: "Quelle est la première salutation que le Christ adresse aux disciples dans le Cénacle ?",
-                options: ["« Pourquoi avez-vous peur ? »", "« La paix soit avec vous ! »", "« Je suis revenu. »", "« Repentez-vous ! »"],
-                correctAnswer: 1,
-                explanation: "« La paix soit avec vous ! » (Jean 20:19). C'est le don de la paix divine qui dissipe la crainte des disciples."
-            },
-            {
-                question: "Que faisait le Christ avec les deux disciples sur le chemin d'Emmaüs avant d'être reconnu ?",
-                options: ["Il marchait en silence", "Il leur expliquait les Écritures", "Il leur demandait de l'argent", "Il leur parlait de la fin du monde"],
-                correctAnswer: 1,
-                explanation: "Il leur expliquait dans toutes les Écritures ce qui le concernait (Luc 24:27), préparant leur cœur à la fraction du pain."
-            },
-            {
-                question: "Selon le Credo de Nicée-Constantinople (dogme copte), de qui procède le Saint-Esprit ?",
-                options: ["Du Père seul", "Du Père et du Fils (Filioque)", "Du Fils seul", "Des disciples"],
-                correctAnswer: 0,
-                explanation: "L'Église copte maintient le texte original du Credo (381 ap. J.-C.) : l'Esprit procède du Père seul."
-            },
-            {
-                question: "Dans l'Église copte, comment appelle-t-on le ton liturgique joyeux utilisé durant les 50 jours ?",
-                options: ["Le ton 'Kiahki'", "Le ton 'Hazini' (triste)", "Le ton 'Frayhi' (joyeux)", "Le ton 'Sanaoui' (annuel)"],
-                correctAnswer: 2,
-                explanation: "Le ton 'Frayhi' exprime la joie de la Résurrection et du salut accompli par le Christ."
-            }
+            { question: "Pendant les 50 jours du Khamaseen, qu'est-il strictement interdit de faire dans l'Église copte orthodoxe ?", options: ["Prier le soir", "Jeûner et faire des métanies (prosternations)", "Lire l'Ancien Testament", "Chanter des louanges"], correctAnswer: 1, explanation: "Le Khamaseen est une période de fête continue. L'Église interdit le jeûne et les métanies de pénitence car l'Époux est avec nous (Marc 2:19)." },
+            { question: "Que prouvent dogmatiquement les linges parfaitement pliés trouvés par Jean et Pierre dans le tombeau vide ?", options: ["Que les apôtres ont nettoyé le tombeau", "Que Jésus était pauvre", "Que le corps n'a pas été volé en hâte", "Que les anges portaient ces linges"], correctAnswer: 2, explanation: "L'ordre parfait réfute la rumeur d'un vol de corps. Des voleurs n'auraient pas pris le temps de séparer les linges et de plier le suaire à part (Jean 20:7)." },
+            { question: "Complétez la confession de foi de Saint Thomas le 8ème jour : « Mon Seigneur et mon... »", options: ["Sauveur !", "Roi !", "Dieu !", "Maître !"], correctAnswer: 2, explanation: "« Mon Seigneur et mon Dieu ! » (Jean 20:28). Ce 8ème jour affirme formellement la divinité absolue du Christ." },
+            { question: "Au bord de la mer de Tibériade, que demande Jésus trois fois à Pierre ?", options: ["« M'aimes-tu ? »", "« Pourquoi m'as-tu renié ? »", "« As-tu pêché des poissons ? »", "« Veux-tu me suivre ? »"], correctAnswer: 0, explanation: "Il lui demande trois fois « M'aimes-tu ? » pour effacer son triple reniement et lui confier la charge pastorale (Jean 21)." },
+            { question: "Quel sacrement est fondé par le commandement : « baptisant au nom du Père, du Fils et du Saint-Esprit » (Grande Commission) ?", options: ["L'Eucharistie", "Le Mariage", "Le Baptême Trinitaire", "L'Ordination"], correctAnswer: 2, explanation: "C'est le fondement scripturaire du sacrement du Baptême, administré obligatoirement au nom de la Sainte Trinité (Matthieu 28:19)." },
+            { question: "À partir du 40ème jour (l'Ascension), que se passe-t-il concernant la procession de la Résurrection à l'église ?", options: ["Elle se fait uniquement dans le sanctuaire", "Elle sort dans les rues de la ville", "Elle se fait sans utiliser d'encens", "Elle est complètement annulée"], correctAnswer: 0, explanation: "La procession ne se fait plus dans la nef mais uniquement dans le sanctuaire, symbolisant l'entrée du Christ au ciel." },
+            { question: "Que marque l'office de la Génuflexion (Sajda) célébré le soir de la Pentecôte ?", options: ["La fin définitive des prières de l'année", "Le retour autorisé des prosternations et le don de l'Esprit", "Le début de l'année copte", "La montée de Jésus au ciel"], correctAnswer: 1, explanation: "Après 50 jours d'interdiction, les croyants fléchissent de nouveau les genoux pour adorer la Trinité et le Saint-Esprit (Livre de la Sajda)." },
+            { question: "Selon l'Évangile, qui est la première personne à avoir vu le Christ ressuscité au matin de Pâques ?", options: ["Saint Pierre", "Saint Jean", "La Vierge Marie", "Marie-Madeleine"], correctAnswer: 3, explanation: "Marie-Madeleine est la première à voir le Christ près du tombeau (Jean 20:14-16) et à annoncer la nouvelle aux apôtres." },
+            { question: "Quelle est la première salutation que le Christ adresse aux disciples dans le Cénacle ?", options: ["« Pourquoi avez-vous peur ? »", "« La paix soit avec vous ! »", "« Je suis revenu. »", "« Repentez-vous ! »"], correctAnswer: 1, explanation: "« La paix soit avec vous ! » (Jean 20:19). C'est le don de la paix divine qui dissipe la crainte des disciples." },
+            { question: "Que faisait le Christ avec les deux disciples sur le chemin d'Emmaüs avant d'être reconnu ?", options: ["Il marchait en silence", "Il leur expliquait les Écritures", "Il leur demandait de l'argent", "Il leur parlait de la fin du monde"], correctAnswer: 1, explanation: "Il leur expliquait dans toutes les Écritures ce qui le concernait (Luc 24:27), préparant leur cœur à la fraction du pain." },
+            { question: "Selon le Credo de Nicée-Constantinople (dogme copte), de qui procède le Saint-Esprit ?", options: ["Du Père seul", "Du Père et du Fils (Filioque)", "Du Fils seul", "Des disciples"], correctAnswer: 0, explanation: "L'Église copte maintient le texte original du Credo (381 ap. J.-C.) : l'Esprit procède du Père seul." },
+            { question: "Dans l'Église copte, comment appelle-t-on le ton liturgique joyeux utilisé durant les 50 jours ?", options: ["Le ton 'Kiahki'", "Le ton 'Hazini' (triste)", "Le ton 'Frayhi' (joyeux)", "Le ton 'Sanaoui' (annuel)"], correctAnswer: 2, explanation: "Le ton 'Frayhi' exprime la joie de la Résurrection et du salut accompli par le Christ." }
         ];
 
         // --- MOTEUR 3D ---
+        let scene, camera, renderer, player, sStone, divineLight, tiberiasNet; 
+        let fishes = [];
+        
         window.onload = function() {
-            let scene, camera, renderer, player;
             let npcs = [];
             let keys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, w: false, a: false, s: false, d: false, z: false, q: false };
             
@@ -519,6 +523,8 @@
             let currentLookAt = new THREE.Vector3(0, 12, 0);
             let walkCycle = 0;
             let headerHideTimer = null;
+            let fishingState = "idle"; 
+            let animationTimer = 0;
 
             init();
             animate();
@@ -544,6 +550,7 @@
                 dirLight.castShadow = true;
                 dirLight.shadow.camera.left = -150; dirLight.shadow.camera.right = 150;
                 dirLight.shadow.camera.top = 150; dirLight.shadow.camera.bottom = -150;
+                dirLight.shadow.camera.far = 500;
                 dirLight.shadow.mapSize.width = 2048;
                 dirLight.shadow.mapSize.height = 2048;
                 scene.add(dirLight);
@@ -588,11 +595,73 @@
 
                 // --- DÉCORS EXTÉRIEURS ---
                 createGroundPatch(-15, -10, 30, 30, 0x4d7c0f, 0.01);
-                createBuilding(-15, -15, 12, 6, 10, rockMat);
-                obstacles.push({ minX: -21.5, maxX: -8.5, minZ: -20.5, maxZ: -9.5 });
                 
-                const stone = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.5, 16), rockMat);
-                stone.rotation.x = Math.PI / 2; stone.position.set(-12, 2, -9); scene.add(stone);
+                // LE SÉPULCRE EXTÉRIEUR (Façonné comme un petit mont rocheux au lieu d'une boîte)
+                const hillGroup = new THREE.Group();
+                hillGroup.position.set(-15, 0, -15);
+                
+                // Monticule principal
+                const mound = new THREE.Mesh(new THREE.DodecahedronGeometry(6, 1), rockMat);
+                mound.position.set(0, 1, -1);
+                mound.scale.set(1.4, 0.8, 1.2);
+                mound.castShadow = true; mound.receiveShadow = true;
+                hillGroup.add(mound);
+                
+                // Rochers additionnels pour un effet naturel
+                for(let i=0; i<6; i++) {
+                    const r = new THREE.Mesh(new THREE.DodecahedronGeometry(3 + Math.random()*2, 0), rockMat);
+                    r.position.set((Math.random()-0.5)*12, Math.random()*4, (Math.random()-0.5)*8 - 2);
+                    r.rotation.set(Math.random(), Math.random(), Math.random());
+                    r.castShadow = true; r.receiveShadow = true;
+                    hillGroup.add(r);
+                }
+                
+                // Façade plane de l'entrée
+                const facadeMat = new THREE.MeshStandardMaterial({ color: 0x57534e });
+                const facade = new THREE.Mesh(new THREE.BoxGeometry(5, 4, 3), facadeMat);
+                facade.position.set(0, 2, 4.5);
+                facade.castShadow = true; facade.receiveShadow = true;
+                hillGroup.add(facade);
+
+                // Ouverture du tombeau (sombre par défaut)
+                const doorHole = new THREE.Mesh(new THREE.BoxGeometry(2.2, 3.2, 3.1), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+                doorHole.position.set(0, 1.6, 4.5);
+                hillGroup.add(doorHole);
+                
+                // Rail en pierre pour la porte
+                const rail = new THREE.Mesh(new THREE.BoxGeometry(7, 0.2, 1.5), darkRockMat);
+                rail.position.set(1.5, 0.1, 6.2); // S'étend vers la droite (+X)
+                hillGroup.add(rail);
+
+                scene.add(hillGroup);
+                obstacles.push({ minX: -23, maxX: -7, minZ: -23, maxZ: -9 });
+
+                // La pierre du sépulcre (animée et texturée pour bien voir le roulement)
+                sStone = new THREE.Group();
+                const stoneMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 1.0 }); // Pierre plus claire
+                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.8, 12), stoneMat);
+                wheel.rotation.x = Math.PI / 2;
+                wheel.castShadow = true;
+                
+                // Croix gravée/relief pour bien voir la roue tourner
+                const markMat = new THREE.MeshStandardMaterial({ color: 0x57534e });
+                const mark1 = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.9, 0.4), markMat);
+                mark1.rotation.x = Math.PI / 2;
+                const mark2 = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.9, 4.5), markMat);
+                mark2.rotation.x = Math.PI / 2;
+                
+                sStone.add(wheel);
+                sStone.add(mark1);
+                sStone.add(mark2);
+                
+                // Position initiale fermée (-15 sur X correspond au centre de la porte)
+                sStone.position.set(-15, 2.2, -8.5); 
+                scene.add(sStone);
+
+                // Lumière divine de l'intérieur (intensité 0 au départ)
+                divineLight = new THREE.PointLight(0xffdfb0, 0, 30); 
+                divineLight.position.set(-15, 2.5, -10);
+                scene.add(divineLight);
 
                 createGroundPatch(15, -15, 8, 40, 0xa16207, 0.015);
                 createBuilding(15, -32, 10, 5, 8, new THREE.MeshStandardMaterial({ color: 0x94a3b8 }));
@@ -613,7 +682,27 @@
                 createGroundPatch(-32, -60, 15, 30, 0xd4d4d8, 0.015);
                 const fireGeo = new THREE.ConeGeometry(0.5, 1, 8); const fireMat = new THREE.MeshBasicMaterial({ color: 0xff4500 });
                 const tiberiasFire = new THREE.Mesh(fireGeo, fireMat); tiberiasFire.position.set(-35, 0.5, -60); scene.add(tiberiasFire);
-                const net = new THREE.Mesh(new THREE.BoxGeometry(4, 0.2, 4), new THREE.MeshStandardMaterial({ color: 0x8b4513, wireframe: true })); net.position.set(-38, 0.1, -58); scene.add(net);
+                
+                // Filet de pêche animé
+                const netGeo = new THREE.BoxGeometry(4, 0.2, 4);
+                const netMat = new THREE.MeshStandardMaterial({ color: 0x8b4513, wireframe: true });
+                tiberiasNet = new THREE.Mesh(netGeo, netMat);
+                tiberiasNet.position.set(-36, 1, -64); // Tenu au début
+                scene.add(tiberiasNet);
+
+                // Les poissons
+                const fishGeo = new THREE.ConeGeometry(0.15, 0.4, 6);
+                const fishMat = new THREE.MeshStandardMaterial({ color: 0xc0c0c0 });
+                for(let i=0; i<350; i++) {
+                    const fish = new THREE.Mesh(fishGeo, fishMat);
+                    fish.position.set(-43 + (Math.random() - 0.5) * 4, 0, -64 + (Math.random() - 0.5) * 4);
+                    fish.rotation.x = Math.PI / 2;
+                    fish.rotation.y = Math.random() * Math.PI;
+                    fish.visible = false;
+                    fish.initialPosition = fish.position.clone();
+                    scene.add(fish);
+                    fishes.push(fish);
+                }
 
                 createGroundPatch(45, -80, 25, 25, 0x4d7c0f, 0.01);
                 createRock(45, -80, 4, 0x78716c); obstacles.push({ minX: 41, maxX: 49, minZ: -84, maxZ: -76 });
@@ -676,26 +765,18 @@
                         cloud.position.set(data.position.x, 6, data.position.z); scene.add(cloud);
                     } else if (data.id === "pentecost") {
                         npcMesh = createHuman(data.color); npcMesh.position.set(data.position.x, 0, data.position.z);
-                        
-                        const flameGeo = new THREE.ConeGeometry(0.15, 0.5, 8); 
-                        const flameMat = new THREE.MeshBasicMaterial({ color: 0xff4500 });
-                        const mainFlame = new THREE.Mesh(flameGeo, flameMat); 
-                        mainFlame.position.set(data.position.x, 8, data.position.z); 
-                        scene.add(mainFlame); flames.push(mainFlame);
-                        
-                        // 11 autres disciples en cercle pour la Pentecôte (total 12 avec celui du centre)
+                        const flameGeo = new THREE.ConeGeometry(0.15, 0.5, 8); const flameMat = new THREE.MeshBasicMaterial({ color: 0xff4500 });
+                        const mF = new THREE.Mesh(flameGeo, flameMat); mF.position.set(data.position.x, 8, data.position.z); scene.add(mF); flames.push(mF);
                         for(let i=0; i<11; i++) {
                             const angle = (i/11) * Math.PI * 2;
                             const px = data.position.x + Math.cos(angle) * 3;
                             const pz = data.position.z + Math.sin(angle) * 3;
-                            
-                            const disc = createHuman(0x64748b); 
-                            disc.position.set(px, 0, pz); 
+                            const disc = createHuman(0x64748b);
+                            disc.position.set(px, 0, pz);
                             disc.lookAt(new THREE.Vector3(data.position.x, 0, data.position.z));
                             scene.add(disc);
-                            
-                            const f = new THREE.Mesh(flameGeo, flameMat); 
-                            f.position.set(px, 8 + Math.random(), pz); 
+                            const f = new THREE.Mesh(flameGeo, flameMat);
+                            f.position.set(px, 8 + Math.random(), pz);
                             scene.add(f); flames.push(f);
                         }
                     } else if (data.id === "emmaus") {
@@ -778,7 +859,7 @@
 
             function handleJoyEnd() { isDragging = false; joystickZone.style.display = 'none'; joyX = 0; joyY = 0; }
 
-            // Création de personnages Low-Poly réalistes avec corps, tête, et bras
+            // Personnages Low-Poly réalistes
             function createHuman(c, glow = false) {
                 const g = new THREE.Group(); 
                 const m = glow ? new THREE.MeshBasicMaterial({ color: c }) : new THREE.MeshStandardMaterial({ color: c, roughness: 0.9 });
@@ -882,7 +963,6 @@
                 if (currentQuestionIndex >= quizData.length) { showScore(); return; }
                 document.getElementById('quiz-progress').innerText = `Question ${currentQuestionIndex + 1} / ${quizData.length}`; document.getElementById('quiz-question').innerText = q.question;
                 q.options.forEach((o, i) => { const b = document.createElement('button'); b.className = 'quiz-option'; b.innerText = o; b.onclick = () => handleAnswer(i, q.correctAnswer, q.explanation); opt.appendChild(b); });
-                
                 const quizOverlay = document.getElementById('quiz-overlay');
                 if(quizOverlay) quizOverlay.scrollTop = 0;
             }
@@ -892,11 +972,7 @@
                 if (s === c) { btns[s].classList.add('correct'); quizScore++; f.innerHTML = "<strong>Vrai !</strong> " + e; f.style.background = "#dcfce7"; }
                 else { btns[s].classList.add('wrong'); btns[c].classList.add('correct'); f.innerHTML = "<strong>Erreur.</strong> " + e; f.style.background = "#fee2e2"; }
                 f.style.display = 'block'; document.getElementById('quiz-next-btn').style.display = 'block';
-                
-                setTimeout(() => {
-                    const quizOverlay = document.getElementById('quiz-overlay');
-                    if(quizOverlay) quizOverlay.scrollTop += 150;
-                }, 100);
+                setTimeout(() => { const quizOverlay = document.getElementById('quiz-overlay'); if(quizOverlay) quizOverlay.scrollTop += 150; }, 100);
             }
 
             function showScore() {
@@ -941,8 +1017,10 @@
                 
                 if (btn) {
                     if (near && !isDialogActive && !isQuizStarted) { 
-                        btn.innerText = txt; 
+                        const isMobile = window.innerWidth < 768;
+                        btn.innerHTML = isMobile ? txt : txt + '<br><small style="font-size:10px">(Espace)</small>'; 
                         btn.style.display = 'flex'; 
+                        btn.style.flexDirection = 'column';
                     } else {
                         btn.style.display = 'none';
                     }
@@ -956,6 +1034,7 @@
                 } 
                 return false; 
             }
+
 
             function animate() {
                 requestAnimationFrame(animate);
@@ -1018,6 +1097,164 @@
                 updateUI(moved);
                 if (ascensionChrist && player.position.distanceTo(new THREE.Vector3(25, 0, -60)) < 20) { if(ascensionChrist.position.y < 6) ascensionChrist.position.y += 0.015; } else if(ascensionChrist) ascensionChrist.position.y = 0;
                 
+                // Pierre roulante vers la droite (+X)
+                if (sStone) {
+                    const distToTomb = player.position.distanceTo(new THREE.Vector3(-15, 0, -8));
+                    if (distToTomb < 13 && player.position.x > -20) {
+                        // Ouverture (roule vers la droite, x de -15 vers -10.5)
+                        if (sStone.position.x < -10.5) {
+                            sStone.position.x += 0.08;
+                            sStone.rotation.z -= 0.036;
+                        }
+                        if (divineLight && divineLight.intensity < 2.5) {
+                            divineLight.intensity += 0.05;
+                        }
+                    } else {
+                        // Fermeture (roule vers la gauche pour reprendre sa place à -15)
+                        if (sStone.position.x > -15) {
+                            sStone.position.x -= 0.08;
+                            sStone.rotation.z += 0.036;
+                        }
+                        if (divineLight && divineLight.intensity > 0) {
+                            divineLight.intensity -= 0.05;
+                        }
+                    }
+                }
+       
+
+                // Animation Tiberias (Jeter le filet et poissons)
+                
+                // if (tiberiasNet) {
+                //     const distToTiberias = player.position.distanceTo(new THREE.Vector3(-35, 0, -64));
+                //     if (distToTiberias < 15) {
+                //         if (tiberiasNet.position.x > -43) tiberiasNet.position.x -= 0.1;
+                //         if (tiberiasNet.position.z > -64) tiberiasNet.position.z -= 0.1;
+                //         if (tiberiasNet.position.y > 0.1) tiberiasNet.position.y -= 0.05;
+
+                //         if (tiberiasNet.position.y <= 0.2) {
+                //             showFishes = setTimeout(() => {
+                //                  fishes.forEach((f, i) => {
+                //                 f.visible = true;
+                //                 f.rotation.z = Math.sin(Date.now() * 0.01 + i) * 0.5;
+                //                 if (f.position.y < 0.2) f.position.y += 0.01;
+                //             });
+                //             }, 1000);
+                //         }
+                        
+            
+                        
+                //     } else {
+                //         if (tiberiasNet.position.x < -36) tiberiasNet.position.x += 0.1;
+                //         if (tiberiasNet.position.z < -64) tiberiasNet.position.z += 0.1;
+                //         if (tiberiasNet.position.y < 1) tiberiasNet.position.y += 0.05;
+
+                //         fishes.forEach(f => {
+                //             f.visible = false;
+                //             f.position.y = 0;
+                //         });
+                //     }
+                // }
+
+            if (tiberiasNet) {
+                    const distToTiberias = player.position.distanceTo(new THREE.Vector3(-35, 0, -64));
+                
+               
+                    // 1. Déclenchement initial si le joueur approche
+                    if (distToTiberias < 20 && fishingState === "idle") {
+                        fishingState = "lowering";
+                    } 
+                    // Optionnel : Forcer le retour si le joueur s'éloigne prématurément
+                    else if (distToTiberias >= 20 && fishingState !== "idle" && fishingState !== "returning") {
+                        fishingState = "returning";
+                    }
+                
+                    // 2. Gestion de la séquence d'animation selon l'état actuel
+                    switch (fishingState) {
+                        
+                        case "lowering":
+                            // Le filet descend
+                            if (tiberiasNet.position.x > -43) tiberiasNet.position.x -= 0.1;
+                            if (tiberiasNet.position.z > -64) tiberiasNet.position.z -= 0.1;
+                            if (tiberiasNet.position.y > 0.1) tiberiasNet.position.y -= 0.05;
+                
+                            // Une fois en bas, on passe à l'attente
+                           if (tiberiasNet.position.x <= -43) {
+                                fishingState = "waiting_fishes";
+                                animationTimer = Date.now(); // Démarrage du chronomètre
+                            }
+                            break;
+                
+                        case "waiting_fishes":
+                            // On attend 2 secondes (2000 ms) avant l'apparition des poissons
+                            if (Date.now() - animationTimer >= 1000) {
+                                fishingState = "showing_fishes";
+                                animationTimer = Date.now(); // Réinitialisation du chrono pour la prochaine étape
+                            }
+                            break;
+                
+                        case "showing_fishes":
+                            // Les poissons apparaissent et s'animent
+                            fishes.forEach((f, i) => {
+                                f.visible = true;
+                                f.rotation.z = Math.sin(Date.now() * 0.01 + i) * 0.5;
+                                if (f.position.y < 0.2) f.position.y += 0.01;
+                            });
+                
+                            // On attend 2 autres secondes avant de remonter le filet
+                            if (Date.now() - animationTimer >= 1000) {
+                                fishingState = "returning";
+                            }
+                            break;
+                
+                       case "returning":
+                            let isNetReturned = true;
+                            
+                            // 1. Calcul des incréments de déplacement pour cette frame
+                            let deltaX = 0;
+                            let deltaY = 0;
+                            let deltaZ = 0;
+                
+                            if (tiberiasNet.position.x < -36) { deltaX = 0.1; isNetReturned = false; }
+                            if (tiberiasNet.position.z < -64) { deltaZ = 0.1; isNetReturned = false; }
+                            if (tiberiasNet.position.y < 1)   { deltaY = 0.05; isNetReturned = false; }
+                
+                            // 2. Application du déplacement au filet
+                            tiberiasNet.position.x += deltaX;
+                            tiberiasNet.position.z += deltaZ;
+                            tiberiasNet.position.y += deltaY;
+                
+                            // 3. Application du MÊME déplacement aux poissons
+                            fishes.forEach((f, i) => {
+                                f.position.x += deltaX;
+                                f.position.z += deltaZ;
+                                f.position.y += deltaY;
+                                
+                                // Optionnel : maintenir l'animation de frétillement pendant le trajet
+                                f.rotation.z = Math.sin(Date.now() * 0.01 + i) * 0.5;
+                            });
+                
+                            // 4. Si le filet est revenu à sa place et que le joueur s'éloigne
+                            if (isNetReturned && distToTiberias >= 20) {
+                                // C'est seulement à la fin du trajet qu'on masque les poissons
+                                fishes.forEach(f => {
+                                    // 1. On masque les poissons
+                                    f.visible = false;
+                                    
+                                    // 2. On restaure la position exacte d'origine
+                                    if (f.initialPosition) {
+                                        f.position.copy(f.initialPosition);
+                                    } else {
+                                        // Valeur de secours si userData n'a pas été défini
+                                        f.position.y = 0; 
+                                    }
+                                });
+                                
+                                fishingState = "idle";
+                            }
+                            break;
+                    }
+                }
+
                 if (flames.length > 0) {
                     const dP = player.position.distanceTo(new THREE.Vector3(0, 0, -80)); 
                     const t = Date.now() * 0.005;
@@ -1029,12 +1266,9 @@
                             const s = 1 + Math.sin(t * 3 + i) * 0.2; f.scale.set(s, s, s); 
                         }); 
                     } else { 
-                        flames.forEach(f => { 
-                            if (f.position.y < 8) f.position.y += 0.1; 
-                        }); 
+                        flames.forEach(f => { if (f.position.y < 8) f.position.y += 0.1; }); 
                     }
                 }
-
                 renderer.render(scene, camera);
             }
         };

@@ -1,0 +1,516 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KT 6e · Les Paroles d'Or</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Baloo+2:wght@600;800&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2A1A20;--head:#3B2142;--muted:#6B5368;--line:#D9C2A8;
+  --gold:#C9962E;--goldl:#E8C877;--wine:#6E1F2B;--wine-d:#4A1420;--lapis:#28415F;--sage:#4A6B3C;
+  --bg1:#2A1530;--bg2:#4A1420;--bg3:#1F2A42;
+  --card:#FBF4E4;--card-ink:#2A1A20;
+  --ok:#2F6B45;--ok-bg:#DCEBD8;--bad:#8E2E2E;--bad-bg:#F3DAD6;--warn:#7A5300;--warn-bg:#F6E7C4;
+  --btn:#6E1F2B;--btn-ink:#FBF4E4;--focus:#2E6BFF;--accent:#C9962E;
+  --parch:#F4E6C2;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#F1E6D8;--head:#F4E6C2;--muted:#CBB8A6;--line:#5A4030;
+    --card:#2B1C23;--card-ink:#F1E6D8;
+    --ok:#7FCB97;--ok-bg:#1C3A26;--bad:#F0968E;--bad-bg:#3E1C1C;--warn:#F2CB73;--warn-bg:#3F2F0E;
+    --btn:#C9962E;--btn-ink:#2A1520;--focus:#8FB0FF;--parch:#2B1C23;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#F1E6D8;--head:#F4E6C2;--muted:#CBB8A6;--line:#5A4030;
+  --card:#2B1C23;--card-ink:#F1E6D8;
+  --ok:#7FCB97;--ok-bg:#1C3A26;--bad:#F0968E;--bad-bg:#3E1C1C;--warn:#F2CB73;--warn-bg:#3F2F0E;
+  --btn:#C9962E;--btn-ink:#2A1520;--focus:#8FB0FF;--parch:#2B1C23;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{
+  margin:0;color:var(--ink);font:400 18px/1.55 'Nunito',system-ui,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;
+  background:
+    radial-gradient(1100px 620px at 85% -10%, rgba(201,150,46,.20), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(40,65,95,.35), transparent 60%),
+    linear-gradient(165deg, var(--bg1), var(--bg2) 55%, var(--bg3));
+  background-attachment:fixed;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+  background-image:repeating-radial-gradient(circle at 0 0, rgba(201,150,46,.10) 0 1px, transparent 1px 26px);
+}
+h1,h2,h3{font-family:'Cinzel','Baloo 2',system-ui,sans-serif;color:var(--head);line-height:1.2;margin:0;letter-spacing:.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,.drop:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+
+.ornament{height:11px;flex:none;background:var(--wine-d);
+  background-image:repeating-linear-gradient(45deg, var(--gold) 0 7px, transparent 7px 14px),repeating-linear-gradient(135deg, var(--gold) 0 7px, transparent 7px 14px);
+  background-blend-mode:screen;opacity:.9}
+.top{background:linear-gradient(180deg,#3B2142,#2A1530);color:#F4E6C2;display:flex;align-items:center;gap:14px;padding:10px 18px;position:sticky;top:11px;z-index:20;border-bottom:1px solid rgba(201,150,46,.35)}
+.brand{display:flex;align-items:center;gap:10px;font:800 1.02rem 'Cinzel',sans-serif;white-space:nowrap}
+.brand svg{width:26px;height:26px;color:var(--gold)}
+.parts{display:flex;gap:6px;overflow-x:auto;flex:1;scrollbar-width:none}
+.parts::-webkit-scrollbar{display:none}
+.parts button{background:transparent;border:1.5px solid rgba(201,150,46,.45);color:#F4E6C2;border-radius:999px;padding:4px 14px;font-weight:700;font-size:.9rem;white-space:nowrap}
+.parts button.on{background:var(--gold);border-color:var(--gold);color:#2A1530}
+.ghost{background:transparent;border:1.5px solid rgba(201,150,46,.55);color:#F4E6C2;border-radius:999px;padding:4px 14px;font-weight:700;font-size:.9rem;white-space:nowrap}
+.ghost[aria-pressed="true"]{background:var(--gold);color:#2A1530;border-color:var(--gold)}
+.bar{height:4px;background:rgba(201,150,46,.2)}
+.bar i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s}
+
+main{flex:1;width:100%;max-width:1160px;margin:0 auto;padding:28px 20px 120px;position:relative;z-index:1}
+.slide{position:relative}
+.slide>h1{font-size:clamp(1.7rem,3.8vw,2.6rem);margin-bottom:14px;padding-left:18px;border-left:5px solid var(--gold)}
+.lead{font-size:1.18rem;max-width:62ch;margin:0 0 18px}
+.hint{color:var(--muted);font-size:.95rem}
+.verse{margin:18px 0;padding:16px 20px;background:linear-gradient(135deg,rgba(201,150,46,.14),rgba(201,150,46,.04));border:1px solid rgba(201,150,46,.4);border-left:5px solid var(--gold);border-radius:4px 16px 16px 4px;font-size:1.15rem;font-style:italic;max-width:66ch}
+.verse cite{display:block;font-style:normal;font-weight:800;font-size:.85rem;color:var(--gold);margin-top:6px;letter-spacing:.04em;text-transform:uppercase}
+.notes{display:none;margin-top:28px;padding:14px 18px;background:var(--warn-bg);color:var(--warn);border-radius:12px;font-size:.98rem;max-width:80ch;border:1px solid rgba(0,0,0,.08)}
+.notes b{display:block;margin-bottom:4px}
+body.notes-on .notes{display:block}
+
+.foot{position:fixed;left:0;right:0;bottom:0;background:#2A1530;border-top:1px solid rgba(201,150,46,.35);display:flex;justify-content:space-between;align-items:center;padding:10px 18px;z-index:20}
+.foot button{border:2px solid var(--gold);background:transparent;color:#F4E6C2;border-radius:12px;padding:8px 22px;font-weight:800;min-width:130px}
+.foot button.primary{background:var(--gold);color:#2A1530}
+.foot button:disabled{opacity:.3;cursor:default}
+#count{color:#CBB8A6;font-weight:700}
+.primary{background:var(--btn);color:var(--btn-ink);border:2px solid var(--btn);border-radius:12px;padding:8px 22px;font-weight:800}
+.big{font-size:1.2rem;padding:12px 28px}
+
+/* Icon medallion base for cards */
+.relic{position:relative;background:var(--card);color:var(--card-ink);border:2px solid var(--gold);border-radius:16px 16px 7px 7px;box-shadow:0 6px 18px rgba(0,0,0,.25),inset 0 0 0 3px rgba(201,150,46,.15)}
+.relic::before,.relic::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;background:var(--gold);top:7px}
+.relic::before{left:7px}.relic::after{right:7px}
+
+/* Hero */
+.hero-title{font-size:clamp(2.1rem,6vw,3.7rem);margin-bottom:10px}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.trio div.relic{padding:12px 14px}
+.trio b{display:block;color:var(--head);font-family:'Cinzel',sans-serif;font-size:1.02rem}
+.trio span{font-size:.9rem;color:var(--muted)}
+
+/* Reveal cards */
+.grid{display:grid;gap:14px;align-items:start}
+.grid.c2{grid-template-columns:repeat(2,1fr)}.grid.c3{grid-template-columns:repeat(3,1fr)}.grid.c4{grid-template-columns:repeat(4,1fr)}
+.rcard.relic{text-align:left;padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;min-height:92px;cursor:pointer;transition:transform .12s,border-color .15s}
+.rcard.relic:hover{border-color:var(--wine);transform:translateY(-2px)}
+.rcard .ic{font-size:1.6rem;line-height:1}
+.rcard .rt{font:800 1.08rem 'Baloo 2',sans-serif;color:var(--head)}
+.rcard .more{display:none;font-size:1rem}
+.rcard.open{border-color:var(--wine);box-shadow:0 6px 18px rgba(110,31,43,.25),inset 0 0 0 3px rgba(110,31,43,.12)}
+.rcard.open .more{display:block}
+.counter{color:var(--muted);font-weight:700;margin:12px 0 0;font-size:.95rem}
+
+/* Match */
+.match{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.match .col{display:flex;flex-direction:column;gap:10px}
+.mcard.relic{text-align:left;padding:12px 16px;font-weight:700;cursor:pointer}
+.mcard.alt{font-weight:400}
+.mcard.sel{border-color:var(--wine);box-shadow:0 0 0 3px rgba(110,31,43,.3)}
+.mcard.done{background:var(--ok-bg);border-color:var(--ok);cursor:default}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.fb{margin:16px 0 0;padding:12px 16px;border-radius:12px;background:var(--card);color:var(--card-ink);border:1.5px solid var(--line);min-height:52px;max-width:80ch}
+.fb.good{background:var(--ok-bg);border-color:var(--ok)}
+.fb.bad{background:var(--bad-bg);border-color:var(--bad)}
+.panel.relic{margin-top:20px;padding:18px 20px;border-color:var(--ok)}
+.panel .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+.panel .two div{background:rgba(0,0,0,.04);border-radius:12px;padding:10px 14px}
+
+/* Verse builder */
+.built{min-height:3.4rem;font:800 clamp(1.1rem,2.6vw,1.6rem) 'Baloo 2',sans-serif;color:var(--card-ink);background:var(--card);border:2px dashed var(--gold);border-radius:14px;padding:12px 18px;margin:0 0 16px}
+.bank{display:flex;flex-wrap:wrap;gap:10px}
+.chip.relic{padding:8px 20px;font-weight:800;font-size:1.08rem;border-radius:999px}
+.chip.relic::before,.chip.relic::after{display:none}
+.chip.relic:hover:not(:disabled){border-color:var(--wine)}
+.chip:disabled{opacity:.22;cursor:default}
+
+/* Timeline (glisser-déposer) */
+.golgotha{margin-bottom:18px;max-width:640px}
+.timeline{position:relative;padding-left:34px}
+.timeline::before{content:'';position:absolute;left:12px;top:6px;bottom:6px;width:3px;background:linear-gradient(var(--gold),var(--wine))}
+.slot{position:relative;margin-bottom:12px}
+.slot .num{position:absolute;left:-34px;top:2px;width:26px;height:26px;border-radius:50%;background:var(--gold);color:#2A1530;font:800 .95rem 'Cinzel',sans-serif;display:flex;align-items:center;justify-content:center;border:2px solid var(--wine-d)}
+.drop{min-height:56px;border:2px dashed rgba(201,150,46,.6);border-radius:10px 10px 4px 4px;padding:9px 14px;display:flex;align-items:center;background:rgba(201,150,46,.06);transition:background .15s,border-color .15s}
+.drop .ph{color:var(--muted);font-style:italic;font-size:.95rem}
+.drop b{font-family:'Baloo 2',sans-serif;font-size:1.02rem;display:block}
+.drop .ref{font-size:.82rem;color:var(--muted)}
+.slot.filled .drop{background:var(--ok-bg);border-color:var(--ok);border-style:solid}
+.slot.shake .drop{animation:shake .35s;border-color:var(--bad)}
+.tl-chip.picked{border-color:var(--wine);box-shadow:0 0 0 3px rgba(110,31,43,.3)}
+.tl-chip.used{display:none}
+
+/* Quiz */
+.qbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-bottom:14px}
+.toggle{display:flex;gap:8px;align-items:center;font-weight:700}
+.toggle input{width:20px;height:20px;accent-color:var(--gold)}
+.teams{display:flex;gap:18px;flex-wrap:wrap}
+.teams div.relic{display:flex;gap:8px;align-items:center;padding:4px 12px}
+.teams button{width:34px;height:34px;border-radius:50%;border:2px solid var(--wine);background:transparent;color:var(--head);font-weight:800}
+.teams output{font:800 1.5rem 'Cinzel',sans-serif;min-width:1.5ch;text-align:center}
+.qn{color:var(--muted);font-weight:700;margin:0 0 4px}
+.qq{font-size:clamp(1.4rem,3vw,2rem);margin-bottom:16px}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:900px}
+.choice.relic{text-align:left;padding:14px 18px;font-weight:700}
+.choice.relic:hover:not(:disabled){border-color:var(--wine)}
+.choice.right{background:var(--ok-bg);border-color:var(--ok)}
+.choice.wrong{background:var(--bad-bg);border-color:var(--bad)}
+.score{font:800 clamp(3rem,10vw,6rem) 'Cinzel',sans-serif;color:var(--head);line-height:1}
+
+/* Challenge */
+.todo{list-style:none;padding:0;margin:0 0 16px;display:grid;gap:10px;max-width:720px}
+.todo label.relic{display:flex;gap:14px;align-items:center;padding:14px 18px;cursor:pointer;font-weight:700}
+.todo input{width:24px;height:24px;accent-color:var(--ok);flex:none}
+.todo label.relic:has(input:checked){background:var(--ok-bg);border-color:var(--ok)}
+
+@media (max-width:820px){
+  body{font-size:17px}
+  .trio,.grid.c3,.grid.c4,.match,.choices{grid-template-columns:1fr}
+  .grid.c2{grid-template-columns:1fr}
+  .brand span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="ornament"></div>
+<header class="top">
+  <div class="brand" id="brand"><span>KT · 6e · Les Paroles d'Or</span></div>
+  <nav class="parts" id="parts" aria-label="Parties du cours"></nav>
+  <button class="ghost" id="notesBtn" aria-pressed="false" title="Touche N">Notes serviteur</button>
+</header>
+<div class="bar"><i id="bar"></i></div>
+<main id="stage" aria-live="polite"></main>
+<footer class="foot">
+  <button id="prev">Précédent</button>
+  <span id="count"></span>
+  <button id="next" class="primary">Suivant</button>
+</footer>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+const CROWN=`<svg viewBox="0 0 120 120" aria-hidden="true"><g fill="currentColor"><path d="M15 95h90l-8-45-22 20-15-35-15 35-22-20z"/><rect x="12" y="95" width="96" height="12" rx="4"/></g></svg>`;
+$('#brand').insertAdjacentHTML('afterbegin',CROWN);
+
+const PARTS=['Départ','Les 7 Paroles','Ce qu’elles révèlent','Bilan'];
+const slides=[];
+let idx=0;
+const add=(part,title,notes,build)=>slides.push({part,title,notes,build});
+
+function revealGrid(host,items,cols=3){
+  const grid=el('div','grid c'+cols);const seen=new Set();
+  const cnt=el('p','counter');
+  const upd=()=>cnt.innerHTML=`Découvert : <b>${seen.size}</b> / ${items.length}`;
+  items.forEach((it,i)=>{
+    const b=el('button','rcard relic'+(it.tone?' '+it.tone:''),`<span class="ic" aria-hidden="true">${it.icon||''}</span><span class="rt">${it.t}</span><span class="more">${it.b}</span>`);
+    b.setAttribute('aria-expanded','false');
+    b.onclick=()=>{const o=b.classList.toggle('open');b.setAttribute('aria-expanded',String(o));if(o){seen.add(i);upd();}};
+    grid.appendChild(b);
+  });
+  upd();host.append(grid,cnt);
+}
+
+function matchGame(host,pairs,opt={}){
+  const wrap=el('div','match');const L=el('div','col'),R=el('div','col');
+  const fb=el('p','fb','Choisis une carte à gauche, puis sa réponse à droite.');
+  let sel=null,done=0;
+  const lefts=pairs.map((p,i)=>{const b=el('button','mcard relic',p.l);b.dataset.i=i;return b;});
+  const rights=shuffle(pairs.map((p,i)=>({i,r:p.r}))).map(o=>{const b=el('button','mcard relic alt',o.r);b.dataset.i=o.i;return b;});
+  lefts.forEach(b=>{b.onclick=()=>{
+    if(b.classList.contains('done'))return;
+    lefts.forEach(x=>x.classList.remove('sel'));b.classList.add('sel');sel=+b.dataset.i;
+    fb.textContent='Maintenant, trouve la bonne réponse à droite.';fb.className='fb';
+  };L.appendChild(b);});
+  rights.forEach(b=>{b.onclick=()=>{
+    if(b.classList.contains('done'))return;
+    if(sel===null){fb.textContent='Commence par choisir une carte à gauche.';return;}
+    if(+b.dataset.i===sel){
+      b.classList.add('done');lefts[sel].classList.remove('sel');lefts[sel].classList.add('done');
+      fb.innerHTML=`<b>Bravo !</b> ${pairs[sel].why||''}`;fb.className='fb good';sel=null;done++;
+      if(done===pairs.length&&opt.onDone)opt.onDone();
+    }else{
+      b.classList.add('shake');setTimeout(()=>b.classList.remove('shake'),400);
+      fb.textContent='Pas tout à fait… essaie une autre carte !';fb.className='fb bad';
+    }
+  };R.appendChild(b);});
+  wrap.append(L,R);host.append(wrap,fb);
+}
+
+/* Drag-and-drop (or tap-to-place) timeline */
+function dragTimeline(host,items,opt={}){
+  const wrap=el('div','golgotha solo');
+  const tl=el('div','timeline');
+  items.forEach((it,i)=>{
+    const slot=el('div','slot');slot.dataset.i=i;
+    slot.innerHTML=`<span class="num">${i+1}</span><div class="drop" tabindex="0" role="button" aria-label="Emplacement ${i+1}, dépose ou touche une parole ici"><span class="ph">Dépose la parole ici</span></div>`;
+    tl.appendChild(slot);
+  });
+  wrap.append(tl);
+  const bank=el('div','bank');const cnt=el('p','counter');
+  let selected=null,placed=0;const chipById={};
+  const order=shuffle(items.map((it,i)=>i));
+  order.forEach(i=>{
+    const c=el('button','chip relic tl-chip',items[i].label);
+    c.dataset.id=i;c.draggable=true;
+    c.addEventListener('click',()=>{
+      if(c.disabled)return;
+      bank.querySelectorAll('.chip').forEach(x=>x.classList.remove('picked'));
+      selected=(selected===i)?null:i;c.classList.toggle('picked',selected===i);
+    });
+    c.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',String(i));});
+    chipById[i]=c;bank.appendChild(c);
+  });
+  function tryPlace(i,slotEl){
+    const chip=chipById[i];if(!chip||chip.disabled)return;
+    const slotIndex=+slotEl.dataset.i;
+    const drop=slotEl.querySelector('.drop');
+    if(slotIndex===i){
+      chip.disabled=true;chip.classList.add('used');chip.classList.remove('picked');
+      drop.innerHTML=`<div><b>${items[i].label}</b><span class="ref">${items[i].ref}</span></div>`;
+      slotEl.classList.add('filled');placed++;selected=null;
+      cnt.innerHTML=`Placées : <b>${placed}</b> / ${items.length}`;
+      if(placed===items.length&&opt.onDone)opt.onDone();
+    }else{
+      slotEl.classList.add('shake');setTimeout(()=>slotEl.classList.remove('shake'),400);
+      selected=null;bank.querySelectorAll('.chip').forEach(x=>x.classList.remove('picked'));
+    }
+  }
+  tl.querySelectorAll('.slot').forEach(slotEl=>{
+    const drop=slotEl.querySelector('.drop');
+    drop.addEventListener('dragover',e=>e.preventDefault());
+    drop.addEventListener('drop',e=>{e.preventDefault();const i=+e.dataTransfer.getData('text/plain');tryPlace(i,slotEl);});
+    drop.addEventListener('click',()=>{if(selected!==null)tryPlace(selected,slotEl);});
+    drop.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&selected!==null){e.preventDefault();tryPlace(selected,slotEl);}});
+  });
+  cnt.innerHTML=`Placées : <b>0</b> / ${items.length}`;
+  host.append(wrap,bank,cnt);
+}
+
+function quiz(host,qs){
+  let i=0,score=0,answered=false;const t={a:0,b:0};
+  const bar=el('div','qbar');
+  const tg=el('label','toggle','<input type="checkbox"> Jouer en équipes');
+  const tm=el('div','teams');tm.hidden=true;
+  tm.innerHTML=['a','b'].map((k,n)=>`<div class="relic"><b>Équipe ${n+1}</b><button data-t="${k}" data-d="-1" aria-label="Retirer un point à l’équipe ${n+1}">−</button><output>0</output><button data-t="${k}" data-d="1" aria-label="Ajouter un point à l’équipe ${n+1}">+</button></div>`).join('');
+  tm.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.t;t[k]=Math.max(0,t[k]+ +b.dataset.d);b.parentElement.querySelector('output').textContent=t[k];};
+  tg.querySelector('input').onchange=e=>{tm.hidden=!e.target.checked;};
+  bar.append(tg,tm);
+  const box=el('div','qbox');host.append(bar,box);
+  function show(){
+    answered=false;box.innerHTML='';
+    if(i>=qs.length){end();return;}
+    const q=qs[i];
+    box.append(el('p','qn',`Question ${i+1} sur ${qs.length}`),el('h2','qq',q.q));
+    const list=el('div','choices');const btns=[];
+    shuffle(q.c.map((c,k)=>k)).forEach(k=>{
+      const b=el('button','choice relic',q.c[k]);btns[k]=b;
+      b.onclick=()=>{
+        if(answered)return;answered=true;const ok=k===q.a;if(ok)score++;
+        b.classList.add(ok?'right':'wrong');btns[q.a].classList.add('right');
+        fb.innerHTML=`<b>${ok?'Bravo !':'Pas tout à fait.'}</b> ${q.why}`;fb.className='fb '+(ok?'good':'bad');
+        nxt.hidden=false;nxt.textContent=i===qs.length-1?'Voir le résultat':'Question suivante';
+      };
+      list.appendChild(b);
+    });
+    const fb=el('p','fb','Choisis ta réponse.');
+    const nxt=el('button','primary','Question suivante');nxt.hidden=true;nxt.style.marginTop='14px';
+    nxt.onclick=()=>{i++;show();};
+    box.append(list,fb,nxt);
+  }
+  function end(){
+    const msg=score>=7?'Champions des Sept Paroles ! 🏆':score>=5?'Très bien, vous avez retenu l’essentiel !':'On révise ensemble et on refait un tour !';
+    box.innerHTML=`<p class="qn">Résultat</p><div class="score">${score} / ${qs.length}</div><h2 class="qq" style="margin-top:12px">${msg}</h2>`;
+    const again=el('button','primary','Rejouer');again.onclick=()=>{i=0;score=0;show();};box.appendChild(again);
+  }
+  show();
+}
+
+/* ---------- Diapositives ---------- */
+add(0,null,`<p>Durée conseillée : 35-40 min (Départ 8 · Les 7 Paroles 18 · Ce qu’elles révèlent 6 · Bilan 8).</p><p>Flèches ← → pour naviguer, touche N pour les notes.</p>`,root=>{
+  root.innerHTML=`<div>
+    <h1 class="hero-title">Les Paroles d’Or</h1>
+    <p class="lead">Sur la Croix, dans la douleur, Jésus a parlé sept fois. Chaque parole est un don : Il donnait alors même qu’Il semblait n’avoir plus rien.</p>
+    <blockquote class="verse">« Mais dans toutes ces choses nous sommes plus que vainqueurs par celui qui nous a aimés »<cite>Romains 8:37</cite></blockquote>
+    <div class="trio"><div class="relic"><b>7 paroles</b><span>Dans les 4 Évangiles</span></div><div class="relic"><b>Il donne tout</b><span>Pardon, Paradis, famille…</span></div><div class="relic"><b>Il rompt le silence</b><span>Pour notre salut</span></div></div>
+  </div>`;
+});
+
+add(0,'Reconstruis le verset',`<p>Laisse un enfant venir taper les mots dans l’ordre. C’est le verset-thème de l’année, complet cette fois.</p>`,root=>{
+  const words='Mais dans toutes ces choses nous sommes plus que vainqueurs par celui qui nous a aimés'.split(' ');
+  root.innerHTML=`<p class="lead">Les mots sont mélangés. Touche-les dans le bon ordre !</p><p class="built" id="built" aria-live="polite"></p><div class="bank" id="bank"></div><div id="win" hidden><div class="fb good" style="margin-top:16px"><b>Bravo !</b> Romains 8:37 — même sur la Croix, Jésus était vainqueur, et Il nous donnait tout.</div></div><p style="margin-top:14px"><button id="mix" class="primary">Recommencer</button></p>`;
+  const built=$('#built',root),bank=$('#bank',root),win=$('#win',root);let pos;
+  function setup(){
+    built.textContent='';bank.innerHTML='';win.hidden=true;pos=0;
+    shuffle(words).forEach(w=>{
+      const b=el('button','chip relic',w);
+      b.onclick=()=>{
+        if(w===words[pos]){b.disabled=true;built.textContent+=(pos?' ':'')+w;pos++;if(pos===words.length){built.textContent='« '+built.textContent+' »';win.hidden=false;}}
+        else{b.classList.add('shake');setTimeout(()=>b.classList.remove('shake'),400);}
+      };
+      bank.appendChild(b);
+    });
+  }
+  $('#mix',root).onclick=setup;setup();
+});
+
+add(0,'Qu’a-t-Il donné, alors qu’Il n’avait rien reçu ?',`<p>Jésus n’a reçu que l’amertume et le vinaigre, et pourtant Il a tout donné. Fais remarquer le contraste avant de passer à la partie suivante.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Sur la Croix, Jésus était faible et abaissé en apparence. Pourtant, Il a donné. Découvre quoi.</p><div id="g"></div>`;
+  revealGrid($('#g',root),[
+    {icon:'🤍',t:'Le pardon',b:'À ceux qui L’ont crucifié.'},
+    {icon:'🚪',t:'Le Paradis',b:'Au larron à Sa droite.'},
+    {icon:'👩',t:'Une filiation',b:'À la Vierge Marie : une sollicitude et un fils spirituel.'},
+    {icon:'🏠',t:'Une mère',b:'À Jean le bien-aimé : une mère spirituelle, et la bénédiction de la Vierge dans sa maison.'},
+    {icon:'🙏',t:'Le prix exigé',b:'Au Père : le prix divin de notre rédemption.'},
+    {icon:'✝️',t:'L’expiation',b:'À l’humanité : une expiation et une rédemption.'},
+    {icon:'✅',t:'L’assurance',b:'À nous tous : la certitude que l’œuvre du salut est accomplie.'}
+  ],4);
+});
+
+add(1,'Remets les sept paroles dans l’ordre',`<p>Nouveau jeu : on glisse (souris) ou on touche une parole puis l’emplacement (tablette/mobile) pour la poser au bon endroit, dans l’ordre où Jésus les a dites. Laisse les enfants s’entraider.</p><p>Précise que les 3 premières paroles concernent Ses ennemis et Ses bien-aimés, les 4 dernières annoncent l’accomplissement de la Rédemption.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Glisse chaque parole jusqu’à sa place sur l’échelle, dans l’ordre où Jésus l’a dite sur la Croix.</p>`;
+  dragTimeline($('body',root)===root?root:root,[
+    {label:'« Père, pardonne-leur »',ref:'Luc 23:34'},
+    {label:'« Tu seras avec moi dans le paradis »',ref:'Luc 23:43'},
+    {label:'« Voilà ta mère… voilà ton fils »',ref:'Jean 19:26-27'},
+    {label:'« Pourquoi m’as-Tu abandonné ? »',ref:'Matthieu 27:46'},
+    {label:'« J’ai soif »',ref:'Jean 19:28'},
+    {label:'« Tout est accompli »',ref:'Jean 19:30'},
+    {label:'« Je remets mon esprit »',ref:'Luc 23:46'}
+  ],{onDone(){
+    root.insertAdjacentHTML('beforeend','<div class="panel relic"><b>Bravo, vous avez retrouvé les sept paroles !</b><p style="margin:8px 0 0">Les trois premières s’adressent à Ses ennemis et à Ses proches ; les quatre dernières annoncent que l’œuvre du salut est accomplie.</p></div>');
+  }});
+});
+
+add(1,'I · « Père, pardonne-leur, car ils ne savent pas ce qu’ils font »',`<p>Insiste : le pardon de Jésus n’est pas une excuse facile, c’est une intercession expiatoire — Il paie le prix pour que le pardon soit possible.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Pourquoi « ils ne savaient pas » ? Découvre les raisons, puis retrouve ce que sont devenus trois de ces « ils ».</p><div id="g"></div>
+  <h2 style="margin:26px 0 12px;font-size:1.4rem">Et ensuite, que leur est-il arrivé ?</h2><div id="m"></div>`;
+  revealGrid($('#g',root),[
+    {icon:'📜',t:'Ils croyaient obéir à la Loi',b:'Ils ne savaient pas que Jésus est l’Auteur de la Loi.'},
+    {icon:'🙈',t:'Ils Le voyaient comme un homme ordinaire',b:'« S’ils l’eussent connu, ils n’auraient pas crucifié le Seigneur de gloire » (1 Corinthiens 2:8).'},
+    {icon:'💗',t:'Un amour sans limite',b:'Malgré l’injustice, Jésus l’Innocent a choisi le pardon plutôt que la colère.'}
+  ],3);
+  matchGame($('#m',root),[
+    {l:'Saint Longin',r:'Le soldat qui a percé Son flanc — il a cru et est devenu un saint.',why:'Celui qui Lui a fait le plus de mal a fini par croire en Lui.'},
+    {l:'Saint Arianus et Antinoüs',r:'Il a versé le sang de milliers de chrétiens — il a cru et est mort martyr.',why:'Même un grand persécuteur peut se laisser toucher par le Christ.'},
+    {l:'Saul de Tarse',r:'Resté cruel envers les chrétiens, jusqu’à voir le Seigneur — il est devenu l’apôtre Paul.',why:'Le plus grand ennemi de l’Église en est devenu l’un des plus grands apôtres.'}
+  ]);
+});
+
+add(1,'II · « Aujourd’hui, tu seras avec moi dans le paradis »',`<p>Le larron repentant est un modèle rapide et puissant. Demande : que dirais-tu, toi, si tu n’avais qu’une phrase à dire à Jésus ?</p>`,root=>{
+  root.innerHTML=`<p class="lead">Le larron à la droite de Jésus a tout reconnu en une seule phrase. Associe ce qu’il a dit à ce qu’il reconnaissait.</p><div id="m"></div>
+  <blockquote class="verse">« Souviens-toi de moi, Seigneur, quand Tu viendras dans Ton Royaume »<cite>Luc 23:42</cite></blockquote>`;
+  matchGame($('#m',root),[
+    {l:'« Souviens-toi de moi, Seigneur »',r:'Il Le reconnaît comme Seigneur',why:'Il s’adresse à Lui comme à son Seigneur, malgré la Croix.'},
+    {l:'« Quand Tu viendras dans Ton Royaume »',r:'Il Le reconnaît comme Roi',why:'Il croit que ce crucifié va régner !'},
+    {l:'« Tu seras avec moi dans le paradis »',r:'Jésus répond comme Sauveur',why:'Seul un Sauveur peut promettre le Paradis le jour même.'}
+  ],{onDone(){root.querySelector('.match').insertAdjacentHTML('afterend','<p class="fb good" style="margin-top:14px"><b>Retiens :</b> le larron à gauche a persisté dans ses plaintes et a été laissé de côté — ne méprisons jamais personne, il est possible qu’il nous précède au Paradis.</p>');}});
+});
+
+add(1,'III · « Voilà ton fils… voilà ta mère »',`<p>Beau moment pour parler de la place de la famille, même quand on sert l’Église. Cite 1 Timothée 5:8 si le temps permet.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Même dans Sa douleur, Jésus pense aux autres : à Sa mère, et à Jean. Découvre ce qu’Il nous enseigne.</p><div id="g"></div>`;
+  revealGrid($('#g',root),[
+    {icon:'🤝',t:'Prendre soin des autres',b:'Jésus, dans Sa propre douleur, s’est soucié de Sa mère en premier.'},
+    {icon:'🏡',t:'Ne pas négliger sa famille',b:'Servir l’Église ne dispense pas de prendre soin des siens : « s’il n’a pas soin des siens, il a renié la foi » (1 Timothée 5:8).'},
+    {icon:'👨‍👩‍👧',t:'Une famille spirituelle',b:'La Vierge Marie devient mère de Jean, et de tous les croyants.'},
+    {icon:'💎',t:'Un honneur mutuel',b:'Marie est restée dans la maison de Jean comme un joyau précieux jusqu’à son repos.'}
+  ],4);
+});
+
+add(1,'IV · « Mon Dieu, mon Dieu, pourquoi m’as-Tu abandonné ? »',`<p>Parole délicate : bien clarifier que la divinité n’a jamais quitté l’humanité de Jésus. L’exemple du dentiste aide beaucoup les enfants.</p>`,root=>{
+  root.innerHTML=`<p class="lead">C’est le début du Psaume 21. Attention, cette parole ne veut pas dire ce qu’on croit souvent !</p><div id="g"></div>`;
+  revealGrid($('#g',root),[
+    {icon:'❌',t:'Ce que ça ne veut PAS dire',b:'Sa Divinité n’a jamais quitté Son humanité, pas même un instant. Et le Père ne S’est pas séparé de Lui.'},
+    {icon:'🦷',t:'Comme chez le dentiste',b:'Le Père L’a laissé souffrir, comme un papa qui accompagne son enfant chez le dentiste : l’enfant crie « pourquoi m’as-tu laissé faire ! » sans que son père l’ait abandonné.'},
+    {icon:'🩹',t:'Une vraie souffrance',b:'Les souffrances de la Croix étaient réelles : Jésus porte le poids du péché de toute l’humanité.'},
+    {icon:'🔊',t:'Un cri puissant',b:'Il a crié d’une voix forte malgré l’épuisement : preuve de la puissance de Sa Divinité.'}
+  ],4);
+});
+
+add(1,'V, VI, VII · Soif, Accomplissement, Remise de l’esprit',`<p>Enchaîne ces trois rapidement si le temps presse ; elles forment un crescendo vers la victoire.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Les trois dernières paroles annoncent la victoire du salut.</p><div id="g"></div>`;
+  revealGrid($('#g',root),[
+    {icon:'💧',t:'« J’ai soif »',b:'Soif physique, après tout le sang versé — mais surtout soif du salut de chaque âme, comme pour la Samaritaine.'},
+    {icon:'🏆',t:'« Tout est accompli »',b:'Les prophéties sont accomplies, l’œuvre de prédication est accomplie, la Rédemption est achevée : c’est un cri de joie et de victoire.'},
+    {icon:'🕊️',t:'« Père, je remets mon esprit entre Tes mains »',b:'Jésus meurt par Sa propre volonté, en pleine autorité : « J’ai le pouvoir de la donner, et de la reprendre » (Jean 10:18).'}
+  ],3);
+});
+
+add(2,'Ce que chaque parole révèle sur Jésus',`<p>C’est la synthèse du cours : chaque parole dévoile une identité de Jésus. Laisse les enfants faire les liens eux-mêmes avant de corriger.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Associe chaque rôle de Jésus à la parole qui le révèle.</p><div id="m"></div>`;
+  matchGame($('#m',root),[
+    {l:'Il est Prêtre',r:'« Père, pardonne-leur » — Il intercède pour ceux qui L’ont crucifié.',why:'Un prêtre intercède pour les autres devant Dieu.'},
+    {l:'Il est Roi',r:'« Tu seras avec moi dans le paradis » — Il accorde au larron une part dans Son Royaume.',why:'Seul un roi peut donner une place dans son royaume.'},
+    {l:'Il est Pasteur',r:'« Voilà ta mère » — Il prend soin de Son Église.',why:'Un pasteur veille sur son troupeau, même dans sa propre douleur.'},
+    {l:'Il est Enseignant',r:'« Pourquoi m’as-Tu abandonné ? » — Il confirme qu’Il est le Messie annoncé par les prophètes.',why:'Il accomplit le Psaume 21 sous leurs yeux.'},
+    {l:'Il est le Seigneur',r:'« J’ai soif » — Il paie le prix de la rédemption jusqu’au bout.',why:'Il accomplit les prophéties sur Sa soif pour racheter le monde.'},
+    {l:'C’est l’annonce de la joie',r:'« Tout est accompli » — par l’accomplissement de la rédemption.',why:'La Rédemption est achevée : c’est un cri de joie.'},
+    {l:'Il a proclamé Sa victoire',r:'« Je remets mon esprit » — et la défaite du diable.',why:'Il remet Son esprit en pleine autorité, vainqueur de la mort.'}
+  ]);
+});
+
+add(3,'Quiz final',`<p>Mode équipes possible. 8 questions, environ 6 minutes.</p>`,root=>{
+  quiz(root,[
+    {q:'Combien de paroles Jésus a-t-Il prononcées sur la Croix ?',c:['Sept','Trois','Dix','Cinq'],a:0,why:'Les « Sept Dernières Paroles », rapportées dans les quatre Évangiles.'},
+    {q:'« Père, pardonne-leur » est une intercession…',c:['expiatoire','facile','silencieuse','tardive'],a:0,why:'Expiatoire : Jésus couvre nos péchés par Son sang en demandant le pardon.'},
+    {q:'Que reconnaît le larron repentant en disant « quand Tu viendras dans Ton Royaume » ?',c:['Que Jésus est Roi','Que Jésus a soif','Que Jésus est fatigué','Que Jésus a peur'],a:0,why:'Il reconnaît en Jésus un Roi, un Seigneur et un Sauveur.'},
+    {q:'À qui Jésus confie-t-Il la Vierge Marie ?',c:['À Jean le bien-aimé','À Pierre','Au larron','Au centurion'],a:0,why:'« Voilà ta mère » : Jean accueille Marie dans sa maison.'},
+    {q:'« Mon Dieu, pourquoi m’as-Tu abandonné ? » signifie que…',c:['le Père L’a laissé souffrir, sans Se séparer de Lui','Dieu avait cessé d’exister','Jésus avait péché','Sa Divinité avait quitté Son humanité'],a:0,why:'La Divinité n’a jamais quitté l’humanité de Jésus ; le Père L’a laissé traverser une vraie souffrance.'},
+    {q:'« J’ai soif » exprime, en plus de la soif physique…',c:['la soif du salut de chaque âme','la soif de pouvoir','la soif de vengeance','la soif de repos'],a:0,why:'Comme avec la Samaritaine, Jésus a soif du salut des hommes.'},
+    {q:'« Tout est accompli » annonce…',c:['la victoire et l’achèvement de la Rédemption','le début de la Création','un nouveau commandement','la fin du jeûne'],a:0,why:'Un cri de joie : les prophéties et l’œuvre du salut sont accomplies.'},
+    {q:'« Je remets mon esprit entre Tes mains » montre que Jésus meurt…',c:['par Sa propre autorité, volontairement','par accident','vaincu par Ses ennemis','sans l’avoir voulu'],a:0,why:'« J’ai le pouvoir de la donner, et de la reprendre » (Jean 10:18).'}
+  ]);
+});
+
+add(3,'Ton défi de la semaine',`<p>Laisse chaque enfant cocher ce qu’il s’engage à faire. Termine par le signe de la croix et la prière habituelle.</p>`,root=>{
+  root.innerHTML=`<p class="lead">Jésus a tout donné sur la Croix. Voici ce que tu peux faire cette semaine :</p>
+  <ul class="todo">
+    <li><label class="relic"><input type="checkbox"> Apprendre par cœur une des sept paroles</label></li>
+    <li><label class="relic"><input type="checkbox"> Pardonner à quelqu’un qui m’a blessé, comme Jésus l’a fait</label></li>
+    <li><label class="relic"><input type="checkbox"> Prendre soin d’un membre de ma famille, comme Jésus a pris soin de Marie et Jean</label></li>
+    <li><label class="relic"><input type="checkbox"> Redire la prière du larron : « Souviens-toi de moi, Seigneur »</label></li>
+  </ul>
+  <p class="fb good" id="yes" hidden><b>Défi accepté !</b> « Nous sommes plus que vainqueurs par celui qui nous a aimés ».</p>`;
+  const boxes=[...root.querySelectorAll('input')];
+  boxes.forEach(b=>b.onchange=()=>{$('#yes',root).hidden=!boxes.every(x=>x.checked);});
+});
+
+/* ---------- Navigation ---------- */
+function render(){
+  const s=slides[idx],stage=$('#stage');stage.innerHTML='';
+  const sec=el('section','slide part'+s.part);
+  if(s.title)sec.appendChild(el('h1','',s.title));
+  const body=el('div','body');sec.appendChild(body);
+  s.build(body);
+  sec.appendChild(el('aside','notes','<b>Pour le serviteur</b>'+s.notes));
+  stage.appendChild(sec);
+  [...$('#parts').children].forEach((b,i)=>b.classList.toggle('on',i===s.part));
+  $('#bar').style.width=((idx+1)/slides.length*100)+'%';
+  $('#count').textContent=`${idx+1} / ${slides.length}`;
+  $('#prev').disabled=idx===0;$('#next').disabled=idx===slides.length-1;
+}
+function go(n){idx=Math.max(0,Math.min(slides.length-1,n));render();window.scrollTo({top:0});}
+PARTS.forEach((p,i)=>{const b=el('button','',p);b.onclick=()=>go(slides.findIndex(s=>s.part===i));$('#parts').appendChild(b);});
+$('#prev').onclick=()=>go(idx-1);$('#next').onclick=()=>go(idx+1);
+$('#notesBtn').onclick=e=>{const on=document.body.classList.toggle('notes-on');e.currentTarget.setAttribute('aria-pressed',String(on));};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight')go(idx+1);
+  else if(e.key==='ArrowLeft')go(idx-1);
+  else if(e.key==='n'||e.key==='N')$('#notesBtn').click();
+});
+render();
+</script>
+</body>
+</html>
+
+</body></html>

@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CHRÉTIEN 24/7 — Le Dilemme des 2 Jauges (6ᵉ–5ᵉ)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0b0f19;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .gauge-transition {
+      transition: height 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.5s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      20% { transform: translate(-8px, 4px) rotate(-2deg); }
+      40% { transform: translate(8px, -4px) rotate(2deg); }
+      60% { transform: translate(-6px, -2px) rotate(-1deg); }
+      80% { transform: translate(6px, 2px) rotate(1deg); }
+    }
+    .animate-shake {
+      animation: shake 0.45s ease-in-out;
+    }
+    @keyframes pulse-urgent {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+      50% { transform: scale(1.03); box-shadow: 0 0 25px 6px rgba(239, 68, 68, 0.35); }
+    }
+    .urgent-timer {
+      animation: pulse-urgent 1s infinite;
+    }
+    /* Effet liquide pour la jauge Société */
+    .liquid-bg {
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+    }
+    /* Effet Roc doré pour la jauge Dieu */
+    .rock-bg {
+      background: linear-gradient(180deg, #fbbf24 0%, #d97706 50%, #b45309 100%);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- BARRE DE NAVIGATION / HEADER -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-600 flex items-center justify-center text-slate-950 font-extrabold text-xl shadow-lg shadow-amber-500/20">
+          ☦
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-lg md:text-xl tracking-tight text-white">CHRÉTIEN 24/7</h1>
+            <span class="text-xs font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">6ᵉ – 5ᵉ</span>
+          </div>
+          <p class="text-xs text-slate-400">Madāres el-Aḥad • Être chrétien dans la société</p>
+        </div>
+      </div>
+
+      <!-- Contrôles d'animation -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button id="btn-mode-teams" onclick="toggleTeamMode()" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+          <span>👥</span> <span id="label-mode-teams">Mode : Groupe Unique</span>
+        </button>
+
+        <button id="btn-sound" onclick="toggleSound()" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 hover:bg-slate-700 text-emerald-400 transition">
+          🔊 Son : ON
+        </button>
+
+        <button onclick="resetWorkshop()" class="px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition">
+          🔄 Reset (50/50)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main class="max-w-7xl mx-auto w-full px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+
+    <!-- COLONNE GAUCHE : LES 2 JAUGES (4 cols sur grand écran) -->
+    <aside class="lg:col-span-4 flex flex-col gap-4">
+      
+      <!-- Sélecteur d'équipe (affiché uniquement en mode 3 équipes) -->
+      <div id="team-selector" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-3">
+        <p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Équipe active pour ce vote :</p>
+        <div class="grid grid-cols-3 gap-2" id="team-buttons"></div>
+      </div>
+
+      <!-- Boîte des 2 Jauges -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex-1 flex flex-col justify-between shadow-xl relative overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-extrabold text-sm uppercase tracking-wider text-slate-300">Les 2 Jauges en direct</h2>
+          <span id="active-team-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-slate-800 text-slate-300">Score du Groupe</span>
+        </div>
+
+        <!-- Barres verticales côte à côte -->
+        <div class="grid grid-cols-2 gap-6 my-auto py-2">
+          
+          <!-- JAUGE SOCIÉTÉ -->
+          <div class="flex flex-col items-center">
+            <div class="text-center mb-2">
+              <span class="text-2xl">😎</span>
+              <h3 class="font-extrabold text-sm text-sky-400 uppercase tracking-wide">Société</h3>
+              <p class="text-[11px] text-slate-400">Popularité / Collège</p>
+            </div>
+
+            <div class="relative w-20 sm:w-24 h-64 bg-slate-950 rounded-2xl border-2 border-slate-800 p-1.5 flex flex-col justify-end overflow-hidden shadow-inner">
+              <!-- Ligne repère 50% -->
+              <div class="absolute inset-x-0 bottom-1/2 border-b border-dashed border-slate-700/70 z-10"></div>
+              
+              <!-- Delta flottant -->
+              <div id="soc-delta" class="hidden absolute top-3 inset-x-0 text-center font-extrabold text-sm z-20"></div>
+
+              <!-- Remplissage liquide -->
+              <div id="soc-bar" class="w-full liquid-bg rounded-xl gauge-transition relative flex items-end justify-center" style="height: 50%;">
+                <span class="text-[10px] font-bold text-sky-950/80 mb-1 uppercase tracking-tighter">Eau</span>
+              </div>
+            </div>
+
+            <div class="mt-3 text-center">
+              <span id="soc-score" class="text-3xl font-extrabold text-sky-400">50</span>
+              <span class="text-sm text-slate-500 font-bold">/100</span>
+              <p id="soc-status" class="text-xs text-slate-400 mt-0.5 font-medium">Dans la moyenne</p>
+            </div>
+          </div>
+
+          <!-- JAUGE DIEU -->
+          <div class="flex flex-col items-center">
+            <div class="text-center mb-2">
+              <span class="text-2xl">🔥</span>
+              <h3 class="font-extrabold text-sm text-amber-400 uppercase tracking-wide">Dieu</h3>
+              <p class="text-[11px] text-slate-400">Fidélité / Paix intérieure</p>
+            </div>
+
+            <div class="relative w-20 sm:w-24 h-64 bg-slate-950 rounded-2xl border-2 border-slate-800 p-1.5 flex flex-col justify-end overflow-hidden shadow-inner">
+              <!-- Ligne repère 50% -->
+              <div class="absolute inset-x-0 bottom-1/2 border-b border-dashed border-slate-700/70 z-10"></div>
+
+              <!-- Delta flottant -->
+              <div id="god-delta" class="hidden absolute top-3 inset-x-0 text-center font-extrabold text-sm z-20"></div>
+
+              <!-- Remplissage Roc -->
+              <div id="god-bar" class="w-full rock-bg rounded-xl gauge-transition relative flex items-end justify-center" style="height: 50%;">
+                <span class="text-[10px] font-bold text-amber-950/90 mb-1 uppercase tracking-tighter">Roc 🪨</span>
+              </div>
+            </div>
+
+            <div class="mt-3 text-center">
+              <span id="god-score" class="text-3xl font-extrabold text-amber-400">50</span>
+              <span class="text-sm text-slate-500 font-bold">/100</span>
+              <p id="god-status" class="text-xs text-slate-400 mt-0.5 font-medium">En chemin</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Résumé multi-équipes en bas de la jauge -->
+        <div id="multi-team-summary" class="hidden mt-4 pt-3 border-t border-slate-800 space-y-1.5 text-xs"></div>
+      </div>
+    </aside>
+
+    <!-- COLONNE DROITE : SCÉNARIOS & INTERACTION (8 cols sur grand écran) -->
+    <section class="lg:col-span-8 flex flex-col gap-4">
+      
+      <!-- Onglets des Scénarios -->
+      <nav class="grid grid-cols-2 sm:grid-cols-5 gap-2" id="scenario-tabs">
+        <!-- Généré par JS -->
+      </nav>
+
+      <!-- Zone du Scénario Actif -->
+      <div id="scenario-container" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl flex-1 flex flex-col justify-between">
+        <!-- Généré dynamiquement par JS -->
+      </div>
+
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 py-3 px-4 text-center text-xs text-slate-500">
+    Astuce animateur : clique sur un choix (A, B, C, D) après le vote des jeunes, lance le <strong>Test de Pression (10s)</strong> pour voir qui change de coin, puis clique sur <strong>Révéler l'impact</strong>.
+  </footer>
+
+  <!-- SCRIPT PRINCIPAL -->
+  <script>
+    // ==========================================
+    // 1. SYNTHÉTISEUR AUDIO (Zéro fichier externe)
+    // ==========================================
+    let soundEnabled = true;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx && AudioCtx) audioCtx = new AudioCtx();
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('btn-sound');
+      btn.textContent = soundEnabled ? '🔊 Son : ON' : '🔇 Son : OFF';
+      btn.className = soundEnabled
+        ? 'px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 hover:bg-slate-700 text-emerald-400 transition'
+        : 'px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-400 transition';
+    }
+
+    function playPing() {
+      if (!soundEnabled) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
+    }
+
+    function playCrack() {
+      if (!soundEnabled) return;
+      initAudio();
+      // Bruit d'impact grave + craquement
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.32);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.32);
+    }
+
+    function playTick(urgent = false) {
+      if (!soundEnabled) return;
+      initAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(urgent ? 750 : 520, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
+    }
+
+    function playRevealSound(godDelta) {
+      if (!soundEnabled) return;
+      initAudio();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      if (godDelta >= 20) {
+        // Accord positif montant
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.setValueAtTime(554.37, now + 0.1);
+        osc.frequency.setValueAtTime(659.25, now + 0.2);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.55);
+      } else {
+        // Ton grave d'avertissement
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(150, now + 0.35);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
+    }
+
+    function playDrainSound() {
+      if (!soundEnabled) return;
+      initAudio();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      osc.frequency.exponentialRampToValueAtTime(65, now + 1.1);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 1.15);
+    }
+
+    // ==========================================
+    // 2. DONNÉES DES SCÉNARIOS (COPTES ORTHODOXES)
+    // ==========================================
+    const SCENARIOS = [
+      {
+        id: 0,
+        tabTitle: "1. Groupe WhatsApp",
+        icon: "📱",
+        title: "Scénario 1 : Le lynchage sur le groupe de la classe",
+        subtitle: "Le piège de la neutralité et du courage « en cachette »",
+        context: "Sur le groupe WhatsApp de ta classe de 5ᵉ, quelqu'un poste une photo humiliante de Lucas, un élève discret, prise à la cantine. En 2 minutes, tout le monde envoie des « 💀😂 ». Ton meilleur pote du collège te tague devant tout le monde :",
+        simType: "whatsapp",
+        choices: [
+          {
+            letter: "A",
+            text: "Tu mets juste un emoji « 😂 » pour qu'on te fiche la paix, sans écrire de commentaire méchant.",
+            soc: +15,
+            god: -30,
+            tag: "La complicité",
+             devilPrompt: "Si tu ne rigoles pas comme les autres, ils vont trouver que t'es bizarre ! C'est juste un emoji, ce n'est pas toi qui as pris la photo...",
+            explanation: "Même sans avoir pris la photo, ton emoji valide l'humiliation publique et donne de la force à ceux qui écrasent Lucas."
+          },
+          {
+            letter: "B",
+            text: "Tu laisses en « Vu » sans répondre. Tu ne te moques pas, mais tu ne te mêles de rien.",
+            soc: 0,
+            god: -15,
+            tag: "Le piège de Ponce Pilate",
+            devilPrompt: "Franchement, tu n'as rien fait de mal ! Pourquoi tu prendrais des risques pour quelqu'un qui n'est même pas ton meilleur pote ?",
+            explanation: "Beaucoup pensent que « ne rien faire de mal » suffit. Mais comme Ponce Pilate qui se lave les mains, regarder une injustice en silence, c'est laisser le mal gagner."
+          },
+          {
+            letter: "C",
+            text: "Tu envoies un message EN PRIVÉ à Lucas : « Courage, les écoute pas », mais sur le groupe public et le lendemain à la récré, tu ne dis rien.",
+            soc: +5,
+            god: +5,
+            tag: "Le chrétien en cachette",
+            devilPrompt: "Tu l'as déjà consolé en privé, c'est super gentil ! Pas besoin de te griller devant toute la classe sur le groupe public, non ?",
+            explanation: "C'est mieux que rien, mais tu as encore plus peur du regard de tes potes que de l'injustice. Lucas reste tout seul devant les autres."
+          },
+          {
+            letter: "D",
+            text: "Tu écris sur le groupe : « Franchement c'est lourd, supprimez », et le lendemain à la récré, tu vas rester avec Lucas devant tout le monde.",
+            soc: -20,
+            god: +40,
+            tag: "Le vrai courage",
+            devilPrompt: "Attends ! Si tu écris ça sur le groupe de la 5ème, ils vont dire que tu fais le moralisateur et tu vas perdre des points de popularité ! Tu maintiens ton choix ?",
+            explanation: "Sur le moment, tu perds des points de « coolitude », mais tu protèges ton prochain et tu stoppes l'effet de meute."
+          }
+        ],
+        saint: {
+          name: "Les Trois Jeunes Gens dans la fournaise (Chadrak, Méchak, Abed-Nego)",
+          tradition: "Chanté dans le 3ᵉ Hoos de la Tasbeha",
+          story: "Quand la musique du roi a sonné, toute la société s'est prosternée devant la statue d'or. Eux seuls sont restés debout. Ils n'ont pas fait semblant de lacer leurs chaussures pour se cacher : ils ont assumé devant tout le monde, et le Christ est descendu avec eux dans le feu."
+        },
+        lesson: "LEÇON N°1 : « Ne sois pas Ponce Pilate : se taire devant le mal, c'est déjà choisir un camp. »"
+      },
+      {
+        id: 1,
+        tabTitle: "2. Écran Fissuré",
+        icon: "💥",
+        title: "Scénario 2 : La tablette cassée en cours de Techno",
+        subtitle: "Le piège du « mensonge utile » quand on a tout à perdre",
+        context: "En cours de techno, tu travailles en binôme avec ton ami sur une tablette du collège. En rigolant, C'EST TOI qui la fais tomber : l'écran est fissuré. Le prof ne vous a pas vus. Deux minutes plus tard, il voit l'écran cassé et crie : « C'est sûrement l'élève de l'heure d'avant ! Il va prendre 4 heures de colle et je convoque ses parents ! »",
+        simType: "tablet",
+        choices: [
+          {
+            letter: "A",
+            text: "Tu ne dis rien. Après tout, le prof ne t'a pas posé de question directement, donc « tu n'as pas menti ».",
+            soc: +10,
+            god: -35,
+            tag: "Le mensonge par silence",
+            devilPrompt: "Le prof ne t'a rien demandé ! Si tu parles, tes parents vont être convoqués et tu es privé de téléphone tout le week-end...",
+            explanation: "Tu laisses punir un innocent à ta place pour sauver ta peau. Se taire quand un innocent est accusé est une trahison."
+          },
+          {
+            letter: "B",
+            text: "Tu lèves la main : « Monsieur, ce n'est pas l'élève d'avant, la tablette était déjà fissurée dans l'armoire ce matin quand on l'a prise. »",
+            soc: +25,
+            god: -15,
+            tag: "Le grand piège du mensonge « malin »",
+            devilPrompt: "Regarde comme ce choix est parfait : l'autre élève est sauvé ET toi tu n'es pas puni ! Tout le monde est gagnant, pourquoi dire que c'est toi ?",
+            explanation: "C'est le piège dans lequel 90 % des gens tombent : tu sauves l'élève, mais tu construis ta tranquillité sur un mensonge et tu refuses d'assumer tes actes."
+          },
+          {
+            letter: "C",
+            text: "Tu dis au prof : « Monsieur, c'est nous deux avec mon binôme sans faire exprès », pour diviser la punition en deux.",
+            soc: -10,
+            god: +5,
+            tag: "Le demi-courage",
+            devilPrompt: "Ton binôme rigolait avec toi quand c'est tombé, c'est normal qu'il prenne la moitié de la punition avec toi, non ?",
+            explanation: "Tu avoues à moitié, mais par peur d'affronter la sanction tout seul, tu entraînes ton ami alors que c'est toi qui l'as fait tomber."
+          },
+          {
+            letter: "D",
+            text: "Tu lèves la main : « Monsieur, ce n'est ni l'élève d'avant, ni mon binôme. C'est moi qui l'ai fait tomber sans faire exprès. »",
+            soc: -15,
+            god: +40,
+            tag: "L'intégrité totale",
+            devilPrompt: "Tu es sûr de rester en D ?! Tu vas prendre les heures de colle tout seul et le mot dans le carnet pour tes parents ce soir !",
+            explanation: "Tu acceptes de payer le prix de ton erreur pour rester vrai devant Dieu et juste envers les autres."
+          }
+        ],
+        saint: {
+          name: "Joseph le Juste en Égypte",
+          tradition: "Modèle de droiture dans l'Ancien Testament",
+          story: "Loin de sa famille, personne ne le regardait. Il aurait pu mentir ou faire un compromis pour éviter les ennuis, mais il a préféré aller en prison avec une conscience pure devant Dieu plutôt que d'être libre dans le mensonge."
+        },
+        lesson: "LEÇON N°2 : « Ton identité, c'est qui tu es quand dire la vérité te coûte quelque chose. »"
+      },
+      {
+        id: 2,
+        tabTitle: "3. Anniv vs Quddas",
+        icon: "⛪",
+        title: "Scénario 3 : L'anniversaire du dimanche matin",
+        subtitle: "Donner la première place à Dieu et assumer sa foi copte sans honte",
+        context: "Ton meilleur pote du collège (qui n'est pas de l'église) fête son anniversaire dimanche prochain : Laser Game + Pizza de 10h00 à 14h00 avec toute la bande. Problème : dimanche matin, il y a le Quddas (8h30–11h30) et la communion (Tanāwol). Tes parents te disent : « Tu es en 5ᵉ maintenant, c'est toi qui décides ce que tu fais dimanche. »",
+        simType: "sunday",
+        choices: [
+          {
+            letter: "A",
+            text: "Tu zappes l'église ce dimanche : « Dieu comprendra, il y a 52 dimanches dans l'année, je ne peux pas rater le Laser Game ! »",
+            soc: +30,
+            god: -30,
+            tag: "Dieu passe en second",
+            devilPrompt: "Il y a 52 dimanches par an, mais ton meilleur pote n'a qu'un seul anniversaire ! Si tu rates le Laser Game, toute la bande aura des délires sans toi lundi...",
+            explanation: "Dès qu'une sortie plus fun se présente, Jésus passe après. Dieu devient l'option quand tu n'as rien de mieux à faire."
+          },
+          {
+            letter: "B",
+            text: "Tu vas au Quddas à 8h30, mais tu pars en douce à 9h30 (avant l'Évangile et sans communier) pour être à 10h au Laser Game.",
+            soc: +25,
+            god: -10,
+            tag: "Le pointage « bonne conscience »",
+            devilPrompt: "Franchement c'est le compromis idéal : tes parents t'ont vu à l'église 1 heure ET tu arrives à l'heure au Laser Game !",
+            explanation: "Tu traites le Quddas comme un pointage obligatoire pour calmer ta conscience, en partant juste avant le cœur de la liturgie et l'Eucharistie (Tanāwol)."
+          },
+          {
+            letter: "C",
+            text: "Tu restes au Quddas jusqu'à la fin et tu les rejoins à 12h15 pour la pizza. Mais quand ils te demandent pourquoi t'étais pas là à 10h, tu mens : « J'avais un repas de famille / un match obligatoire. »",
+            soc: +10,
+            god: +5,
+            tag: "Avoir honte de sa foi",
+            devilPrompt: "Si tu leur dis que t'étais à la messe pendant 3 heures un dimanche matin, ils vont te prendre pour un moine ! Dis juste que t'avais un truc de famille...",
+            explanation: "Tu as choisi Dieu le matin, mais à midi tu as honte de Lui devant tes amis (comme saint Pierre dans la cour : « Je ne connais pas cet homme »)."
+          },
+          {
+            letter: "D",
+            text: "Tu préviens ton ami dès la veille : « Je veux trop fêter ton anniv ! Dimanche matin j'ai la messe à mon église copte, c'est hyper important pour moi, et dès que je sors de la communion je vous rejoins direct à midi pour la pizza avec ton cadeau ! »",
+            soc: +15,
+            god: +40,
+            tag: "Assumer sa foi à 100 %",
+            devilPrompt: "Tu vas vraiment dire le mot « Église copte » et « Messe » à ton pote du collège ? Et s'il se moque de toi ?",
+            explanation: "Effet surprise : quand tu assumes calmement tes convictions sans t'excuser et en montrant à ton ami que tu tiens à lui, les vrais amis te respectent encore plus."
+          }
+        ],
+        saint: {
+          name: "Saint Abanoub de Nehisa (12 ans)",
+          tradition: "Martyr enfant de l'Église copte orthodoxe",
+          story: "Saint Abanoub avait exactement 12 ans — l'âge de la 6ᵉ–5ᵉ ! Après avoir écouté l'homélie à l'église et communié au Corps et au Sang du Christ, il est allé affronter le gouverneur sans trembler en déclarant : « Je suis chrétien », sans chercher d'excuse."
+        },
+        lesson: "LEÇON N°3 : « Dieu n'est pas ton plan B du dimanche, et ta foi n'est pas un secret honteux. »"
+      },
+      {
+        id: 3,
+        tabTitle: "⚡ Bonus Siyāmi",
+        icon: "🍫",
+        title: "Mort Subite : Le Brownie du Mercredi (Jeûne Siyāmi)",
+        subtitle: "Assumer le jeûne copte (vegan : sans viande, ni lait, ni œufs) au collège",
+        context: "C'est mercredi en plein jeûne (siyāmi : ni viande, ni poisson, ni produits laitiers, ni œufs). À la récré de 10h, un camarade fête son anniversaire et distribue des brownies maison (beurre + œufs + chocolat) à tout le groupe : « Tiens, prends, c'est ma mère qui les a faits ! »",
+        simType: "brownie",
+        choices: [
+          {
+            letter: "A",
+            text: "Tu le manges devant eux pour ne pas passer pour le bizarre du groupe : « Tant pis, je recommencerai le jeûne demain. »",
+            soc: +10,
+            god: -25,
+            tag: "Abandonner au premier regard",
+            devilPrompt: "Allez, c'est juste un petit carré de brownie ! Dieu ne va pas t'en vouloir pour du beurre et des œufs, si ?",
+            explanation: "Comme Ésaü qui a vendu son droit d'aînesse pour un plat de lentilles, tu lâches ton engagement spirituel dès que quelqu'un te regarde."
+          },
+          {
+            letter: "B",
+            text: "Tu dis : « Non merci, j'ai super mal au ventre / je suis allergique aux œufs. » Tu gardes ton jeûne mais tu caches que tu es chrétien.",
+            soc: +5,
+            god: -5,
+            tag: "Le jeûne camouflé par un mensonge",
+            devilPrompt: "Au moins tu n'as pas mangé de lait ni d'œufs ! Pourquoi te compliquer la vie à expliquer le jeûne copte vegan ?",
+            explanation: "Quel intérêt de jeûner avec sa bouche si c'est pour mentir avec sa langue par honte d'être chrétien ?"
+          },
+          {
+            letter: "C",
+            text: "Tu le prends avec un grand sourire : « Joyeux anniv, merci beaucoup ! Aujourd'hui je fais le jeûne chrétien sans lait ni œufs, du coup je le garde précieusement dans mon sac pour le manger après le jeûne ! »",
+            soc: +15,
+            god: +35,
+            tag: "Fidèle ET bienveillant",
+            devilPrompt: "Ils vont te poser 1000 questions : « Mais pourquoi même pas de lait ni d'œufs ?! » Tu es prêt à leur expliquer avec le sourire ?",
+            explanation: "Tu ne vexes pas ton ami (tu prends son gâteau avec joie et gratitude), tu gardes ton jeûne siyāmi, et tu témoignes simplement de ta foi."
+          }
+        ],
+        saint: {
+          name: "Daniel et ses trois amis à Babylone",
+          tradition: "Livre de Daniel, chapitre 1",
+          story: "À la cour du roi de Babylone, tout le monde mangeait les viandes du roi. Daniel (qui était adolescent) a demandé avec douceur et politesse de manger uniquement des légumes et de l'eau (siyāmi !). Au bout de 10 jours, ils étaient plus forts et rayonnants que tous les autres."
+        },
+        lesson: "LEÇON BONUS : « Le jeûne avec amour et le sourire est une force, jamais une gêne. »"
+      }
+    ];
+
+    // ==========================================
+    // 3. ÉTAT DE L'APPLICATION (STATE)
+    // ==========================================
+    let state = {
+      teamMode: false,
+      activeTeam: 0,
+      teams: [
+        { name: "Équipe 1", soc: 50, god: 50 },
+        { name: "Équipe 2", soc: 50, god: 50 },
+        { name: "Équipe 3", soc: 50, god: 50 }
+      ],
+      currentTab: 0, // 0, 1, 2, 3 ou 'twist'
+      selectedChoice: null,
+      revealed: false,
+      showAllChoices: false,
+      timerInterval: null,
+      timerSeconds: 10,
+      // États des simulateurs
+      simChatStep: 0,
+      simTabletCracked: false,
+      simBrownieScanned: false,
+      twistExecuted: false
+    };
+
+    // ==========================================
+    // 4. GESTION DES JAUGES & ÉQUIPES
+    // ==========================================
+    function clamp(val) {
+      return Math.max(0, Math.min(100, val));
+    }
+
+    function getStatusText(score, type) {
+      if (type === 'soc') {
+        if (score === 0) return "Effacée au passage au lycée !";
+        if (score >= 75) return "Star de la cour de récré 🔥";
+        if (score >= 45) return "Bien intégré au collège";
+        return "À contre-courant du groupe";
+      } else {
+        if (score >= 85) return "Lumière sur le Roc ☦️";
+        if (score >= 60) return "Fidèle et courageux";
+        if (score >= 40) return "En chemin, parfois hésitant";
+        return "Foi cachée sous le lit ⚠️";
+      }
+    }
+
+    function updateGaugesUI(socDelta = null, godDelta = null) {
+      const team = state.teams[state.activeTeam];
+      const socBar = document.getElementById('soc-bar');
+      const godBar = document.getElementById('god-bar');
+      const socScore = document.getElementById('soc-score');
+      const godScore = document.getElementById('god-score');
+      const socStatus = document.getElementById('soc-status');
+      const godStatus = document.getElementById('god-status');
+      const badge = document.getElementById('active-team-badge');
+
+      badge.textContent = state.teamMode ? team.name : "Score du Groupe";
+
+      socBar.style.height = `${team.soc}%`;
+      godBar.style.height = `${team.god}%`;
+      socScore.textContent = team.soc;
+      godScore.textContent = team.god;
+      socStatus.textContent = getStatusText(team.soc, 'soc');
+      godStatus.textContent = getStatusText(team.god, 'god');
+
+      // Affichage des badges Delta (+15 / -20)
+      const socDeltaEl = document.getElementById('soc-delta');
+      const godDeltaEl = document.getElementById('god-delta');
+
+      if (socDelta !== null) {
+        socDeltaEl.classList.remove('hidden');
+        socDeltaEl.textContent = socDelta > 0 ? `+${socDelta}` : `${socDelta}`;
+        socDeltaEl.className = `absolute top-3 inset-x-0 text-center font-extrabold text-sm z-20 ${socDelta >= 0 ? 'text-sky-300' : 'text-rose-400'}`;
+      } else {
+        socDeltaEl.classList.add('hidden');
+      }
+
+      if (godDelta !== null) {
+        godDeltaEl.classList.remove('hidden');
+        godDeltaEl.textContent = godDelta > 0 ? `+${godDelta}` : `${godDelta}`;
+        godDeltaEl.className = `absolute top-3 inset-x-0 text-center font-extrabold text-sm z-20 ${godDelta >= 0 ? 'text-emerald-300' : 'text-rose-400'}`;
+      } else {
+        godDeltaEl.classList.add('hidden');
+      }
+
+      renderTeamsUI();
+    }
+
+    function toggleTeamMode() {
+      state.teamMode = !state.teamMode;
+      document.getElementById('label-mode-teams').textContent = state.teamMode ? "Mode : 3 Équipes" : "Mode : Groupe Unique";
+      document.getElementById('team-selector').classList.toggle('hidden', !state.teamMode);
+      document.getElementById('multi-team-summary').classList.toggle('hidden', !state.teamMode);
+      updateGaugesUI();
+    }
+
+    function selectTeam(index) {
+      state.activeTeam = index;
+      updateGaugesUI();
+    }
+
+    function renderTeamsUI() {
+      if (!state.teamMode) return;
+      const btnContainer = document.getElementById('team-buttons');
+      btnContainer.innerHTML = state.teams.map((t, idx) => `
+        <button onclick="selectTeam(${idx})" class="py-2 px-3 rounded-xl font-bold text-xs border transition ${
+          state.activeTeam === idx
+            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20'
+            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+        }">
+          ${t.name}
+        </button>
+      `).join('');
+
+      const summary = document.getElementById('multi-team-summary');
+      summary.innerHTML = state.teams.map((t, idx) => `
+        <div class="flex items-center justify-between px-2 py-1 rounded ${state.activeTeam === idx ? 'bg-slate-800/90 font-bold text-white' : 'text-slate-400'}">
+          <span>${t.name}</span>
+          <div class="flex items-center gap-3">
+            <span class="text-sky-400">😎 ${t.soc}</span>
+            <span class="text-amber-400">🔥 ${t.god}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function resetWorkshop() {
+      clearTimer();
+      state.teams = [
+        { name: "Équipe 1", soc: 50, god: 50 },
+        { name: "Équipe 2", soc: 50, god: 50 },
+        { name: "Équipe 3", soc: 50, god: 50 }
+      ];
+      state.currentTab = 0;
+      state.selectedChoice = null;
+      state.revealed = false;
+      state.showAllChoices = false;
+      state.simChatStep = 0;
+      state.simTabletCracked = false;
+      state.simBrownieScanned = false;
+      state.twistExecuted = false;
+      renderTabs();
+      renderScenario();
+      updateGaugesUI();
+    }
+
+    // ==========================================
+    // 5. NAVIGATION & RENDU DES SCÉNARIOS
+    // ==========================================
+    function switchTab(tabId) {
+      clearTimer();
+      state.currentTab = tabId;
+      state.selectedChoice = null;
+      state.revealed = false;
+      state.showAllChoices = false;
+      renderTabs();
+      renderScenario();
+      updateGaugesUI();
+    }
+
+    function renderTabs() {
+      const nav = document.getElementById('scenario-tabs');
+      const tabsHTML = SCENARIOS.map(s => {
+        const active = state.currentTab === s.id;
+        return `
+          <button onclick="switchTab(${s.id})" class="px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm border text-left transition flex items-center gap-2 ${
+            active
+              ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20'
+              : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+          }">
+            <span class="text-base">${s.icon}</span>
+            <span class="truncate">${s.tabTitle}</span>
+          </button>
+        `;
+      }).join('');
+
+      const twistActive = state.currentTab === 'twist';
+      const twistTab = `
+        <button onclick="switchTab('twist')" class="px-3 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm border text-left transition flex items-center gap-2 col-span-2 sm:col-span-1 ${
+          twistActive
+            ? 'bg-gradient-to-r from-rose-500 to-amber-500 text-slate-950 border-amber-300 shadow-lg'
+            : 'bg-rose-950/40 text-rose-300 border-rose-500/40 hover:bg-rose-900/50'
+        }">
+          <span>🎬</span>
+          <span class="truncate">Plot Twist Final</span>
+        </button>
+      `;
+
+      nav.innerHTML = tabsHTML + twistTab;
+    }
+
+    // ==========================================
+    // 6. SIMULATEURS INTERACTIFS PAR SCÉNARIO
+    // ==========================================
+    function renderSimulator(scenario) {
+      if (scenario.simType === 'whatsapp') {
+        const messages = [
+          { sender: "Maxime 5ème B", text: "📸 [Photo dossier de Lucas à la cantine]", time: "12:42" },
+          { sender: "Chloé", text: "💀💀💀 jpp regardez sa tête sur la photo !!", time: "12:43" },
+          { sender: "Yanis (Meilleur pote)", text: "@Toi 😂 Vas-y dis un truc ! Avoue c'est la photo de l'année !", time: "12:44", highlight: true }
+        ];
+        const visibleMessages = messages.slice(0, state.simChatStep);
+
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="font-bold text-xs text-emerald-400 uppercase tracking-wider">Groupe WhatsApp : 5ème B 🔥 (28 élèves)</span>
+              </div>
+              <button onclick="stepWhatsApp()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition shadow">
+                ${state.simChatStep < 3 ? `▶️ Afficher message (${state.simChatStep}/3)` : '🔄 Rejouer le chat'}
+              </button>
+            </div>
+            <div class="space-y-2 min-h-[110px] flex flex-col justify-center">
+              ${visibleMessages.length === 0 ? `<p class="text-xs text-slate-500 text-center italic">Clique sur « Afficher message » pour lancer la mise en situation en direct...</p>` : ''}
+              ${visibleMessages.map(m => `
+                <div class="p-2.5 rounded-xl text-xs max-w-md ${m.highlight ? 'bg-amber-500/20 border border-amber-500/50 text-amber-100 ml-auto' : 'bg-slate-800 text-slate-200'}">
+                  <div class="flex justify-between gap-4 mb-0.5">
+                    <span class="font-extrabold ${m.highlight ? 'text-amber-300' : 'text-sky-400'}">${m.sender}</span>
+                    <span class="text-[10px] text-slate-400">${m.time}</span>
+                  </div>
+                  <p>${m.text}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      if (scenario.simType === 'tablet') {
+        return `
+          <div id="tablet-box" class="bg-slate-950 border-2 ${state.simTabletCracked ? 'border-rose-500/70' : 'border-slate-800'} rounded-xl p-4 my-4 relative overflow-hidden">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-slate-400">💻 Tablette N°14 — Salle de Techno</span>
+              <button onclick="triggerTabletCrack()" class="px-3 py-1 rounded-lg ${state.simTabletCracked ? 'bg-slate-800 text-slate-300' : 'bg-rose-600 hover:bg-rose-500 text-white'} font-bold text-xs transition">
+                ${state.simTabletCracked ? '🔄 Réparer l\'écran' : '💥 Faire tomber la tablette !'}
+              </button>
+            </div>
+            ${state.simTabletCracked ? `
+              <div class="p-3 rounded-lg bg-rose-950/40 border border-rose-500/40 text-rose-200 text-xs flex items-center gap-3">
+                <span class="text-2xl">⚡</span>
+                <div>
+                  <p class="font-extrabold text-rose-300 uppercase">CRAC ! Écran fissuré en deux !</p>
+                  <p class="mt-0.5"><strong>Le prof :</strong> « Qui a cassé la tablette 14 ?! C'est sûrement l'élève de l'heure d'avant, il va prendre 4h de colle et je convoque ses parents ! »</p>
+                </div>
+              </div>
+            ` : `
+              <p class="text-xs text-slate-500 italic text-center py-3">Clique sur « 💥 Faire tomber la tablette ! » pendant que les 2 jeunes jouent la scène.</p>
+            `}
+          </div>
+        `;
+      }
+
+      if (scenario.simType === 'sunday') {
+        return `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-4">
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-xs uppercase text-amber-300">⛪ Dimanche 08h30 – 11h30</span>
+                <span class="text-xs bg-amber-500/20 text-amber-200 px-2 py-0.5 rounded font-bold">Église Copte</span>
+              </div>
+              <p class="text-xs text-slate-200 mt-1.5 font-semibold">Quddas + Communion (Tanāwol) + Agape</p>
+            </div>
+            <div class="bg-sky-500/10 border border-sky-500/30 rounded-xl p-3">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-xs uppercase text-sky-300">🔫 Dimanche 10h00 – 14h00</span>
+                <span class="text-xs bg-sky-500/20 text-sky-200 px-2 py-0.5 rounded font-bold">Collège</span>
+              </div>
+              <p class="text-xs text-slate-200 mt-1.5 font-semibold">Laser Game (10h) + Pizzeria (12h15) pour l'anniv de Léo</p>
+            </div>
+          </div>
+        `;
+      }
+
+      if (scenario.simType === 'brownie') {
+        return `
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 my-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+              <span class="text-3xl">🍫</span>
+              <div>
+                <p class="text-xs font-extrabold uppercase text-amber-300">Mercredi 10h15 — Cour de récré (Jour de Jeûne Siyāmi)</p>
+                <p class="text-xs text-slate-400">Ton pote te tend un gros brownie maison devant tout le groupe.</p>
+              </div>
+            </div>
+            <button onclick="scanBrownie()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition">
+              ${state.simBrownieScanned ? '⚠️ Contient : Beurre 🧈 + Œufs 🥚 + Lait 🥛 (Fatari !)' : '🔍 Scanner la recette du Brownie'}
+            </button>
+          </div>
+        `;
+      }
+      return '';
+    }
+
+    function stepWhatsApp() {
+      if (state.simChatStep < 3) {
+        state.simChatStep++;
+        playPing();
+      } else {
+        state.simChatStep = 0;
+      }
+      renderScenario();
+    }
+
+    function triggerTabletCrack() {
+      state.simTabletCracked = !state.simTabletCracked;
+      if (state.simTabletCracked) playCrack();
+      renderScenario();
+      if (state.simTabletCracked) {
+        const box = document.getElementById('tablet-box');
+        if (box) box.classList.add('animate-shake');
+      }
+    }
+
+    function scanBrownie() {
+      state.simBrownieScanned = !state.simBrownieScanned;
+      playPing();
+      renderScenario();
+    }
+
+    // ==========================================
+    // 7. SÉLECTION, PRESSION (10s) & RÉVÉLATION
+    // ==========================================
+    function selectChoice(idx) {
+      clearTimer();
+      state.selectedChoice = idx;
+      state.revealed = false;
+      state.timerSeconds = 10;
+      playTick();
+      renderScenario();
+    }
+
+    function startPressureTimer() {
+      clearTimer();
+      state.timerSeconds = 10;
+      playTick(true);
+      renderScenario();
+      state.timerInterval = setInterval(() => {
+        state.timerSeconds--;
+        if (state.timerSeconds > 0) {
+          playTick(state.timerSeconds <= 3);
+          const timerEl = document.getElementById('countdown-number');
+          if (timerEl) timerEl.textContent = `${state.timerSeconds}s`;
+        } else {
+          clearTimer();
+          const timerEl = document.getElementById('countdown-number');
+          if (timerEl) timerEl.textContent = "TEMPS ÉCOULÉ !";
+        }
+      }, 1000);
+    }
+
+    function clearTimer() {
+      if (state.timerInterval) {
+        clearInterval(state.timerInterval);
+        state.timerInterval = null;
+      }
+    }
+
+    function revealImpact() {
+      if (state.selectedChoice === null || state.revealed) return;
+      clearTimer();
+      const scenario = SCENARIOS[state.currentTab];
+      const choice = scenario.choices[state.selectedChoice];
+
+      // Mise à jour des jauges de l'équipe active
+      const team = state.teams[state.activeTeam];
+      team.soc = clamp(team.soc + choice.soc);
+      team.god = clamp(team.god + choice.god);
+
+      state.revealed = true;
+      playRevealSound(choice.god);
+      updateGaugesUI(choice.soc, choice.god);
+      renderScenario();
+    }
+
+    function toggleShowAllChoices() {
+      state.showAllChoices = !state.showAllChoices;
+      renderScenario();
+    }
+
+    function executePlotTwist() {
+      state.twistExecuted = true;
+      state.teams.forEach(t => { t.soc = 0; });
+      playDrainSound();
+      updateGaugesUI(-100, 0);
+      renderScenario();
+    }
+
+    // ==========================================
+    // 8. RENDU DE LA ZONE CENTRALE
+    // ==========================================
+    function renderScenario() {
+      const container = document.getElementById('scenario-container');
+
+      // CAS SPÉCIAL : ONGLET PLOT TWIST FINAL
+      if (state.currentTab === 'twist') {
+        container.innerHTML = `
+          <div class="space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+              <span class="text-xs font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">Conclusion du Workshop</span>
+              <h2 class="text-2xl sm:text-3xl font-extrabold text-white mt-2">🎬 Le Plot Twist Final : L'Entrée au Lycée</h2>
+              <p class="text-sm text-slate-400 mt-1">Regardez bien vos deux jauges à gauche avant de cliquer sur le bouton ci-dessous...</p>
+            </div>
+
+            <div class="bg-slate-950 border-2 ${state.twistExecuted ? 'border-amber-500/60' : 'border-rose-500/50'} rounded-2xl p-6 text-center space-y-4">
+              ${!state.twistExecuted ? `
+                <p class="text-base text-slate-200 max-w-xl mx-auto">
+                  Vous avez essayé de protéger votre <strong>Jauge Société (Popularité)</strong> pendant toute la 6ᵉ et la 5ᵉ. Mais voici ce qui arrive le jour où vous changez de classe ou passez au lycée :
+                </p>
+                <button onclick="executePlotTwist()" class="px-6 py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-slate-950 font-extrabold text-base sm:text-lg shadow-xl shadow-rose-500/20 transition transform hover:scale-105">
+                  ⚡ VIDER LA JAUGE SOCIÉTÉ (PASSAGE AU LYCÉE)
+                </button>
+              ` : `
+                <div class="space-y-3">
+                  <div class="inline-block px-4 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-300 font-extrabold text-sm">
+                    😎 Jauge Société = 0 / 100 (Effacée !) • 🔥 Jauge Dieu = Intacte pour l'éternité !
+                  </div>
+                  <p class="text-sm sm:text-base text-slate-200 max-w-2xl mx-auto leading-relaxed">
+                    « Au lycée, votre jauge de popularité du collège repart <strong>automatiquement à zéro</strong>. Les gens pour qui vous auriez triché, menti ou eu honte de Jésus ne seront même plus dans votre classe. Par contre, votre <strong>Jauge Dieu</strong> — votre courage, votre vérité, votre fidélité — est bâtie sur le Roc (Matthieu 7, 24) : <strong>personne ne pourra jamais l'effacer.</strong> »
+                  </p>
+                </div>
+              `}
+            </div>
+
+            <!-- Les 3 Cartes Souvenirs à emporter -->
+            <div>
+              <h3 class="text-xs font-extrabold uppercase tracking-wider text-amber-400 mb-3">🏆 Les 3 Leçons de vie à emporter lundi matin au collège :</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                  <span class="text-xs font-bold text-amber-400 uppercase">1. Les 3 Jeunes Gens</span>
+                  <p class="font-bold text-sm text-white mt-1">« Se taire devant le mal, c'est déjà choisir un camp. »</p>
+                  <p class="text-xs text-slate-400 mt-1">Un poisson mort suit le courant. Un chrétien vivant nage à contre-courant.</p>
+                </div>
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                  <span class="text-xs font-bold text-amber-400 uppercase">2. Joseph en Égypte</span>
+                  <p class="font-bold text-sm text-white mt-1">« Mon identité, c'est qui je suis quand la vérité me coûte. »</p>
+                  <p class="text-xs text-slate-400 mt-1">Dieu préfère une punition honnête qu'une tranquillité volée.</p>
+                </div>
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                  <span class="text-xs font-bold text-amber-400 uppercase">3. Saint Abanoub (12 ans)</span>
+                  <p class="font-bold text-sm text-white mt-1">« Dieu n'est pas mon plan B, ma foi n'est pas un secret. »</p>
+                  <p class="text-xs text-slate-400 mt-1">Quand tu assumes ta foi avec le sourire, même les autres te respectent.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // RENDU D'UN SCÉNARIO (1, 2, 3 ou Bonus)
+      const scenario = SCENARIOS[state.currentTab];
+      const selectedObj = state.selectedChoice !== null ? scenario.choices[state.selectedChoice] : null;
+
+      container.innerHTML = `
+        <div>
+          <!-- En-tête du scénario -->
+          <div class="border-b border-slate-800 pb-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400">${scenario.subtitle}</span>
+              <span class="text-xs text-slate-400">Vote aux 4 coins de la salle</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white mt-1">${scenario.title}</h2>
+            <p class="text-sm text-slate-300 mt-2 leading-relaxed">${scenario.context}</p>
+          </div>
+
+          <!-- Simulateur interactif -->
+          ${renderSimulator(scenario)}
+
+          <!-- Grille des Choix A, B, C, D -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-4">
+            ${scenario.choices.map((c, idx) => {
+              const isSelected = state.selectedChoice === idx;
+              const showDetails = (state.revealed && isSelected) || state.showAllChoices;
+              return `
+                <button onclick="selectChoice(${idx})" class="text-left p-4 rounded-xl border-2 transition flex flex-col justify-between ${
+                  isSelected
+                    ? 'bg-amber-500/15 border-amber-400 shadow-lg shadow-amber-500/10'
+                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700'
+                }">
+                  <div class="flex items-start gap-3">
+                    <span class="w-8 h-8 rounded-lg font-extrabold text-sm flex items-center justify-center shrink-0 ${
+                      isSelected ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+                    }">${c.letter}</span>
+                    <p class="text-xs sm:text-sm text-slate-100 font-medium leading-snug">${c.text}</p>
+                  </div>
+
+                  ${showDetails ? `
+                    <div class="mt-3 pt-2.5 border-t border-slate-800/80">
+                      <div class="flex items-center justify-between text-xs font-extrabold mb-1">
+                        <span class="text-amber-300">${c.tag}</span>
+                        <div class="flex gap-2">
+                          <span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">😎 ${c.soc >= 0 ? '+'+c.soc : c.soc}</span>
+                          <span class="px-2 py-0.5 rounded ${c.god >= 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}">🔥 ${c.god >= 0 ? '+'+c.god : c.god}</span>
+                        </div>
+                      </div>
+                      <p class="text-xs text-slate-400 leading-relaxed">${c.explanation}</p>
+                    </div>
+                  ` : ''}
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- BARRE D'ACTION : TEST DE PRESSION (10s) OU RÉVÉLATION -->
+        <div class="mt-2">
+          ${state.selectedChoice !== null && !state.revealed ? `
+            <div class="bg-rose-950/40 border border-rose-500/50 rounded-xl p-4 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-xs font-extrabold uppercase tracking-wider text-rose-300">😈 Test de Pression sociale (Choix ${selectedObj.letter})</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="startPressureTimer()" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition urgent-timer">
+                    ⏱️ Lancer Chrono 10s (<span id="countdown-number">${state.timerSeconds}s</span>)
+                  </button>
+                  <button onclick="revealImpact()" class="px-4 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition shadow-lg">
+                    ✨ Révéler l'impact sur les Jauges
+                  </button>
+                </div>
+              </div>
+              <p class="text-xs sm:text-sm text-rose-100 italic">
+                <strong>Argument tentateur à lire aux jeunes :</strong> « ${selectedObj.devilPrompt} Vous avez 10 secondes si vous voulez changer de coin ! »
+              </p>
+            </div>
+          ` : ''}
+
+          ${state.revealed ? `
+            <div class="bg-slate-950 border border-amber-500/40 rounded-xl p-4 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-lg">☦️</span>
+                  <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">Témoin de notre Église : ${scenario.saint.name}</span>
+                </div>
+                <button onclick="toggleShowAllChoices()" class="text-xs font-bold text-sky-400 hover:underline">
+                  ${state.showAllChoices ? '🙈 Masquer les autres choix' : '👁️ Comparer les points des 4 choix'}
+                </button>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">${scenario.saint.story}</p>
+              <div class="p-3 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-200 font-extrabold text-xs sm:text-sm text-center">
+                ${scenario.lesson}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // Initialisation au chargement de la page
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTabs();
+      renderScenario();
+      updateGaugesUI();
+    });
+  </script>
+</body>
+</html>

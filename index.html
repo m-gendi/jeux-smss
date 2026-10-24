@@ -7,7 +7,6 @@
     <style>
         :root {
             --copte-blue: #0a2a5a;
-            --copte-blue-dark: #061a3a;
             --copte-gold: #d4af37;
             --copte-gold-light: #f1d592;
             --white: #ffffff;
@@ -30,36 +29,36 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 26px;
+            gap: 20px;
             width: 100%;
             padding: 20px;
             box-sizing: border-box;
-            transform: translateY(-4vh);
         }
 
         /* Bandeau du verset */
         .verse-box {
-            background-color: rgba(255, 250, 240, 0.9);
+            background-color: rgba(255, 250, 240, 0.85);
             border-left: 5px solid var(--copte-gold);
             border-right: 5px solid var(--copte-gold);
-            padding: 16px 26px;
-            border-radius: 12px;
+            padding: 15px 25px;
+            border-radius: 10px;
             text-align: center;
-            max-width: 560px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            max-width: 520px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
         }
 
         .verse-text {
             color: var(--copte-blue);
             font-style: italic;
-            font-size: 1.02rem;
+            font-size: 1rem;
             margin: 0 0 8px 0;
-            line-height: 1.45;
+            line-height: 1.4;
         }
 
         .verse-ref {
             color: #5d4037;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: bold;
             display: block;
             margin-bottom: 8px;
@@ -67,29 +66,30 @@
 
         .copte-text {
             color: var(--copte-gold);
-            font-size: 1.25rem;
+            font-size: 1.2rem;
             font-weight: bold;
             display: block;
-            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.15);
         }
 
-        /* Grille des 2 Dropdowns (Cours & Jeux) */
+        /* Conteneur des deux boutons (Cours & Jeux) côte à côte */
         .menus-row {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 20px;
             width: 100%;
-            max-width: 720px;
+            max-width: 700px;
         }
 
+        /* Dropdown */
         .dropdown-container {
             position: relative;
             z-index: 1000;
-            width: 330px;
-            max-width: 92vw;
+            width: 320px;
+            max-width: 90vw;
         }
 
+        /* Permet à un menu ouvert de passer au-dessus de l'autre */
         .dropdown-container.open {
             z-index: 1010;
         }
@@ -97,7 +97,7 @@
         .dropdown-button {
             width: 100%;
             padding: 16px 22px;
-            background: linear-gradient(135deg, rgba(10, 42, 90, 0.96), rgba(6, 26, 58, 0.96));
+            background-color: rgba(10, 42, 90, 0.95);
             color: var(--copte-gold);
             border: 2px solid var(--copte-gold);
             border-radius: 12px;
@@ -111,58 +111,48 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
         }
 
-        .dropdown-button * {
-            pointer-events: none;
-        }
-
-        /* Le bouton change de couleur au survol SEULEMENT s'il est fermé */
-        .dropdown-container:not(.open) .dropdown-button:hover {
-            background: var(--copte-blue);
-            box-shadow: 0 10px 28px rgba(212, 175, 55, 0.35);
-            border-color: var(--copte-gold-light);
-        }
-
-        /* Quand il est ouvert (.open), il reste figé sur sa couleur active sans clignoter au survol */
-        .dropdown-container.open .dropdown-button {
-            background: var(--copte-blue);
-            border-color: var(--copte-gold-light);
-            box-shadow: 0 10px 28px rgba(212, 175, 55, 0.35);
-        }
-
-        .btn-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .dropdown-button:hover {
+            background-color: var(--copte-blue);
+            transform: translateY(-2px);
         }
 
         .arrow {
-            font-size: 0.85rem;
-            transition: transform 0.2s ease;
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
         }
 
-        .open .arrow {
-            transform: rotate(180deg);
-        }
+        .open .arrow { transform: rotate(180deg); }
 
         .dropdown-menu {
             position: absolute;
             top: calc(100% + 10px);
             left: 0;
             width: 100%;
+            max-height: 55vh;
+            overflow-y: auto;
             background-color: rgba(10, 42, 90, 0.98);
             border: 2px solid var(--copte-gold);
             border-radius: 12px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.65);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-6px);
-            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
-            padding: 8px 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            padding: 10px 0;
             list-style: none;
             margin: 0;
-            z-index: 1020;
+        }
+
+        /* Barre de défilement dorée discrète */
+        .dropdown-menu::-webkit-scrollbar {
+            width: 6px;
+        }
+        .dropdown-menu::-webkit-scrollbar-thumb {
+            background: var(--copte-gold);
+            border-radius: 10px;
         }
 
         .open .dropdown-menu {
@@ -174,49 +164,33 @@
         .menu-item a {
             display: flex;
             align-items: center;
-            padding: 13px 18px;
+            padding: 13px 20px;
             color: var(--copte-gold-light);
             text-decoration: none;
             font-weight: 600;
             font-size: 0.96rem;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.12);
-            transition: background-color 0.15s ease, color 0.15s ease;
-        }
-
-        .menu-item:last-child a {
-            border-bottom: none;
+            transition: background 0.2s, padding-left 0.2s;
         }
 
         .menu-item a:hover {
-            background-color: rgba(212, 175, 55, 0.22);
+            background-color: rgba(212, 175, 55, 0.2);
             color: var(--white);
+            padding-left: 24px;
         }
 
-        .item-label {
-            flex: 1;
-            transition: transform 0.15s ease;
-        }
-
-        .menu-item a:hover .item-label {
-            transform: translateX(4px);
-        }
-
+        /* Mise en avant stylée pour le jeu de la journée spirituelle */
         .menu-item.featured a {
-            background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(10, 42, 90, 0) 100%);
-            border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+            background: linear-gradient(90deg, rgba(212, 175, 55, 0.22) 0%, rgba(10, 42, 90, 0) 100%);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            border-top: 1px solid rgba(212, 175, 55, 0.3);
             color: var(--white);
-        }
-
-        .menu-item.featured a:hover {
-            background-color: rgba(212, 175, 55, 0.28);
         }
 
         .icon-box {
-            margin-right: 14px;
-            width: 32px;
+            margin-right: 15px;
+            width: 30px;
             display: flex;
             justify-content: center;
-            align-items: center;
             font-size: 1.3rem;
             flex-shrink: 0;
         }
@@ -226,8 +200,8 @@
             color: var(--copte-blue);
             font-size: 0.75rem;
             font-weight: 900;
-            padding: 2px 6px;
-            border-radius: 5px;
+            padding: 2px 5px;
+            border-radius: 4px;
             border: 1px solid var(--copte-blue);
             font-family: sans-serif;
         }
@@ -242,7 +216,7 @@
             letter-spacing: 0.5px;
             padding: 3px 7px;
             border-radius: 999px;
-            margin-left: 8px;
+            margin-left: auto;
             box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
         }
     </style>
@@ -257,73 +231,64 @@
         </div>
 
         <div class="menus-row">
-            <!-- DROPDOWN 1 : LES COURS -->
+            <!-- MENU DÉROULANT 1 : LES COURS -->
             <div class="dropdown-container" id="coursDropdown">
-                <button type="button" class="dropdown-button" onclick="toggleDropdown('coursDropdown')">
-                    <span class="btn-title">📖 Choisir un cours</span>
+                <button class="dropdown-button" onclick="toggleDropdown('coursDropdown')">
+                    <span>📖 Choisir un cours</span>
                     <span class="arrow">▼</span>
                 </button>
                 
                 <ul class="dropdown-menu">
                     <li class="menu-item">
                         <a href="la-sainte-croix.html">
-                            <span class="icon-box">☦️</span>
-                            <span class="item-label">La Sainte Croix</span>
+                            <span class="icon-box">☦️</span> La Sainte Croix
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="Procession_de_la_Croix.html">
-                            <span class="icon-box">🕯️</span>
-                            <span class="item-label">La Procession de la Croix</span>
+                            <span class="icon-box">🕯️</span> La Procession de la Croix
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="les-paroles-dor.html">
-                            <span class="icon-box">📜</span>
-                            <span class="item-label">Les Paroles d'Or</span>
+                            <span class="icon-box">📜</span> Les Paroles d'Or
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="le-sacrifice-parfait.html">
-                            <span class="icon-box">❤️‍🔥</span>
-                            <span class="item-label">Le Sacrifice Parfait</span>
+                            <span class="icon-box">❤️‍🔥</span> Le Sacrifice Parfait
                         </a>
                     </li>
                 </ul>
             </div>
 
-            <!-- DROPDOWN 2 : LES JEUX -->
+            <!-- MENU DÉROULANT 2 : LES JEUX -->
             <div class="dropdown-container" id="jeuxDropdown">
-                <button type="button" class="dropdown-button" onclick="toggleDropdown('jeuxDropdown')">
-                    <span class="btn-title">🎲 Choisir un jeu</span>
+                <button class="dropdown-button" onclick="toggleDropdown('jeuxDropdown')">
+                    <span>🎲 Choisir un jeu</span>
                     <span class="arrow">▼</span>
                 </button>
                 
                 <ul class="dropdown-menu">
-                    <!-- JEU JOURNÉE SPIRITUELLE -->
                     <li class="menu-item featured">
                         <a href="chretien-24-7.html">
-                            <span class="icon-box">⚖️</span>
-                            <span class="item-label">Chrétien 24/7 (2 Jauges)</span>
-                            <span class="badge-new">Spi</span>
+                            <span class="icon-box">⚖️</span> Chrétien 24/7
+                            <span class="badge-new">Spi Oct 2026</span>
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="jeu-khamaseen.html">
-                            <span class="icon-box"><span class="badge-50">50</span></span>
-                            <span class="item-label">Jeu Khamaseen</span>
+                            <span class="icon-box"><span class="badge-50">50</span></span> Jeu Khamaseen
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="jeu-semaine-sainte.html">
-                            <span class="icon-box">🌿</span>
-                            <span class="item-label">Jeu Semaine Sainte</span>
+                            <span class="icon-box">🌿</span> Jeu Semaine Sainte
                         </a>
                     </li>
                     <li class="menu-item">
                         <a href="questionnaire-semaine-sainte.html">
-                            <span class="icon-box">⏳</span>
-                            <span class="item-label">Frise Chronologique</span>
+                            <span class="icon-box">⏳</span> Frise Chronologique
                         </a>
                     </li>
                 </ul>
@@ -333,27 +298,28 @@
 
     <script>
         function toggleDropdown(targetId) {
-            const currentDropdown = document.getElementById(targetId);
-            const isOpen = currentDropdown.classList.contains('open');
-            
-            // Ferme tout
-            document.querySelectorAll('.dropdown-container').forEach(dropdown => {
-                dropdown.classList.remove('open');
+            const clickedContainer = document.getElementById(targetId);
+            const isOpen = clickedContainer.classList.contains('open');
+
+            // Ferme tous les menus
+            document.querySelectorAll('.dropdown-container').forEach(container => {
+                container.classList.remove('open');
             });
 
-            // Ouvre celui cliqué s'il était fermé
+            // Si le menu cliqué n'était pas ouvert, on l'ouvre
             if (!isOpen) {
-                currentDropdown.classList.add('open');
+                clickedContainer.classList.add('open');
             }
         }
 
-        document.addEventListener('click', function(event) {
+        // Ferme les menus si on clique ailleurs sur la page
+        window.onclick = function(event) {
             if (!event.target.closest('.dropdown-container')) {
-                document.querySelectorAll('.dropdown-container').forEach(dropdown => {
-                    dropdown.classList.remove('open');
+                document.querySelectorAll('.dropdown-container').forEach(container => {
+                    container.classList.remove('open');
                 });
             }
-        });
+        }
     </script>
 
 </body>

@@ -39,7 +39,7 @@
 
         /* Bandeau du verset */
         .verse-box {
-            background-color: rgba(255, 250, 240, 0.88);
+            background-color: rgba(255, 250, 240, 0.9);
             border-left: 5px solid var(--copte-gold);
             border-right: 5px solid var(--copte-gold);
             padding: 16px 26px;
@@ -47,7 +47,6 @@
             text-align: center;
             max-width: 560px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-            backdrop-filter: blur(6px);
         }
 
         .verse-text {
@@ -91,7 +90,6 @@
             max-width: 92vw;
         }
 
-        /* Passe au-dessus de l'autre bouton sur mobile quand le menu est ouvert */
         .dropdown-container.open {
             z-index: 1010;
         }
@@ -113,13 +111,24 @@
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            transition: all 0.3s ease;
         }
 
-        .dropdown-button:hover {
+        .dropdown-button * {
+            pointer-events: none;
+        }
+
+        /* Le bouton change de couleur au survol SEULEMENT s'il est fermé */
+        .dropdown-container:not(.open) .dropdown-button:hover {
             background: var(--copte-blue);
-            box-shadow: 0 12px 32px rgba(212, 175, 55, 0.28);
-            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(212, 175, 55, 0.35);
+            border-color: var(--copte-gold-light);
+        }
+
+        /* Quand il est ouvert (.open), il reste figé sur sa couleur active sans clignoter au survol */
+        .dropdown-container.open .dropdown-button {
+            background: var(--copte-blue);
+            border-color: var(--copte-gold-light);
+            box-shadow: 0 10px 28px rgba(212, 175, 55, 0.35);
         }
 
         .btn-title {
@@ -130,7 +139,7 @@
 
         .arrow {
             font-size: 0.85rem;
-            transition: transform 0.3s ease;
+            transition: transform 0.2s ease;
         }
 
         .open .arrow {
@@ -148,11 +157,12 @@
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.65);
             opacity: 0;
             visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.28s ease;
+            transform: translateY(-6px);
+            transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
             padding: 8px 0;
             list-style: none;
             margin: 0;
+            z-index: 1020;
         }
 
         .open .dropdown-menu {
@@ -169,8 +179,8 @@
             text-decoration: none;
             font-weight: 600;
             font-size: 0.96rem;
-            transition: all 0.2s ease;
             border-bottom: 1px solid rgba(212, 175, 55, 0.12);
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
         .menu-item:last-child a {
@@ -180,14 +190,25 @@
         .menu-item a:hover {
             background-color: rgba(212, 175, 55, 0.22);
             color: var(--white);
-            padding-left: 23px;
         }
 
-        /* Mise en avant du jeu de la journée spirituelle */
+        .item-label {
+            flex: 1;
+            transition: transform 0.15s ease;
+        }
+
+        .menu-item a:hover .item-label {
+            transform: translateX(4px);
+        }
+
         .menu-item.featured a {
             background: linear-gradient(90deg, rgba(212, 175, 55, 0.2) 0%, rgba(10, 42, 90, 0) 100%);
             border-bottom: 1px solid rgba(212, 175, 55, 0.35);
             color: var(--white);
+        }
+
+        .menu-item.featured a:hover {
+            background-color: rgba(212, 175, 55, 0.28);
         }
 
         .icon-box {
@@ -198,10 +219,6 @@
             align-items: center;
             font-size: 1.3rem;
             flex-shrink: 0;
-        }
-
-        .item-label {
-            flex: 1;
         }
 
         .badge-50 {
@@ -242,7 +259,7 @@
         <div class="menus-row">
             <!-- DROPDOWN 1 : LES COURS -->
             <div class="dropdown-container" id="coursDropdown">
-                <button class="dropdown-button" onclick="toggleDropdown('coursDropdown')">
+                <button type="button" class="dropdown-button" onclick="toggleDropdown('coursDropdown')">
                     <span class="btn-title">📖 Choisir un cours</span>
                     <span class="arrow">▼</span>
                 </button>
@@ -277,7 +294,7 @@
 
             <!-- DROPDOWN 2 : LES JEUX -->
             <div class="dropdown-container" id="jeuxDropdown">
-                <button class="dropdown-button" onclick="toggleDropdown('jeuxDropdown')">
+                <button type="button" class="dropdown-button" onclick="toggleDropdown('jeuxDropdown')">
                     <span class="btn-title">🎲 Choisir un jeu</span>
                     <span class="arrow">▼</span>
                 </button>
@@ -287,7 +304,7 @@
                     <li class="menu-item featured">
                         <a href="chretien-24-7.html">
                             <span class="icon-box">⚖️</span>
-                            <span class="item-label">Chrétien 24/7 - Journée Spirituelle 24/10/2026</span>
+                            <span class="item-label">Chrétien 24/7 (2 Jauges)</span>
                             <span class="badge-new">Spi</span>
                         </a>
                     </li>
@@ -316,23 +333,27 @@
 
     <script>
         function toggleDropdown(targetId) {
-            const allDropdowns = document.querySelectorAll('.dropdown-container');
-            allDropdowns.forEach(dropdown => {
-                if (dropdown.id === targetId) {
-                    dropdown.classList.toggle('open');
-                } else {
-                    dropdown.classList.remove('open');
-                }
+            const currentDropdown = document.getElementById(targetId);
+            const isOpen = currentDropdown.classList.contains('open');
+            
+            // Ferme tout
+            document.querySelectorAll('.dropdown-container').forEach(dropdown => {
+                dropdown.classList.remove('open');
             });
+
+            // Ouvre celui cliqué s'il était fermé
+            if (!isOpen) {
+                currentDropdown.classList.add('open');
+            }
         }
 
-        window.onclick = function(event) {
+        document.addEventListener('click', function(event) {
             if (!event.target.closest('.dropdown-container')) {
                 document.querySelectorAll('.dropdown-container').forEach(dropdown => {
                     dropdown.classList.remove('open');
                 });
             }
-        }
+        });
     </script>
 
 </body>

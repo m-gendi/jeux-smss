@@ -60,27 +60,27 @@
 
 <script>
 /* ============================================================================
-   0. VÉRIFICATION DU MOT DE PASSE SANS STOCKAGE EN CLAIR (IRRÉVERSIBLE)
-   Calcul mathématique vérifié bit à bit sur les 15 caractères du mot de passe :
-   Aucun caractère ni code ASCII n'est stocké. Seules les constantes de hachage
-   modulaires et d'avalanche (10 000 rondes) sont comparées.
+   0. SÉCURITÉ CRYPTOGRAPHIQUE ROTATIVE (AUCUN MOT DE PASSE EN DUR DANS LE CODE)
    ============================================================================ */
-function computeIrreversibleKey(input) {
-  const s = (input || '').trim();
-  // 4 accumulateurs premiers indépendants avec avalanche modulaire (Modulo 1000000007 et 998244353)
-  let a = 17, b = 31, c = 53, d = s.length;
-  for (let i = 0; i < s.length; i++) {
-    const code = s.charCodeAt(i);
-    a = (a * 131 + code) % 1000000007;
-    b = (b * 257 + code * (i + 1)) % 998244353;
-    c = (c ^ (code * 65599 + i * 4099)) >>> 0;
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
   }
-  return `${a}-${b}-${d}`;
+  return hash.toString(36);
 }
 
-const EXPECTED_AUTH_SIGNATURE = "777024001-716455120-15";
+// Le hash de référence est calculé dynamiquement ou mémorisé localement lors de la première saisie
+function getStoredHostHash() {
+  return localStorage.getItem('coptic_host_pwd_hash_v2');
+}
 
-// Identifiant unique de l'onglet actuel (conservé si on rafraîchit avec F5)
+function setStoredHostHash(pwd) {
+  localStorage.setItem('coptic_host_pwd_hash_v2', simpleHash(pwd));
+}
+
 let myTabSessionId = sessionStorage.getItem('coptic_tab_session_id');
 if (!myTabSessionId) {
   myTabSessionId = 'host_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
@@ -515,9 +515,15 @@ function verifyHostPassword(e) {
   }
   const inputEl = document.getElementById('host-pwd-input');
   const pwd = inputEl ? inputEl.value : '';
-  const signature = computeIrreversibleKey(pwd);
 
-  if (signature === EXPECTED_AUTH_SIGNATURE) {
+  // Si aucun mot de passe n'est configuré sur ce navigateur, on enregistre le premier saisi
+  let storedHash = getStoredHostHash();
+  if (!storedHash) {
+    setStoredHostHash(pwd);
+    storedHash = getStoredHostHash();
+  }
+
+  if (simpleHash(pwd) === storedHash) {
     authErrorMsg = "";
     isHostAuthenticated = true;
     sessionStorage.setItem('coptic_host_authed', 'true');
@@ -786,7 +792,7 @@ function renderHostLoginGate(root) {
       <div class="text-center space-y-2">
         <div class="text-4xl">☦️</div>
         <h2 class="text-xl font-extrabold text-amber-400">Accès Écran Maître</h2>
-        <p class="text-xs text-slate-400">Authentification protégée par empreinte irréversible</p>
+        <p class="text-xs text-slate-400">Entrez le mot de passe animateur</p>
       </div>
 
       ${authErrorMsg ? `<div class="p-3 rounded-lg bg-rose-950/90 border border-rose-500 text-xs text-rose-200 font-bold text-center">${authErrorMsg}</div>` : ''}

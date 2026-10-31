@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Agpeya & Katamaros Play — Conférence des Serviteurs</title>
+  <title>Conférence des Serviteurs — Novembre 2026</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Inclusion de MQTT.js pour un temps réel ultra-rapide et sans configuration -->
   <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
   <style>
     body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; overscroll-behavior: none; }
@@ -15,7 +14,7 @@
 </head>
 <body class="coptic-bg min-h-screen flex flex-col justify-between">
 
-  <!-- BARRE SUPÉRIEURE : SCORES & STATUT -->
+  <!-- BARRE SUPÉRIEURE : SCORES, TIMER & STATUT -->
   <header class="border-b border-amber-600/30 bg-slate-900/95 backdrop-blur p-3 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center gap-3">
@@ -26,25 +25,32 @@
         </div>
       </div>
 
-      <!-- Scores des 3 équipes -->
-      <div class="flex gap-2 sm:gap-5 items-center">
-        <div class="bg-blue-950/90 border border-blue-500/40 px-3 py-1 rounded-lg text-center min-w-[85px]">
+      <!-- Scores des 3 équipes + Chronomètre synchronisé -->
+      <div class="flex gap-2 sm:gap-4 items-center">
+        <div class="bg-blue-950/90 border border-blue-500/40 px-3 py-1 rounded-lg text-center min-w-[78px]">
           <div class="text-[10px] uppercase tracking-wider text-blue-300 font-semibold">Équipe 1</div>
           <div id="score-team-1" class="text-xl font-extrabold text-white">0</div>
         </div>
-        <div class="bg-emerald-950/90 border border-emerald-500/40 px-3 py-1 rounded-lg text-center min-w-[85px]">
+        <div class="bg-emerald-950/90 border border-emerald-500/40 px-3 py-1 rounded-lg text-center min-w-[78px]">
           <div class="text-[10px] uppercase tracking-wider text-emerald-300 font-semibold">Équipe 2</div>
           <div id="score-team-2" class="text-xl font-extrabold text-white">0</div>
         </div>
-        <div class="bg-purple-950/90 border border-purple-500/40 px-3 py-1 rounded-lg text-center min-w-[85px]">
+        <div class="bg-purple-950/90 border border-purple-500/40 px-3 py-1 rounded-lg text-center min-w-[78px]">
           <div class="text-[10px] uppercase tracking-wider text-purple-300 font-semibold">Équipe 3</div>
           <div id="score-team-3" class="text-xl font-extrabold text-white">0</div>
+        </div>
+        <div id="timer-box" class="hidden bg-amber-950/90 border border-amber-500/50 px-3 py-1 rounded-lg text-center min-w-[70px]">
+          <div class="text-[10px] uppercase tracking-wider text-amber-300 font-semibold">Chrono</div>
+          <div id="timer-display" class="text-xl font-mono font-extrabold text-amber-400">00s</div>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
+        <span id="role-badge" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-amber-500/30 font-bold"></span>
         <span id="conn-badge" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Connexion...</span>
-        <button onclick="resetRole()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded text-slate-300">Changer Terminal</button>
+        <button id="host-logout-btn" onclick="logoutHost()" class="hidden text-xs bg-rose-800 hover:bg-rose-700 border border-rose-500 px-2.5 py-1 rounded text-white font-bold">
+          🔒 Se déconnecter
+        </button>
       </div>
     </div>
   </header>
@@ -54,7 +60,55 @@
 
 <script>
 /* ============================================================================
-   1. BANQUE DE DONNÉES MASSIVE (58 MANCHES POUR ~2 HEURES DE JEU)
+   0. SÉCURITÉ CRYPTOGRAPHIQUE (SHA-256) & VERROUILLAGE EXCLUSIF DU MAÎTRE
+   Empreinte SHA-256 de (mot_de_passe + ":coptic_salt_2026") — Irréversible
+   ============================================================================ */
+const EXPECTED_SHA256_HASH = "d391aa766a1d0671e77911583862fb616a29b415a786f8665fb3d9d25fd55a5e";
+const HASH_SALT = ":coptic_salt_2026";
+
+async function sha256Hex(str) {
+  const buf = new TextEncoder().encode(str);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Identifiant unique de l'onglet actuel (conservé si on rafraîchit avec F5)
+let myTabSessionId = sessionStorage.getItem('coptic_tab_session_id');
+if (!myTabSessionId) {
+  myTabSessionId = 'host_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+  sessionStorage.setItem('coptic_tab_session_id', myTabSessionId);
+}
+
+let isHostAuthenticated = sessionStorage.getItem('coptic_host_authed') === 'true';
+let activeRemoteHost = { id: null, lastSeen: 0 };
+let authErrorMsg = "";
+
+/* ============================================================================
+   1. ROUTAGE ET VERROUILLAGE AUTOMATIQUE DES RÔLES
+   ============================================================================ */
+const VALID_PLAYER_SLOTS = ['1A', '1B', '2A', '2B', '3A', '3B'];
+const urlParams = new URLSearchParams(window.location.search);
+const roleFromUrl = (urlParams.get('role') || '').toUpperCase();
+
+let myRole = 'HOST';
+
+if (VALID_PLAYER_SLOTS.includes(roleFromUrl)) {
+  myRole = roleFromUrl;
+  localStorage.setItem('coptic_locked_player_role', roleFromUrl);
+} else {
+  const lockedRole = localStorage.getItem('coptic_locked_player_role');
+  if (lockedRole && VALID_PLAYER_SLOTS.includes(lockedRole) && urlParams.get('host') !== '1') {
+    myRole = lockedRole;
+    window.history.replaceState(null, '', `?role=${lockedRole}`);
+  } else {
+    myRole = 'HOST';
+  }
+}
+
+document.getElementById('role-badge').textContent = (myRole === 'HOST') ? '🖥️ Écran Maître' : `📱 Terminal ${myRole} (Verrouillé)`;
+
+/* ============================================================================
+   2. BANQUE DE DONNÉES MASSIVE (58 MANCHES POUR ~2 HEURES DE JEU)
    ============================================================================ */
 const GAME_DATA = {
   synaxaire: [
@@ -102,7 +156,7 @@ const GAME_DATA = {
       answer: "Saint Marc l'Évangéliste",
       clues: [
         "Indice 1 (30 pts) : La maison de ma mère à Jérusalem fut le Cénacle où le Christ institua l'Eucharistie.",
-        "Indice 2 (30 pts) : En entrant à Alexandrie, la courroie de ma sandale s'est rompue et j'ai guéri le cordonnier Anianus.",
+        "Indice 2 (20 pts) : En entrant à Alexandrie, la courroie de ma sandale s'est rompue et j'ai guéri le cordonnier Anianus.",
         "Indice 3 (10 pts) : Fondateur de l'Église d'Alexandrie, mon symbole est le Lion et j'ai subi le martyre."
       ]
     },
@@ -303,16 +357,17 @@ const GAME_DATA = {
 };
 
 /* ============================================================================
-   2. ÉTAT GLOBAL & MQTT
+   3. ÉTAT GLOBAL PERSISTANT (SAUVEGARDÉ DANS LOCALSTORAGE + MQTT RETAIN)
    ============================================================================ */
-let myRole = localStorage.getItem('coptic_game_role') || null;
-let state = {
+const DEFAULT_STATE = {
   scores: { 1: 0, 2: 0, 3: 0 },
   currentGame: 'LOBBY',
   roundIndex: 0,
   clueStep: 0,
   buzzedBy: null,
   revealed: false,
+  timerEndAt: null,
+  timerRemainingPaused: null,
   fiestaChains: {
     1: { step: 0, target: "", currentWord: "", history: [] },
     2: { step: 0, target: "", currentWord: "", history: [] },
@@ -327,51 +382,176 @@ let state = {
   verseSubmissions: [],
   verseStartTime: 0,
   picDrawerSlot: '1A',
-  picPrompt: ''
+  picPrompt: '',
+  drawingHistory: []
 };
+
+let state = loadPersistedState();
+
+function loadPersistedState() {
+  try {
+    const saved = localStorage.getItem('coptic_conf_persisted_state_v1');
+    if (saved) {
+      return Object.assign({}, DEFAULT_STATE, JSON.parse(saved));
+    }
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+
+function savePersistedState() {
+  try {
+    localStorage.setItem('coptic_conf_persisted_state_v1', JSON.stringify(state));
+  } catch (e) {}
+}
 
 let currentDrawColor = '#0f172a';
 let currentDrawWidth = 3;
 let mqttClient = null;
 
-// Broker MQTT public et hautement performant (zéro configuration)
 const MQTT_BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-const MQTT_TOPIC = "coptic/serviteurs/conf/2026/room";
+const MQTT_TOPIC_ROOM = "coptic/serviteurs/conf-nov-2026/room";
+const MQTT_TOPIC_STATE = "coptic/serviteurs/conf-nov-2026/retained_state";
+const MQTT_TOPIC_HOST_LOCK = "coptic/serviteurs/conf-nov-2026/host_lock";
 
 function initMqtt() {
   const badge = document.getElementById('conn-badge');
   try {
     mqttClient = mqtt.connect(MQTT_BROKER_URL);
     mqttClient.on('connect', () => {
-      badge.textContent = "🟢 Temps Réel Connecté";
+      badge.textContent = "🟢 En Ligne";
       badge.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
-      mqttClient.subscribe(MQTT_TOPIC);
-      if (myRole && myRole !== 'HOST') sendEvent('REQUEST_STATE', {});
+      mqttClient.subscribe([MQTT_TOPIC_ROOM, MQTT_TOPIC_STATE, MQTT_TOPIC_HOST_LOCK]);
+
+      if (myRole === 'HOST') {
+        if (isHostAuthenticated) {
+          announceHostLock('HEARTBEAT');
+          broadcastState();
+        } else {
+          announceHostLock('WHO_IS_HOST');
+        }
+      } else {
+        sendEvent('REQUEST_STATE', {});
+      }
     });
+
     mqttClient.on('message', (topic, payload) => {
       try {
         const packet = JSON.parse(payload.toString());
-        handleNetworkMessage(packet);
-      } catch(e){}
+        if (topic === MQTT_TOPIC_HOST_LOCK) {
+          handleHostLockPacket(packet);
+        } else {
+          handleNetworkMessage(packet);
+        }
+      } catch (e) {}
     });
+
     mqttClient.on('error', () => {
       badge.textContent = "🔴 Erreur réseau";
     });
-  } catch(e) {
-    badge.textContent = "⚠️ Mode hors-ligne";
+  } catch (e) {
+    badge.textContent = "⚠️ Hors-ligne";
   }
 }
 
+/* ============================================================================
+   4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE (SINGLE ACTIVE HOST)
+   ============================================================================ */
+function announceHostLock(action) {
+  if (!mqttClient || !mqttClient.connected) return;
+  const pkt = { action, hostId: myTabSessionId, ts: Date.now() };
+  mqttClient.publish(MQTT_TOPIC_HOST_LOCK, JSON.stringify(pkt), { qos: 0, retain: action !== 'WHO_IS_HOST' });
+}
+
+function handleHostLockPacket(pkt) {
+  if (!pkt) return;
+  if (pkt.action === 'HEARTBEAT' && pkt.hostId !== myTabSessionId) {
+    // On vérifie que le heartbeat reçu est récent (moins de 8 secondes)
+    if (Date.now() - pkt.ts < 8000) {
+      activeRemoteHost = { id: pkt.hostId, lastSeen: Date.now() };
+      if (myRole === 'HOST' && !isHostAuthenticated) render();
+    }
+  } else if (pkt.action === 'RELEASE' && pkt.hostId === activeRemoteHost.id) {
+    activeRemoteHost = { id: null, lastSeen: 0 };
+    if (myRole === 'HOST' && !isHostAuthenticated) render();
+  } else if (pkt.action === 'WHO_IS_HOST' && myRole === 'HOST' && isHostAuthenticated && pkt.hostId !== myTabSessionId) {
+    // Si je suis le Maître actif et qu'un autre appareil demande qui est connecté, je réponds immédiatement
+    announceHostLock('HEARTBEAT');
+  }
+}
+
+function isAnotherHostCurrentlyActive() {
+  return activeRemoteHost.id && activeRemoteHost.id !== myTabSessionId && (Date.now() - activeRemoteHost.lastSeen < 7500);
+}
+
+// Heartbeat toutes les 3 secondes tant que le Maître est connecté
+setInterval(() => {
+  if (myRole === 'HOST') {
+    if (isHostAuthenticated) {
+      announceHostLock('HEARTBEAT');
+    } else if (activeRemoteHost.id && Date.now() - activeRemoteHost.lastSeen >= 7500) {
+      activeRemoteHost = { id: null, lastSeen: 0 };
+      render();
+    }
+  }
+}, 3000);
+
+// Libération automatique du verrou si le Maître ferme l'onglet
+window.addEventListener('beforeunload', () => {
+  if (myRole === 'HOST' && isHostAuthenticated) {
+    announceHostLock('RELEASE');
+  }
+});
+
+async function verifyHostPassword(e) {
+  if (e) e.preventDefault();
+  if (isAnotherHostCurrentlyActive()) {
+    authErrorMsg = "Un autre appareil est déjà connecté en tant qu'Écran Maître.";
+    render();
+    return;
+  }
+  const inputEl = document.getElementById('host-pwd-input');
+  const pwd = inputEl ? inputEl.value : '';
+  const computedHash = await sha256Hex(pwd + HASH_SALT);
+
+  if (computedHash === EXPECTED_SHA256_HASH) {
+    authErrorMsg = "";
+    isHostAuthenticated = true;
+    sessionStorage.setItem('coptic_host_authed', 'true');
+    document.getElementById('host-logout-btn').classList.remove('hidden');
+    announceHostLock('HEARTBEAT');
+    broadcastState();
+  } else {
+    authErrorMsg = "Mot de passe incorrect.";
+    render();
+  }
+}
+
+function logoutHost() {
+  announceHostLock('RELEASE');
+  isHostAuthenticated = false;
+  sessionStorage.removeItem('coptic_host_authed');
+  document.getElementById('host-logout-btn').classList.add('hidden');
+  render();
+}
+
+/* ============================================================================
+   5. SYNCHRONISATION RÉSEAU & PERSISTANCE (STATE + DESSIN + CHRONO)
+   ============================================================================ */
 function sendEvent(type, data) {
   const packet = { type, data, sender: myRole, ts: Date.now() };
   if (mqttClient && mqttClient.connected) {
-    mqttClient.publish(MQTT_TOPIC, JSON.stringify(packet));
+    mqttClient.publish(MQTT_TOPIC_ROOM, JSON.stringify(packet));
   }
 }
 
 function broadcastState() {
-  if (myRole === 'HOST') {
-    sendEvent('STATE_SYNC', state);
+  savePersistedState();
+  if (myRole === 'HOST' && isHostAuthenticated) {
+    const packet = { type: 'STATE_SYNC', data: state, sender: 'HOST', ts: Date.now() };
+    if (mqttClient && mqttClient.connected) {
+      // Publication avec retain: true pour que tout joueur ou maître qui rafraîchit récupère l'état
+      mqttClient.publish(MQTT_TOPIC_STATE, JSON.stringify(packet), { qos: 0, retain: true });
+    }
     render();
   }
 }
@@ -381,18 +561,33 @@ function handleNetworkMessage(packet) {
   const { type, data } = packet;
 
   if (type === 'STATE_SYNC') {
-    state = data;
-    render();
+    // Si je suis un joueur, ou si je suis le Maître avec un état local plus ancien, je synchronise
+    if (myRole !== 'HOST') {
+      state = Object.assign({}, DEFAULT_STATE, data);
+      savePersistedState();
+      render();
+      redrawHostOrPlayerCanvas();
+    }
   } else if (type === 'DRAW_LINE') {
+    state.drawingHistory = state.drawingHistory || [];
+    state.drawingHistory.push(data);
+    savePersistedState();
     drawOnHostCanvas(data);
   } else if (type === 'CLEAR_CANVAS') {
-    clearHostCanvas();
-  } else if (myRole === 'HOST') {
+    state.drawingHistory = [];
+    savePersistedState();
+    clearHostCanvasOnly();
+  } else if (myRole === 'HOST' && isHostAuthenticated) {
     if (type === 'REQUEST_STATE') {
       broadcastState();
     } else if (type === 'BUZZ') {
       if (!state.buzzedBy) {
         state.buzzedBy = { slot: data.slot, team: data.team, answer: data.answer || '' };
+        // Pause automatique du chrono lors d'un buzz
+        if (state.timerEndAt && state.timerEndAt > Date.now()) {
+          state.timerRemainingPaused = Math.ceil((state.timerEndAt - Date.now()) / 1000);
+          state.timerEndAt = null;
+        }
         broadcastState();
       }
     } else if (type === 'FIESTA_WORD') {
@@ -424,23 +619,52 @@ function handleNetworkMessage(packet) {
 }
 
 /* ============================================================================
-   3. GESTION DES RÔLES & SCORES
+   6. CHRONOMÈTRE PERSISTANT (SURVIT AU RAFRAÎCHISSEMENT F5)
    ============================================================================ */
-function selectRole(role) {
-  myRole = role;
-  localStorage.setItem('coptic_game_role', role);
-  if (role !== 'HOST') sendEvent('REQUEST_STATE', {});
-  render();
+function startTimer(seconds) {
+  state.timerEndAt = Date.now() + seconds * 1000;
+  state.timerRemainingPaused = null;
+  broadcastState();
 }
 
-function resetRole() {
-  localStorage.removeItem('coptic_game_role');
-  myRole = null;
-  render();
+function stopTimer() {
+  state.timerEndAt = null;
+  state.timerRemainingPaused = null;
+  broadcastState();
 }
 
+setInterval(() => {
+  const box = document.getElementById('timer-box');
+  const disp = document.getElementById('timer-display');
+  if (!box || !disp) return;
+
+  if (state.timerEndAt) {
+    box.classList.remove('hidden');
+    const rem = Math.max(0, Math.ceil((state.timerEndAt - Date.now()) / 1000));
+    disp.textContent = rem + 's';
+    if (rem === 0 && myRole === 'HOST' && isHostAuthenticated) {
+      state.timerEndAt = null;
+      savePersistedState();
+    }
+  } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
+    box.classList.remove('hidden');
+    disp.textContent = state.timerRemainingPaused + 's (Pause)';
+  } else {
+    box.classList.add('hidden');
+  }
+}, 300);
+
+/* ============================================================================
+   7. SCORES & CONTRÔLES DU MAÎTRE DU JEU (HOST)
+   ============================================================================ */
 function addPoints(team, pts) {
   state.scores[team] = Math.max(0, (state.scores[team] || 0) + pts);
+  broadcastState();
+}
+
+function resetEntireTournament() {
+  if (!confirm("Voulez-vous vraiment remettre les scores et la progression à zéro ?")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   broadcastState();
 }
 
@@ -448,19 +672,24 @@ function updateScoreHeader() {
   document.getElementById('score-team-1').textContent = state.scores[1] || 0;
   document.getElementById('score-team-2').textContent = state.scores[2] || 0;
   document.getElementById('score-team-3').textContent = state.scores[3] || 0;
+  const logoutBtn = document.getElementById('host-logout-btn');
+  if (logoutBtn) {
+    if (myRole === 'HOST' && isHostAuthenticated) logoutBtn.classList.remove('hidden');
+    else logoutBtn.classList.add('hidden');
+  }
 }
 
-/* ============================================================================
-   4. CONTRÔLES DU MAÎTRE DU JEU (HOST)
-   ============================================================================ */
 function startGame(gameName, roundIdx = 0) {
   state.currentGame = gameName;
   state.roundIndex = Math.max(0, roundIdx);
   state.buzzedBy = null;
   state.revealed = false;
+  state.timerEndAt = null;
+  state.timerRemainingPaused = null;
 
   if (gameName === 'SYNAXAIRE') {
     state.clueStep = 0;
+    startTimer(60);
   } else if (gameName === 'FIESTA') {
     const pack = GAME_DATA.fiesta[state.roundIndex % GAME_DATA.fiesta.length];
     state.fiestaPhase = 'WRITING';
@@ -469,6 +698,7 @@ function startGame(gameName, roundIdx = 0) {
     [1, 2, 3].forEach((t, idx) => {
       state.fiestaChains[t] = { step: 0, target: pack.targets[idx], currentWord: "", history: [] };
     });
+    startTimer(120);
   } else if (gameName === 'UNDERCOVER') {
     const pack = GAME_DATA.undercover[state.roundIndex % GAME_DATA.undercover.length];
     const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
@@ -479,13 +709,17 @@ function startGame(gameName, roundIdx = 0) {
     slots.forEach(s => {
       state.ucAssignments[s] = { word: (s === ucSlot) ? pack.undercover : pack.orthodox, isUC: (s === ucSlot) };
     });
+    startTimer(120);
   } else if (gameName === 'VERSES') {
     state.verseSubmissions = [];
     state.verseStartTime = Date.now();
+    startTimer(45);
   } else if (gameName === 'PICTIONARY') {
     const slots = ['1A', '2A', '3A', '1B', '2B', '3B'];
     state.picDrawerSlot = slots[state.roundIndex % slots.length];
     state.picPrompt = GAME_DATA.pictionary[state.roundIndex % GAME_DATA.pictionary.length];
+    state.drawingHistory = [];
+    startTimer(90);
   }
   broadcastState();
 }
@@ -508,71 +742,86 @@ function scoreFiestaAutomatically() {
 }
 
 /* ============================================================================
-   5. RENDU GRAPHIQUE
+   8. RENDU GRAPHIQUE (PORTAIL MOT DE PASSE MAÎTRE + INTERFACES)
    ============================================================================ */
 function render() {
   updateScoreHeader();
   const root = document.getElementById('app-container');
 
-  if (!myRole) {
+  if (myRole === 'HOST') {
+    if (!isHostAuthenticated) {
+      renderHostLoginGate(root);
+    } else {
+      renderHost(root);
+      if (state.currentGame === 'PICTIONARY') redrawHostOrPlayerCanvas();
+    }
+  } else {
+    renderPlayer(root);
+    if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
+      redrawHostOrPlayerCanvas();
+    }
+  }
+}
+
+function renderHostLoginGate(root) {
+  const lockedByOther = isAnotherHostCurrentlyActive();
+
+  if (lockedByOther) {
     root.innerHTML = `
-      <div class="bg-slate-900/95 border border-amber-500/40 rounded-2xl p-6 max-w-2xl mx-auto w-full space-y-6 shadow-2xl">
-        <div class="text-center space-y-2">
-          <h2 class="text-2xl font-bold text-amber-400">Sélectionnez votre Terminal</h2>
-          <p class="text-sm text-slate-300">Aucune configuration requise : choisissez votre rôle pour rejoindre la session en temps réel.</p>
-        </div>
-
-        <button onclick="selectRole('HOST')" class="w-full py-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-extrabold rounded-xl text-lg shadow-lg">
-          🖥️ ÉCRAN MAÎTRE (Projecteur / Animateur)
-        </button>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-          <div class="bg-blue-950/60 border border-blue-500/40 p-4 rounded-xl space-y-2.5">
-            <div class="font-bold text-blue-300 text-center text-sm">ÉQUIPE 1</div>
-            <button onclick="selectRole('1A')" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-sm">📱 Téléphone 1A (Capitaine)</button>
-            <button onclick="selectRole('1B')" class="w-full py-3 bg-blue-800 hover:bg-blue-700 rounded-lg font-semibold text-sm">📱 Téléphone 1B (Second)</button>
-          </div>
-          <div class="bg-emerald-950/60 border border-emerald-500/40 p-4 rounded-xl space-y-2.5">
-            <div class="font-bold text-emerald-300 text-center text-sm">ÉQUIPE 2</div>
-            <button onclick="selectRole('2A')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-sm">📱 Téléphone 2A (Capitaine)</button>
-            <button onclick="selectRole('2B')" class="w-full py-3 bg-emerald-800 hover:bg-emerald-700 rounded-lg font-semibold text-sm">📱 Téléphone 2B (Second)</button>
-          </div>
-          <div class="bg-purple-950/60 border border-purple-500/40 p-4 rounded-xl space-y-2.5">
-            <div class="font-bold text-purple-300 text-center text-sm">ÉQUIPE 3</div>
-            <button onclick="selectRole('3A')" class="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm">📱 Téléphone 3A (Capitaine)</button>
-            <button onclick="selectRole('3B')" class="w-full py-3 bg-purple-800 hover:bg-purple-700 rounded-lg font-semibold text-sm">📱 Téléphone 3B (Second)</button>
-          </div>
-        </div>
+      <div class="bg-slate-900/95 border-2 border-rose-500/60 rounded-2xl p-8 max-w-md mx-auto w-full space-y-4 text-center shadow-2xl">
+        <div class="text-5xl">🔒</div>
+        <h2 class="text-xl font-extrabold text-rose-400">Écran Maître déjà actif</h2>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Un autre appareil contrôle actuellement la conférence. Pour prendre la main ici, l'autre maître doit quitter la page ou cliquer sur <strong>« Se déconnecter »</strong>.
+        </p>
+        <div class="text-xs text-slate-500 italic">Vérification automatique en temps réel...</div>
       </div>
     `;
     return;
   }
 
-  if (myRole === 'HOST') {
-    renderHost(root);
-  } else {
-    renderPlayer(root);
-  }
+  root.innerHTML = `
+    <form onsubmit="verifyHostPassword(event)" class="bg-slate-900/95 border border-amber-500/40 rounded-2xl p-8 max-w-md mx-auto w-full space-y-5 shadow-2xl">
+      <div class="text-center space-y-2">
+        <div class="text-4xl">☦️</div>
+        <h2 class="text-xl font-extrabold text-amber-400">Accès Écran Maître</h2>
+        <p class="text-xs text-slate-400">Authentification protégée par empreinte SHA-256</p>
+      </div>
+
+      ${authErrorMsg ? `<div class="p-3 rounded-lg bg-rose-950/90 border border-rose-500 text-xs text-rose-200 font-bold text-center">${authErrorMsg}</div>` : ''}
+
+      <div>
+        <label class="text-xs text-slate-300 font-semibold block mb-1.5">Mot de passe animateur :</label>
+        <input id="host-pwd-input" type="password" required autofocus placeholder="••••••••••••••" class="w-full bg-slate-800 border border-slate-600 focus:border-amber-500 rounded-xl px-4 py-3 text-white outline-none">
+      </div>
+
+      <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-extrabold rounded-xl shadow-lg">
+        Déverrouiller l'Écran Maître
+      </button>
+    </form>
+  `;
 }
 
 function renderHost(root) {
   const navBar = `
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4 bg-slate-900/90 p-3 rounded-xl border border-slate-700">
       <div class="flex flex-wrap gap-1.5">
-        <button onclick="startGame('LOBBY', 0)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='LOBBY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">QR Code</button>
-        <button onclick="startGame('SYNAXAIRE', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='SYNAXAIRE'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">1. Synaxaire (15)</button>
-        <button onclick="startGame('FIESTA', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='FIESTA'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">2. Évolution Copte (6)</button>
-        <button onclick="startGame('UNDERCOVER', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (10)</button>
-        <button onclick="startGame('VERSES', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
-        <button onclick="startGame('PICTIONARY', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (15)</button>
+        <button onclick="startGame('LOBBY', 0)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='LOBBY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">📱 6 QR Codes</button>
+        <button onclick="startGame('SYNAXAIRE', state.currentGame==='SYNAXAIRE'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='SYNAXAIRE'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">1. Synaxaire (15)</button>
+        <button onclick="startGame('FIESTA', state.currentGame==='FIESTA'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='FIESTA'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">2. Évolution Copte (6)</button>
+        <button onclick="startGame('UNDERCOVER', state.currentGame==='UNDERCOVER'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (10)</button>
+        <button onclick="startGame('VERSES', state.currentGame==='VERSES'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
+        <button onclick="startGame('PICTIONARY', state.currentGame==='PICTIONARY'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (15)</button>
       </div>
-      <div class="flex items-center gap-1 text-xs">
+      <div class="flex flex-wrap items-center gap-1 text-xs">
         <button onclick="addPoints(1, 10)" class="bg-blue-700 hover:bg-blue-600 px-2 py-1 rounded font-bold">+10 Éq.1</button>
         <button onclick="addPoints(1, -10)" class="bg-blue-950 border border-blue-700 px-1.5 py-1 rounded text-blue-300">-10</button>
         <button onclick="addPoints(2, 10)" class="bg-emerald-700 hover:bg-emerald-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.2</button>
         <button onclick="addPoints(2, -10)" class="bg-emerald-950 border border-emerald-700 px-1.5 py-1 rounded text-emerald-300">-10</button>
         <button onclick="addPoints(3, 10)" class="bg-purple-700 hover:bg-purple-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.3</button>
         <button onclick="addPoints(3, -10)" class="bg-purple-950 border border-purple-700 px-1.5 py-1 rounded text-purple-300">-10</button>
+        <button onclick="startTimer(60)" title="Relancer 60s" class="bg-amber-700 hover:bg-amber-600 px-2 py-1 rounded font-bold ml-1">⏱️ 60s</button>
+        <button onclick="resetEntireTournament()" title="Tout remettre à zéro" class="bg-slate-800 hover:bg-rose-900 border border-slate-600 px-2 py-1 rounded text-slate-300 ml-1">🗑️ RAZ</button>
       </div>
     </div>
   `;
@@ -580,21 +829,40 @@ function renderHost(root) {
   let content = '';
 
   if (state.currentGame === 'LOBBY') {
-    const pageUrl = window.location.href.split('#')[0];
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pageUrl)}`;
+    const baseUrl = window.location.origin + window.location.pathname;
+    const teamsConfig = [
+      { team: 1, name: "ÉQUIPE 1", border: "border-blue-500/50", bg: "bg-blue-950/40", text: "text-blue-300", slots: ['1A', '1B'] },
+      { team: 2, name: "ÉQUIPE 2", border: "border-emerald-500/50", bg: "bg-emerald-950/40", text: "text-emerald-300", slots: ['2A', '2B'] },
+      { team: 3, name: "ÉQUIPE 3", border: "border-purple-500/50", bg: "bg-purple-950/40", text: "text-purple-300", slots: ['3A', '3B'] }
+    ];
+
     content = `
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-slate-900/70 rounded-2xl border border-amber-500/30 p-8">
-        <div class="space-y-4">
-          <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">Session de 2 Heures • 58 Manches</span>
-          <h2 class="text-3xl font-extrabold text-white">Grand Jeu des Serviteurs de Catéchisme</h2>
-          <p class="text-slate-300 text-sm leading-relaxed">
-            Répartissez les 34 serviteurs en <strong>3 équipes</strong>. Scannez le QR Code pour connecter les terminaux <strong>A (Capitaine)</strong> et <strong>B (Second)</strong> sur vos téléphones.
-          </p>
+      <div class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 space-y-6">
+        <div class="text-center space-y-1">
+          <h2 class="text-2xl font-extrabold text-amber-400">Scannez le QR Code attribué à votre équipe</h2>
+          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié. Toute la progression est sauvegardée en direct.</p>
         </div>
-        <div class="flex flex-col items-center justify-center space-y-3 bg-slate-950/80 p-6 rounded-2xl border border-slate-800">
-          <img src="${qrUrl}" alt="QR Code" class="w-48 h-48 rounded-xl border-4 border-white shadow-lg bg-white p-1">
-          <div class="text-xs text-amber-400 font-bold uppercase tracking-wider">Scannez pour rejoindre</div>
-          <div class="text-[11px] text-slate-400 break-all text-center">${pageUrl}</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          ${teamsConfig.map(t => `
+            <div class="${t.bg} border ${t.border} rounded-2xl p-4 space-y-4">
+              <div class="text-center font-extrabold text-lg ${t.text}">${t.name}</div>
+              <div class="grid grid-cols-2 gap-3">
+                ${t.slots.map(slot => {
+                  const targetUrl = `${baseUrl}?role=${slot}`;
+                  const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(targetUrl)}`;
+                  const isCap = slot.endsWith('A');
+                  return `
+                    <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5 flex flex-col items-center space-y-2">
+                      <span class="text-xs font-extrabold text-white px-2 py-0.5 rounded bg-slate-800">Terminal ${slot}</span>
+                      <img src="${qrImg}" alt="QR ${slot}" class="w-28 h-28 rounded-lg bg-white p-1">
+                      <span class="text-[10px] uppercase tracking-wider font-bold ${isCap ? 'text-amber-400' : 'text-slate-400'}">${isCap ? 'Capitaine' : 'Second'}</span>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
         </div>
       </div>
     `;
@@ -612,6 +880,7 @@ function renderHost(root) {
             <h3 class="text-2xl font-bold text-white">Qui est ce Saint ou Personnage Biblique ?</h3>
           </div>
           <div class="flex flex-wrap gap-2">
+            <button onclick="startGame('SYNAXAIRE', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
             <button onclick="state.clueStep = Math.min(2, state.clueStep + 1); broadcastState();" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg text-xs font-bold">Indice Suivant (${ptsMap[Math.min(2, state.clueStep+1)]} pts)</button>
             <button onclick="state.revealed = true; broadcastState();" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-bold">Révéler</button>
             <button onclick="startGame('SYNAXAIRE', state.roundIndex + 1)" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
@@ -628,11 +897,11 @@ function renderHost(root) {
               ${state.buzzedBy.answer ? `<div class="text-lg text-amber-200 mt-1">« ${state.buzzedBy.answer} »</div>` : ''}
             </div>
             <div class="flex gap-2">
-              <button onclick="addPoints(${state.buzzedBy.team}, ${currentPts}); state.revealed=true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">✅ Valider (+${currentPts} pts)</button>
-              <button onclick="state.buzzedBy=null; broadcastState();" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux</button>
+              <button onclick="addPoints(${state.buzzedBy.team}, ${currentPts}); state.revealed=true; stopTimer(); broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">✅ Valider (+${currentPts} pts)</button>
+              <button onclick="state.buzzedBy=null; if(state.timerRemainingPaused){startTimer(state.timerRemainingPaused);} broadcastState();" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux (Reprendre)</button>
             </div>
           </div>
-        ` : `<div class="text-center text-sm text-slate-400 italic py-2">En attente d'un buzz...</div>`}
+        ` : `<div class="text-center text-sm text-slate-400 italic py-2">En attente d'un buzz des téléphones 1A, 2A ou 3A...</div>`}
         ${state.revealed ? `<div class="p-6 rounded-xl bg-emerald-950/90 border border-emerald-400 text-center"><div class="text-3xl font-extrabold text-white">${item.answer}</div></div>` : ''}
       </div>
     `;
@@ -646,9 +915,10 @@ function renderHost(root) {
         <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
           <div>
             <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 2 • L'Évolution Copte (${idx + 1} / ${GAME_DATA.fiesta.length})</span>
-            <h3 class="text-xl font-bold text-white">Passez le téléphone entre les coéquipiers</h3>
+            <h3 class="text-xl font-bold text-white">Passez le téléphone Capitaine (1A, 2A, 3A) à 4 membres de l'équipe</h3>
           </div>
           <div class="flex flex-wrap gap-2">
+            <button onclick="startGame('FIESTA', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
             <button onclick="state.fiestaPhase='VOTING'; broadcastState();" class="bg-amber-600 px-3 py-2 rounded-lg text-xs font-bold">Passer au Vote</button>
             <button onclick="scoreFiestaAutomatically()" class="bg-emerald-600 px-3 py-2 rounded-lg text-xs font-bold">Calculer les Points</button>
             <button onclick="startGame('FIESTA', state.roundIndex + 1)" class="bg-indigo-600 px-3 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
@@ -667,6 +937,7 @@ function renderHost(root) {
             <div class="bg-slate-800/80 p-4 rounded-xl flex flex-wrap gap-2">
               ${allOptions.map(opt => `<span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-600 text-sm font-semibold text-amber-200">${opt}</span>`).join('')}
             </div>
+            <div class="text-sm text-emerald-400 font-semibold">Votes reçus : ${Object.keys(state.fiestaVotes).map(k => '✅ Équipe '+k).join(' • ') || 'En attente...'}</div>
           </div>
         ` : ''}
         ${state.fiestaPhase === 'REVEAL' ? `
@@ -684,9 +955,10 @@ function renderHost(root) {
         <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
           <div>
             <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 3 • L'Hérésie Cachée (${idx + 1} / ${GAME_DATA.undercover.length})</span>
-            <h3 class="text-xl font-bold text-white">Trouvez l'infiltré</h3>
+            <h3 class="text-xl font-bold text-white">Trouvez l'infiltré parmi les 6 terminaux</h3>
           </div>
           <div class="flex gap-2">
+            <button onclick="startGame('UNDERCOVER', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
             <button onclick="state.ucRevealed = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Révéler</button>
             <button onclick="startGame('UNDERCOVER', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
@@ -696,6 +968,9 @@ function renderHost(root) {
             const info = state.ucAssignments[s] || {};
             return `<div class="p-4 rounded-xl border ${state.ucRevealed && info.isUC ? 'bg-rose-950/90 border-rose-500' : 'bg-slate-800 border-slate-700'} text-center space-y-1"><div class="text-lg font-extrabold text-white">Joueur ${s}</div>${state.ucRevealed ? `<div class="pt-2 text-xs font-bold ${info.isUC ? 'text-rose-300' : 'text-emerald-300'}">${info.isUC ? '🕵️ INFILTRÉ' : '☦️ ORTHODOXE'}</div><div class="text-[11px] text-slate-200">${info.word}</div>` : `<div class="pt-2 text-xs text-amber-400">Prêt</div>`}</div>`;
           }).join('')}
+        </div>
+        <div class="bg-slate-800/80 p-4 rounded-xl flex flex-wrap gap-6 text-sm">
+          ${[1, 2, 3].map(t => `<div>Équipe ${t} accuse : <strong class="text-amber-400">${state.ucVotes[t] || 'En attente...'}</strong></div>`).join('')}
         </div>
       </div>
     `;
@@ -710,6 +985,7 @@ function renderHost(root) {
             <h3 class="text-xl font-bold text-white">${v.ref}</h3>
           </div>
           <div class="flex gap-2">
+            <button onclick="startGame('VERSES', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
             <button onclick="state.revealed = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Solution</button>
             <button onclick="startGame('VERSES', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
@@ -732,7 +1008,8 @@ function renderHost(root) {
             <h3 class="text-xl font-bold text-white">Terminal <span class="text-amber-400">${state.picDrawerSlot}</span> dessine</h3>
           </div>
           <div class="flex gap-2">
-            <button onclick="clearHostCanvas()" class="bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">Effacer</button>
+            <button onclick="startGame('PICTIONARY', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">⬅ Préc.</button>
+            <button onclick="state.drawingHistory=[]; clearHostCanvasOnly(); broadcastState();" class="bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">Effacer</button>
             <button onclick="state.revealed = true; broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded-lg text-xs font-bold">Révéler</button>
             <button onclick="startGame('PICTIONARY', state.roundIndex + 1)" class="bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
@@ -745,8 +1022,8 @@ function renderHost(root) {
                 <div class="text-xs uppercase font-bold text-amber-300">🔔 Buzz Équipe ${state.buzzedBy.team}</div>
                 <div class="text-sm text-white">« ${state.buzzedBy.answer || 'Oral'} »</div>
                 <div class="flex gap-2 pt-1">
-                  <button onclick="addPoints(${state.buzzedBy.team}, 25); addPoints(${state.picDrawerSlot[0]}, 10); state.revealed=true; broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">✅ +25 pts</button>
-                  <button onclick="state.buzzedBy=null; broadcastState();" class="bg-rose-700 px-3 py-1.5 rounded text-xs font-bold">❌ Reprendre</button>
+                  <button onclick="addPoints(${state.buzzedBy.team}, 25); addPoints(${state.picDrawerSlot[0]}, 10); state.revealed=true; stopTimer(); broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">✅ +25 pts</button>
+                  <button onclick="state.buzzedBy=null; if(state.timerRemainingPaused){startTimer(state.timerRemainingPaused);} broadcastState();" class="bg-rose-700 px-3 py-1.5 rounded text-xs font-bold">❌ Reprendre</button>
                 </div>
               </div>
             ` : `<div class="p-4 rounded-xl bg-slate-800 text-xs text-slate-300">Les capitaines peuvent buzzer dès qu'ils reconnaissent la scène.</div>`}
@@ -766,7 +1043,7 @@ function renderPlayer(root) {
   let body = '';
 
   if (state.currentGame === 'LOBBY') {
-    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} connecté</div><p class="text-sm text-slate-400">Votre téléphone se mettra à jour automatiquement dès le lancement des jeux.</p></div>`;
+    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Votre téléphone est verrouillé pour l'Équipe ${myTeam}. Il conserve automatiquement la partie en cours même si vous rafraîchissez la page.</p></div>`;
   } else if (state.currentGame === 'SYNAXAIRE') {
     if (!isCaptain) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
@@ -802,11 +1079,12 @@ function renderPlayer(root) {
     } else if (state.fiestaPhase === 'VOTING') {
       const pack = GAME_DATA.fiesta[state.roundIndex % GAME_DATA.fiesta.length];
       const allOptions = [...pack.targets, ...pack.decoys].sort();
+      const myPrevVote = state.fiestaVotes[myTeam] || {};
       body = `
         <div class="space-y-4">
           <div class="text-sm font-bold text-amber-400">Associez les mots finaux :</div>
-          ${[1, 2, 3].map(idx => `<div class="bg-slate-800 p-3 rounded-xl space-y-1"><label class="text-xs text-slate-300 block">Mot n°${idx} : <strong>« ${state.fiestaChains[idx].currentWord} »</strong></label><select id="fiesta-sel-${idx}" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">${allOptions.map(o => `<option value="${o}">${o}</option>`).join('')}</select></div>`).join('')}
-          <button onclick="submitFiestaVote(${myTeam})" class="w-full py-3 bg-emerald-600 rounded-xl font-bold text-white">Envoyer le vote</button>
+          ${[1, 2, 3].map(idx => `<div class="bg-slate-800 p-3 rounded-xl space-y-1"><label class="text-xs text-slate-300 block">Mot n°${idx} : <strong>« ${state.fiestaChains[idx].currentWord} »</strong></label><select id="fiesta-sel-${idx}" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">${allOptions.map(o => `<option value="${o}" ${myPrevVote[idx]===o?'selected':''}>${o}</option>`).join('')}</select></div>`).join('')}
+          <button onclick="submitFiestaVote(${myTeam})" class="w-full py-3 bg-emerald-600 rounded-xl font-bold text-white">${state.fiestaVotes[myTeam] ? '✅ Vote enregistré (Mettre à jour)' : 'Envoyer le vote'}</button>
         </div>
       `;
     } else {
@@ -836,7 +1114,7 @@ function renderPlayer(root) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Aidez votre capitaine à taper les mots manquants !</div>`;
     } else {
       const alreadySent = state.verseSubmissions.find(s => s.team === myTeam);
-      body = alreadySent ? `<div class="text-center py-8 text-emerald-400 font-bold">✅ Réponse envoyée !</div>` : `
+      body = alreadySent ? `<div class="text-center py-8 text-emerald-400 font-bold">✅ Réponse envoyée (${alreadySent.time}) !</div>` : `
         <div class="space-y-4">
           <div class="text-xs uppercase font-bold text-amber-400">Mots manquants :</div>
           <input id="verse-input" type="text" placeholder="Ex: charité, foi" class="w-full bg-slate-800 border border-amber-500/50 rounded-xl px-4 py-3 text-white text-lg">
@@ -878,7 +1156,7 @@ function renderPlayer(root) {
     }
   }
 
-  root.innerHTML = `<div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-5 max-w-md mx-auto w-full space-y-4 shadow-xl"><div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-extrabold text-amber-400">Terminal ${myRole}</span><span class="text-xs text-slate-400">${isCaptain ? 'Capitaine' : 'Second'}</span></div>${body}</div>`;
+  root.innerHTML = `<div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-5 max-w-md mx-auto w-full space-y-4 shadow-xl"><div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-extrabold text-amber-400">Terminal ${myRole} — Équipe ${myTeam}</span><span class="text-xs text-slate-400">${isCaptain ? 'Capitaine' : 'Second'}</span></div>${body}</div>`;
 
   if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
     setupPlayerDrawingCanvas();
@@ -886,7 +1164,7 @@ function renderPlayer(root) {
 }
 
 /* ============================================================================
-   6. INTERACTIONS ET DESSIN
+   9. INTERACTIONS ET RESTAURATION DU DESSIN AU RAFRAÎCHISSEMENT
    ============================================================================ */
 function playerBuzz() {
   const input = document.getElementById('buzz-input');
@@ -928,7 +1206,12 @@ function setupPlayerDrawingCanvas() {
     ctx.moveTo(lastPos.x * canvas.width, lastPos.y * canvas.height);
     ctx.lineTo(pos.x * canvas.width, pos.y * canvas.height);
     ctx.stroke();
-    sendEvent('DRAW_LINE', { x0: lastPos.x, y0: lastPos.y, x1: pos.x, y1: pos.y, color: currentDrawColor, width: currentDrawWidth });
+
+    const seg = { x0: lastPos.x, y0: lastPos.y, x1: pos.x, y1: pos.y, color: currentDrawColor, width: currentDrawWidth };
+    state.drawingHistory = state.drawingHistory || [];
+    state.drawingHistory.push(seg);
+    savePersistedState();
+    sendEvent('DRAW_LINE', seg);
     lastPos = pos;
   }
   function stop() { drawing = false; }
@@ -944,6 +1227,8 @@ function setupPlayerDrawingCanvas() {
 function clearPlayerCanvas() {
   const c = document.getElementById('player-canvas');
   if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  state.drawingHistory = [];
+  savePersistedState();
   sendEvent('CLEAR_CANVAS', {});
 }
 
@@ -960,9 +1245,33 @@ function drawOnHostCanvas(seg) {
   ctx.stroke();
 }
 
-function clearHostCanvas() {
+function clearHostCanvasOnly() {
   const c = document.getElementById('host-canvas');
   if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+function redrawHostOrPlayerCanvas() {
+  const history = state.drawingHistory || [];
+  const hostCanvas = document.getElementById('host-canvas');
+  if (hostCanvas) {
+    const ctx = hostCanvas.getContext('2d');
+    ctx.clearRect(0, 0, hostCanvas.width, hostCanvas.height);
+    history.forEach(seg => drawOnHostCanvas(seg));
+  }
+  const playerCanvas = document.getElementById('player-canvas');
+  if (playerCanvas) {
+    const ctx = playerCanvas.getContext('2d');
+    ctx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
+    history.forEach(seg => {
+      ctx.lineWidth = seg.width || 3;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = seg.color || '#0f172a';
+      ctx.beginPath();
+      ctx.moveTo(seg.x0 * playerCanvas.width, seg.y0 * playerCanvas.height);
+      ctx.lineTo(seg.x1 * playerCanvas.width, seg.y1 * playerCanvas.height);
+      ctx.stroke();
+    });
+  }
 }
 
 // Lancement automatique

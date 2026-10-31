@@ -60,7 +60,7 @@
 
 <script>
 /* ============================================================================
-   0. SÉCURITÉ CRYPTOGRAPHIQUE ROTATIVE (AUCUN MOT DE PASSE EN DUR DANS LE CODE)
+   0. SÉCURITÉ CRYPTOGRAPHIQUE (MOT DE PASSE MAÎTRE)
    ============================================================================ */
 function simpleHash(str) {
   let hash = 0;
@@ -72,7 +72,6 @@ function simpleHash(str) {
   return hash.toString(36);
 }
 
-// Le hash de référence est calculé dynamiquement ou mémorisé localement lors de la première saisie
 function getStoredHostHash() {
   return localStorage.getItem('coptic_host_pwd_hash_v2');
 }
@@ -365,7 +364,7 @@ const GAME_DATA = {
 };
 
 /* ============================================================================
-   3. ÉTAT GLOBAL PERSISTANT (SAUVEGARDÉ DANS LOCALSTORAGE + MQTT RETAIN)
+   3. ÉTAT GLOBAL PERSISTANT
    ============================================================================ */
 const DEFAULT_STATE = {
   scores: { 1: 0, 2: 0, 3: 0 },
@@ -391,14 +390,14 @@ const DEFAULT_STATE = {
   verseStartTime: 0,
   picDrawerSlot: '1A',
   picPrompt: '',
-  drawingHistory: []
+  picRoundId: 1
 };
 
 let state = loadPersistedState();
 
 function loadPersistedState() {
   try {
-    const saved = localStorage.getItem('coptic_conf_persisted_state_v1');
+    const saved = localStorage.getItem('coptic_conf_persisted_state_v2');
     if (saved) {
       return Object.assign({}, DEFAULT_STATE, JSON.parse(saved));
     }
@@ -408,7 +407,7 @@ function loadPersistedState() {
 
 function savePersistedState() {
   try {
-    localStorage.setItem('coptic_conf_persisted_state_v1', JSON.stringify(state));
+    localStorage.setItem('coptic_conf_persisted_state_v2', JSON.stringify(state));
   } catch (e) {}
 }
 
@@ -417,9 +416,9 @@ let currentDrawWidth = 3;
 let mqttClient = null;
 
 const MQTT_BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
-const MQTT_TOPIC_ROOM = "coptic/serviteurs/conf-nov-2026/room";
-const MQTT_TOPIC_STATE = "coptic/serviteurs/conf-nov-2026/retained_state";
-const MQTT_TOPIC_HOST_LOCK = "coptic/serviteurs/conf-nov-2026/host_lock";
+const MQTT_TOPIC_ROOM = "coptic/serviteurs/conf-nov-2026/room_v2";
+const MQTT_TOPIC_STATE = "coptic/serviteurs/conf-nov-2026/retained_state_v2";
+const MQTT_TOPIC_HOST_LOCK = "coptic/serviteurs/conf-nov-2026/host_lock_v2";
 
 function initMqtt() {
   const badge = document.getElementById('conn-badge');
@@ -462,7 +461,7 @@ function initMqtt() {
 }
 
 /* ============================================================================
-   4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE (SINGLE ACTIVE HOST)
+   4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE
    ============================================================================ */
 function announceHostLock(action) {
   if (!mqttClient || !mqttClient.connected) return;
@@ -516,7 +515,6 @@ function verifyHostPassword(e) {
   const inputEl = document.getElementById('host-pwd-input');
   const pwd = inputEl ? inputEl.value : '';
 
-  // Si aucun mot de passe n'est configuré sur ce navigateur, on enregistre le premier saisi
   let storedHash = getStoredHostHash();
   if (!storedHash) {
     setStoredHostHash(pwd);
@@ -545,7 +543,7 @@ function logoutHost() {
 }
 
 /* ============================================================================
-   5. SYNCHRONISATION RÉSEAU & PERSISTANCE (STATE + DESSIN + CHRONO)
+   5. SYNCHRONISATION RÉSEAU & PERSISTANCE
    ============================================================================ */
 function sendEvent(type, data) {
   const packet = { type, data, sender: myRole, ts: Date.now() };
@@ -567,24 +565,23 @@ function broadcastState() {
 
 function handleNetworkMessage(packet) {
   if (!packet) return;
-  const { type, data } = packet;
+  const { type, data, sender } = packet;
 
   if (type === 'STATE_SYNC') {
     if (myRole !== 'HOST') {
       state = Object.assign({}, DEFAULT_STATE, data);
       savePersistedState();
       render();
-      redrawHostOrPlayerCanvas();
     }
-  } else if (type === 'DRAW_LINE') {
-    state.drawingHistory = state.drawingHistory || [];
-    state.drawingHistory.push(data);
-    savePersistedState();
-    drawOnHostCanvas(data);
+  } else if (type === 'DRAW_BATCH') {
+    // Si c'est l'hôte ou un autre terminal, on dessine le lot de segments
+    if (data.roundId === state.picRoundId) {
+      drawBatchOnCanvas(data.segments);
+    }
   } else if (type === 'CLEAR_CANVAS') {
-    state.drawingHistory = [];
-    savePersistedState();
-    clearHostCanvasOnly();
+    if (data.roundId === state.picRoundId) {
+      clearCanvasUI();
+    }
   } else if (myRole === 'HOST' && isHostAuthenticated) {
     if (type === 'REQUEST_STATE') {
       broadcastState();
@@ -626,7 +623,7 @@ function handleNetworkMessage(packet) {
 }
 
 /* ============================================================================
-   6. CHRONOMÈTRE PERSISTANT (SURVIT AU RAFRAÎCHISSEMENT F5)
+   6. CHRONOMÈTRE PERSISTANT
    ============================================================================ */
 function startTimer(seconds) {
   state.timerEndAt = Date.now() + seconds * 1000;
@@ -652,6 +649,7 @@ setInterval(() => {
     if (rem === 0 && myRole === 'HOST' && isHostAuthenticated) {
       state.timerEndAt = null;
       savePersistedState();
+      broadcastState(); // Diffusion de l'état pour débloquer les téléphones à 0s
     }
   } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
     box.classList.remove('hidden');
@@ -662,7 +660,7 @@ setInterval(() => {
 }, 300);
 
 /* ============================================================================
-   7. SCORES & CONTRÔLES DU MAÎTRE DU JEU (HOST)
+   7. CONTRÔLES DU MAÎTRE DU JEU (HOST)
    ============================================================================ */
 function addPoints(team, pts) {
   state.scores[team] = Math.max(0, (state.scores[team] || 0) + pts);
@@ -725,7 +723,7 @@ function startGame(gameName, roundIdx = 0) {
     const slots = ['1A', '2A', '3A', '1B', '2B', '3B'];
     state.picDrawerSlot = slots[state.roundIndex % slots.length];
     state.picPrompt = GAME_DATA.pictionary[state.roundIndex % GAME_DATA.pictionary.length];
-    state.drawingHistory = [];
+    state.picRoundId = (state.picRoundId || 1) + 1; // Incrémente la manche de dessin
     startTimer(90);
   }
   broadcastState();
@@ -749,7 +747,7 @@ function scoreFiestaAutomatically() {
 }
 
 /* ============================================================================
-   8. RENDU GRAPHIQUE (PORTAIL MOT DE PASSE MAÎTRE + INTERFACES)
+   8. RENDU GRAPHIQUE
    ============================================================================ */
 function render() {
   updateScoreHeader();
@@ -760,12 +758,12 @@ function render() {
       renderHostLoginGate(root);
     } else {
       renderHost(root);
-      if (state.currentGame === 'PICTIONARY') redrawHostOrPlayerCanvas();
+      if (state.currentGame === 'PICTIONARY') initCanvasForElement('host-canvas');
     }
   } else {
     renderPlayer(root);
     if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
-      redrawHostOrPlayerCanvas();
+      initCanvasForElement('player-canvas');
     }
   }
 }
@@ -847,7 +845,7 @@ function renderHost(root) {
       <div class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 space-y-6">
         <div class="text-center space-y-1">
           <h2 class="text-2xl font-extrabold text-amber-400">Scannez le QR Code attribué à votre équipe</h2>
-          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié. Toute la progression est sauvegardée en direct.</p>
+          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -1016,9 +1014,9 @@ function renderHost(root) {
           </div>
           <div class="flex gap-2">
             <button onclick="startGame('PICTIONARY', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">⬅ Préc.</button>
-            <button onclick="state.drawingHistory=[]; clearHostCanvasOnly(); broadcastState();" class="bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">Effacer</button>
+            <button onclick="sendClearCanvas()" class="bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">Effacer</button>
             <button onclick="state.revealed = true; broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded-lg text-xs font-bold">Révéler</button>
-            <button onclick="startGame('PICTIONARY', state.roundIndex + 1)" class="bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold">Suivant ➔</button>
+            <button onclick="startGame('PICTIONARY', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
         </div>
         <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
@@ -1050,7 +1048,7 @@ function renderPlayer(root) {
   let body = '';
 
   if (state.currentGame === 'LOBBY') {
-    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Votre téléphone est verrouillé pour l'Équipe ${myTeam}. Il conserve automatiquement la partie en cours même si vous rafraîchissez la page.</p></div>`;
+    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Votre téléphone est verrouillé pour l'Équipe ${myTeam}.</p></div>`;
   } else if (state.currentGame === 'SYNAXAIRE') {
     if (!isCaptain) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
@@ -1144,7 +1142,7 @@ function renderPlayer(root) {
               <button onclick="currentDrawColor='#d97706'" class="w-6 h-6 rounded-full bg-amber-600 border border-white"></button>
               <button onclick="currentDrawColor='#2563eb'" class="w-6 h-6 rounded-full bg-blue-600 border border-white"></button>
             </div>
-            <button onclick="clearPlayerCanvas()" class="px-2.5 py-1 bg-rose-700 rounded text-xs font-bold text-white">Effacer</button>
+            <button onclick="sendClearCanvas()" class="px-2.5 py-1 bg-rose-700 rounded text-xs font-bold text-white">Effacer</button>
           </div>
           <canvas id="player-canvas" width="340" height="240" class="bg-white rounded-xl mx-auto block border-2 border-amber-500"></canvas>
         </div>
@@ -1166,12 +1164,12 @@ function renderPlayer(root) {
   root.innerHTML = `<div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-5 max-w-md mx-auto w-full space-y-4 shadow-xl"><div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-extrabold text-amber-400">Terminal ${myRole} — Équipe ${myTeam}</span><span class="text-xs text-slate-400">${isCaptain ? 'Capitaine' : 'Second'}</span></div>${body}</div>`;
 
   if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
-    setupPlayerDrawingCanvas();
+    initCanvasForElement('player-canvas');
   }
 }
 
 /* ============================================================================
-   9. INTERACTIONS ET RESTAURATION DU DESSIN AU RAFRAÎCHISSEMENT
+   9. GESTION DU DESSIN PAR PAQUETS (DRAW_BATCH) & NETTOYAGE DES ÉCOUTEURS
    ============================================================================ */
 function playerBuzz() {
   const input = document.getElementById('buzz-input');
@@ -1189,96 +1187,149 @@ function submitVerse(team) {
   if (el && el.value.trim()) sendEvent('VERSE_SUBMIT', { team, text: el.value.trim() });
 }
 
-function setupPlayerDrawingCanvas() {
-  const canvas = document.getElementById('player-canvas');
+let activeCanvasHandlers = null;
+
+function initCanvasForElement(canvasId) {
+  const canvas = document.getElementById(canvasId);
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   ctx.lineCap = 'round';
-  let drawing = false, lastPos = { x: 0, y: 0 };
+
+  // Nettoyage des anciens écouteurs globaux/locaux pour éviter les fuites
+  if (activeCanvasHandlers) {
+    window.removeEventListener('mouseup', activeCanvasHandlers.stop);
+    window.removeEventListener('touchend', activeCanvasHandlers.stop);
+  }
+
+  let drawing = false;
+  let lastPos = { x: 0, y: 0 };
+  let pendingSegments = [];
+  let batchInterval = null;
 
   function getPos(e) {
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+    // Coordonnées arrondies et normalisées (0 à 1)
+    return {
+      x: parseFloat(((clientX - rect.left) / rect.width).toFixed(4)),
+      y: parseFloat(((clientY - rect.top) / rect.height).toFixed(4))
+    };
   }
-  function start(e) { e.preventDefault(); drawing = true; lastPos = getPos(e); }
+
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    lastPos = getPos(e);
+    pendingSegments = [];
+
+    // Envoi par paquets toutes les 60ms pendant le tracé
+    if (!batchInterval) {
+      batchInterval = setInterval(() => {
+        if (pendingSegments.length > 0) {
+          const batchToSend = [...pendingSegments];
+          pendingSegments = [];
+          
+          // Dessin local immédiat sur le canvas du téléphone
+          drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);
+          
+          // Envoi au broker MQTT
+          sendEvent('DRAW_BATCH', {
+            roundId: state.picRoundId,
+            segments: batchToSend
+          });
+        }
+      }, 60);
+    }
+  }
+
   function move(e) {
     if (!drawing) return;
     e.preventDefault();
     const pos = getPos(e);
-    ctx.lineWidth = currentDrawWidth;
-    ctx.strokeStyle = currentDrawColor;
-    ctx.beginPath();
-    ctx.moveTo(lastPos.x * canvas.width, lastPos.y * canvas.height);
-    ctx.lineTo(pos.x * canvas.width, pos.y * canvas.height);
-    ctx.stroke();
 
-    const seg = { x0: lastPos.x, y0: lastPos.y, x1: pos.x, y1: pos.y, color: currentDrawColor, width: currentDrawWidth };
-    state.drawingHistory = state.drawingHistory || [];
-    state.drawingHistory.push(seg);
-    savePersistedState();
-    sendEvent('DRAW_LINE', seg);
+    // Filtrer les micro-segments (< 0.3% de la largeur)
+    const dx = pos.x - lastPos.x;
+    const dy = pos.y - lastPos.y;
+    if (Math.abs(dx) < 0.003 && Math.abs(dy) < 0.003) return;
+
+    const seg = {
+      x0: lastPos.x,
+      y0: lastPos.y,
+      x1: pos.x,
+      y1: pos.y,
+      color: currentDrawColor,
+      width: currentDrawWidth
+    };
+
+    pendingSegments.push(seg);
     lastPos = pos;
   }
-  function stop() { drawing = false; }
 
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
+  function stop() {
+    if (!drawing) return;
+    drawing = false;
+    if (batchInterval) {
+      clearInterval(batchInterval);
+      batchInterval = null;
+    }
+    // Envoi des derniers segments restants
+    if (pendingSegments.length > 0) {
+      const batchToSend = [...pendingSegments];
+      pendingSegments = [];
+      drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);
+      sendEvent('DRAW_BATCH', {
+        roundId: state.picRoundId,
+        segments: batchToSend
+      });
+    }
+  }
+
+  // Remplacement des écouteurs
+  canvas.onmousedown = start;
+  canvas.onmousemove = move;
+  canvas.ontouchstart = start;
+  canvas.ontouchmove = move;
+
+  activeCanvasHandlers = { stop };
   window.addEventListener('mouseup', stop);
-  canvas.addEventListener('touchstart', start, { passive: false });
-  canvas.addEventListener('touchmove', move, { passive: false });
   window.addEventListener('touchend', stop);
 }
 
-function clearPlayerCanvas() {
-  const c = document.getElementById('player-canvas');
-  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
-  state.drawingHistory = [];
-  savePersistedState();
-  sendEvent('CLEAR_CANVAS', {});
+function drawSegmentsArrayLocally(ctx, segments, width, height) {
+  segments.forEach(seg => {
+    ctx.lineWidth = seg.width || 3;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = seg.color || '#0f172a';
+    ctx.beginPath();
+    ctx.moveTo(seg.x0 * width, seg.y0 * height);
+    ctx.lineTo(seg.x1 * width, seg.y1 * height);
+    ctx.stroke();
+  });
 }
 
-function drawOnHostCanvas(seg) {
-  const c = document.getElementById('host-canvas');
-  if (!c) return;
-  const ctx = c.getContext('2d');
-  ctx.lineWidth = seg.width ? seg.width + 1 : 4;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = seg.color || '#0f172a';
-  ctx.beginPath();
-  ctx.moveTo(seg.x0 * c.width, seg.y0 * c.height);
-  ctx.lineTo(seg.x1 * c.width, seg.y1 * c.height);
-  ctx.stroke();
-}
-
-function clearHostCanvasOnly() {
-  const c = document.getElementById('host-canvas');
-  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
-}
-
-function redrawHostOrPlayerCanvas() {
-  const history = state.drawingHistory || [];
+function drawBatchOnCanvas(segments) {
   const hostCanvas = document.getElementById('host-canvas');
   if (hostCanvas) {
-    const ctx = hostCanvas.getContext('2d');
-    ctx.clearRect(0, 0, hostCanvas.width, hostCanvas.height);
-    history.forEach(seg => drawOnHostCanvas(seg));
+    drawSegmentsArrayLocally(hostCanvas.getContext('2d'), segments, hostCanvas.width, hostCanvas.height);
   }
   const playerCanvas = document.getElementById('player-canvas');
-  if (playerCanvas) {
-    const ctx = playerCanvas.getContext('2d');
-    ctx.clearRect(0, 0, playerCanvas.width, playerCanvas.height);
-    history.forEach(seg => {
-      ctx.lineWidth = seg.width || 3;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = seg.color || '#0f172a';
-      ctx.beginPath();
-      ctx.moveTo(seg.x0 * playerCanvas.width, seg.y0 * playerCanvas.height);
-      ctx.lineTo(seg.x1 * playerCanvas.width, seg.y1 * playerCanvas.height);
-      ctx.stroke();
-    });
+  // Si un autre terminal ou le même joueur reçoit le batch
+  if (playerCanvas && myRole !== state.picDrawerSlot) {
+    drawSegmentsArrayLocally(playerCanvas.getContext('2d'), segments, playerCanvas.width, playerCanvas.height);
   }
+}
+
+function sendClearCanvas() {
+  clearCanvasUI();
+  sendEvent('CLEAR_CANVAS', { roundId: state.picRoundId });
+}
+
+function clearCanvasUI() {
+  const hc = document.getElementById('host-canvas');
+  if (hc) hc.getContext('2d').clearRect(0, 0, hc.width, hc.height);
+  const pc = document.getElementById('player-canvas');
+  if (pc) pc.getContext('2d').clearRect(0, 0, pc.width, pc.height);
 }
 
 // Lancement automatique

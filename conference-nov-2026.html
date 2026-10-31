@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Agpeya & Katamaros Play — Conférence des Serviteurs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inclusion de MQTT.js pour un temps réel ultra-rapide et sans configuration -->
+  <script src="https://unpkg.com/mqtt@4.3.7/dist/mqtt.min.js"></script>
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; overscroll-behavior: none; }
+    .coptic-bg { background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="coptic-bg min-h-screen flex flex-col justify-between">
+
+  <!-- BARRE SUPÉRIEURE : SCORES & STATUT -->
+  <header class="border-b border-amber-600/30 bg-slate-900/95 backdrop-blur p-3 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">☦️</span>
+        <div>
+          <h1 class="font-bold text-amber-500 text-base sm:text-lg leading-none">Conférence des Serviteurs</h1>
+          <p class="text-[11px] text-slate-400">« Que personne ne méprise ta jeunesse » (1 Tim 4:12)</p>
+        </div>
+      </div>
+
+      <!-- Scores des 3 équipes -->
+      <div class="flex gap-2 sm:gap-5 items-center">
+        <div class="bg-blue-950/90 border border-blue-500/40 px-3 py-1 rounded-lg text-center min-w-[85px]">
+          <div class="text-[10px] uppercase tracking-wider text-blue-300 font-semibold">Équipe 1</div>
+          <div id="score-team-1" class="text-xl font-extrabold text-white">0</div>
+        </div>
+        <div class="bg-emerald-950/90 border border-emerald-500/40 px-3 py-1 rounded-lg text-center min-w-[85px]">
+          <div class="text-[10px] uppercase tracking-wider text-emerald-300 font-semibold">Équipe 2</div>
+          <div id="score-team-2" class="text-xl font-extrabold text-white">0</div>
+        </div>
+        <div class="bg-purple-950/90 border border-purple-500/40 px-3 py-1 rounded-lg text-center min-w-[85px]">
+          <div class="text-[10px] uppercase tracking-wider text-purple-300 font-semibold">Équipe 3</div>
+          <div id="score-team-3" class="text-xl font-extrabold text-white">0</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span id="conn-badge" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Connexion...</span>
+        <button onclick="resetRole()" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded text-slate-300">Changer Terminal</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENEUR PRINCIPAL -->
+  <main id="app-container" class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col justify-center"></main>
+
+<script>
+/* ============================================================================
+   1. BANQUE DE DONNÉES MASSIVE (58 MANCHES POUR ~2 HEURES DE JEU)
+   ============================================================================ */
+const GAME_DATA = {
+  synaxaire: [
+    {
+      answer: "Saint Moïse le Noir (Anba Moussa)",
+      clues: [
+        "Indice 1 (30 pts) : Mes reliques reposent aujourd'hui sur l'autel principal du monastère d'Al-Baramous à Wadi El-Natrun.",
+        "Indice 2 (20 pts) : Saint Isidore m'a demandé de regarder vers l'Ouest et l'Est pour contempler que les anges avec nous sont plus nombreux que les démons.",
+        "Indice 3 (10 pts) : Ancien chef de brigands en Égypte devenu Père du désert, j'ai refusé de fuir lors de l'attaque des Berbères."
+      ]
+    },
+    {
+      answer: "Saint Athanase l'Apostolique (20e Patriarche)",
+      clues: [
+        "Indice 1 (30 pts) : J'ai rédigé la célèbre biographie de Saint Antoine le Grand et fixé la liste canonique exacte des 27 livres du Nouveau Testament.",
+        "Indice 2 (20 pts) : Exilé 5 fois de mon siège d'Alexandrie, on a forgé pour moi l'adage 'Contra Mundum' (Contre le monde entier).",
+        "Indice 3 (10 pts) : Jeune diacre au Concile de Nicée en 325, j'ai défendu la divinité du Christ face à l'hérésie d'Arius."
+      ]
+    },
+    {
+      answer: "Sainte Vérène (Sainte Verena)",
+      clues: [
+        "Indice 1 (30 pts) : Originaire de Garagos en Haute-Égypte, mes reliques sont vénérées à Zurzach en Suisse.",
+        "Indice 2 (20 pts) : J'ai accompagné la Légion Thébaine jusqu'en Europe pour soigner les blessés et propager la foi.",
+        "Indice 3 (10 pts) : Dans l'iconographie copte, je suis représentée avec une cruche d'eau et un peigne à double rangée."
+      ]
+    },
+    {
+      answer: "Saint Timothée (Disciple de Saint Paul)",
+      clues: [
+        "Indice 1 (30 pts) : Ma grand-mère Loïs et ma mère Eunice m'ont instruit dès l'enfance dans les Saintes Écritures.",
+        "Indice 2 (20 pts) : Premier évêque d'Éphèse, Saint Paul m'a conseillé de prendre un peu de vin à cause de mes maux d'estomac.",
+        "Indice 3 (10 pts) : C'est à moi que s'adresse la devise de notre conférence : 'Que personne ne méprise ta jeunesse'."
+      ]
+    },
+    {
+      answer: "Le Pape Cyrille VI (Anba Kyrillos VI)",
+      clues: [
+        "Indice 1 (30 pts) : Avant mon patriarcat, j'ai vécu en ermite dans un vieux moulin à vent abandonné sur la colline du Mokattam.",
+        "Indice 2 (20 pts) : J'ai célébré plus de 12 000 liturgies et j'avais une profonde dévotion pour Saint Ménas.",
+        "Indice 3 (10 pts) : 116e Pape d'Alexandrie, sous mon pontificat ont eu lieu les apparitions de la Vierge à Zeitoun en 1968."
+      ]
+    },
+    {
+      answer: "Saint Marc l'Évangéliste",
+      clues: [
+        "Indice 1 (30 pts) : La maison de ma mère à Jérusalem fut le Cénacle où le Christ institua l'Eucharistie.",
+        "Indice 2 (30 pts) : En entrant à Alexandrie, la courroie de ma sandale s'est rompue et j'ai guéri le cordonnier Anianus.",
+        "Indice 3 (10 pts) : Fondateur de l'Église d'Alexandrie, mon symbole est le Lion et j'ai subi le martyre."
+      ]
+    },
+    {
+      answer: "Sainte Damienne et les 40 Vierges",
+      clues: [
+        "Indice 1 (30 pts) : Mon père Marc était gouverneur d'El-Borollos et j'ai refusé de sacrifier aux idoles de Dioclétien.",
+        "Indice 2 (20 pts) : J'ai encouragé mon propre père à mourir en martyr après qu'il ait brièvement fléchi.",
+        "Indice 3 (10 pts) : Je suis la fondatrice du monachisme féminin en Égypte, entourée de mes 40 vierges."
+      ]
+    },
+    {
+      answer: "Saint Abanoub de Nehisa",
+      clues: [
+        "Indice 1 (30 pts) : J'ai distribué tous mes biens aux pauvres après avoir entendu un sermon à l'église.",
+        "Indice 2 (20 pts) : L'Archange Michel m'a visité et guéri miraculeusement à plusieurs reprises dans ma cellule.",
+        "Indice 3 (10 pts) : Je suis un jeune martyr copte âgé de seulement 12 ans."
+      ]
+    },
+    {
+      answer: "Saint Bishoy (L'Homme Parfait)",
+      clues: [
+        "Indice 1 (30 pts) : J'attachais mes cheveux avec une corde au plafond de ma grotte à Scété pour ne pas m'endormir en prière.",
+        "Indice 2 (20 pts) : Mon corps est resté incorrompu jusqu'à ce jour dans mon monastère de Wadi El-Natrun.",
+        "Indice 3 (10 pts) : J'ai porté sur mes épaules un vieillard qui était en réalité le Seigneur Jésus Lui-même."
+      ]
+    },
+    {
+      answer: "Saint Maurice (Chef de la Légion Thébaine)",
+      clues: [
+        "Indice 1 (30 pts) : Officier chrétien de Haute-Égypte envoyé avec 6 600 soldats pour traverser les Alpes.",
+        "Indice 2 (20 pts) : Nous avons écrit à l'empereur que nous étions ses soldats mais avant tout serviteurs de Dieu.",
+        "Indice 3 (10 pts) : Toute notre légion a été massacrée à Agaune pour avoir refusé d'adorer les idoles."
+      ]
+    },
+    {
+      answer: "Anba Abraam (Évêque du Fayoum)",
+      clues: [
+        "Indice 1 (30 pts) : Mon évêché était surnommé la 'Maison des Pauvres' en raison de ma grande générosité.",
+        "Indice 2 (20 pts) : J'ai donné aux pauvres le châle de soie précieux qu'on venait de m'offrir.",
+        "Indice 3 (10 pts) : Grand saint égyptien du XIXe-XXe siècle, canonisé pour ses miracles et sa charité."
+      ]
+    },
+    {
+      answer: "Saint Mercure (Abou Sefein)",
+      clues: [
+        "Indice 1 (30 pts) : Né à Rome sous le nom de Philopater, mes parents étaient chrétiens.",
+        "Indice 2 (20 pts) : Saint Basile a prié devant mon icône pour éliminer l'impie empereur Julien l'Apostat.",
+        "Indice 3 (10 pts) : L'Archange Michel m'a remis une seconde épée céleste, d'où mon surnom 'L'Homme aux deux épées'."
+      ]
+    },
+    {
+      answer: "Saint Jean le Petit (Colobos)",
+      clues: [
+        "Indice 1 (30 pts) : Mon maître spirituel m'a ordonné d'arroser chaque jour un bâton de bois sec planté dans le désert.",
+        "Indice 2 (20 pts) : Après trois ans d'obéissance aveugle, ce bois sec a fleuri et donné des fruits.",
+        "Indice 3 (10 pts) : Je suis l'exemple parfait de l'obéissance monastique chez les Pères du désert."
+      ]
+    },
+    {
+      answer: "Saint Samuel le Confesseur",
+      clues: [
+        "Indice 1 (30 pts) : J'ai vécu au VIIe siècle face aux pressions politiques et aux querelles christologiques.",
+        "Indice 2 (20 pts) : J'ai déchiré de mes mains le document impérial qu'on voulait me forcer à signer.",
+        "Indice 3 (10 pts) : Frappé au visage et borgne, j'ai fondé le monastère d'El-Qalamoun."
+      ]
+    },
+    {
+      answer: "Saint Didyme l'Aveugle",
+      clues: [
+        "Indice 1 (30 pts) : Devenu aveugle dans mon enfance, j'ai inventé un système de lecture en relief sur bois.",
+        "Indice 2 (20 pts) : Saint Antoine le Grand est venu me voir et m'a dit que j'avais les yeux des anges.",
+        "Indice 3 (10 pts) : J'ai dirigé la célèbre École catéchétique d'Alexandrie au IVe siècle."
+      ]
+    }
+  ],
+
+  fiesta: [
+    {
+      targets: ["La Chouraya (Encensoir)", "Saint Ménas (Mar Mina)", "Le Roi David"],
+      decoys: ["Le Qorban (Pain liturgique)", "Saint Georges", "Le Prophète Élie", "Les Cymbales (Naqous)"]
+    },
+    {
+      targets: ["L'Agpeya (Livre des Heures)", "Jonas dans le grand poisson", "Le Pape Shenouda III"],
+      decoys: ["Le Katamaros", "L'Arche de Noé", "Saint Antoine le Grand", "L'Épée d'Abou Sefein"]
+    },
+    {
+      targets: ["Le Buisson Ardent (Moïse)", "Sainte Marie l'Égyptienne", "Le Saint Chrême (Mayroun)"],
+      decoys: ["La Colonne de Nuée", "Sainte Vérène", "L'Eau du Baptême", "Le Voile du Sanctuaire"]
+    },
+    {
+      targets: ["La Montagne du Mokattam", "Saint Simon le Tanneur", "Le Jeûne de Ninive"],
+      decoys: ["Le Désert de Wadi El-Natrun", "Le Pape Abraham Ibn Zaraa", "Le Grand Carême", "La Mer Rouge"]
+    },
+    {
+      targets: ["Le Jeune Samuel au Temple", "Le Prophète Jérémie", "Saint Paul l'Ermite (et son corbeau)"],
+      decoys: ["Le Sacrificateur Éli", "Le Prophète Ésaïe", "Saint Macaire le Grand", "Saint Jean-Baptiste"]
+    },
+    {
+      targets: ["L'Étoile des Rois Mages", "La Fuite en Égypte", "La Couronne des Martyrs"],
+      decoys: ["La Crèche de Bethléem", "Les Noces de Cana", "La Croix de Lumière", "Le Fleuve du Nil"]
+    }
+  ],
+
+  undercover: [
+    { orthodox: "L'Agpeya (Livre des prières des heures)", undercover: "Le Kholagui (Livre de la Divine Liturgie)" },
+    { orthodox: "Le Jeûne de Ninive (3 jours)", undercover: "Le Grand Carême (55 jours)" },
+    { orthodox: "Saint Antoine le Grand (Père des moines)", undercover: "Saint Paul le Premier Ermite (Anba Paula)" },
+    { orthodox: "Le Qorban (L'Agneau choisi pour l'autel)", undercover: "Le Baraka / Eulogie (Pain bénit distribué à la sortie)" },
+    { orthodox: "Les Cymbales (Al-Naqous)", undercover: "Le Triangle liturgique (Al-Tiryanto)" },
+    { orthodox: "La Liturgie de Saint Basile", undercover: "La Liturgie de Saint Grégoire" },
+    { orthodox: "Le Katamaros (Livre des lectures quotidiennes)", undercover: "Le Synaxaire (Livre de la vie des Saints)" },
+    { orthodox: "L'Épître de Saint Paul (Al-Boulos)", undercover: "L'Épître Catholique (Al-Katholikon)" },
+    { orthodox: "Le Monastère Saint-Bishoy (Wadi El-Natrun)", undercover: "Le Monastère des Syriens (Al-Sourian)" },
+    { orthodox: "L'Éventail liturgique / Flabellum", undercover: "Le Voile de l'Autel (Al-Prosferin)" }
+  ],
+
+  verses: [
+    {
+      ref: "1 Timothée 4:12 (Texte 1 de notre conférence)",
+      display: "« Que personne ne méprise ta jeunesse ; mais sois un modèle pour les fidèles, en parole, en conduite, en ________, en ________, en ________. »",
+      answer: "charité (ou amour), foi, pureté"
+    },
+    {
+      ref: "1 Timothée 4:13 & 16 (Texte 1 — Suite)",
+      display: "« Applique-toi à la ________, à l'exhortation, à l'________... Veille sur toi-même et sur ton enseignement. »",
+      answer: "lecture, enseignement"
+    },
+    {
+      ref: "Jérémie 1:6-7 (Texte 2 — Vocation)",
+      display: "« Je répondis : Ah ! Seigneur Éternel ! voici, je ne sais point ________, car je suis un ________. Et l'Éternel me dit : Ne dis pas : Je suis un enfant. »",
+      answer: "parler, enfant"
+    },
+    {
+      ref: "Épître à Tite 2:7-8 (Texte 3 — Intégrité)",
+      display: "« Te montrant toi-même à tous égards un modèle de ________ ________, et donnant un enseignement pur, digne, une parole saine. »",
+      answer: "bonnes œuvres"
+    },
+    {
+      ref: "1 Samuel 3:10 (Texte 4 — L'écoute)",
+      display: "« L'Éternel vint et se présenta, et il appela : Samuel, Samuel ! Et Samuel répondit : ________, car ton ________ écoute. »",
+      answer: "Parle, serviteur"
+    },
+    {
+      ref: "2 Timothée 1:7 (Courage dans le service)",
+      display: "« Car ce n'est pas un esprit de ________ que Dieu nous a donné, mais un esprit de force, d'amour et de sagesse. »",
+      answer: "timidité (ou peur)"
+    },
+    {
+      ref: "1 Pierre 5:2-3 (Paître le troupeau)",
+      display: "« Paissez le troupeau de Dieu... non par contrainte, mais volontairement... en étant les ________ du troupeau. »",
+      answer: "modèles"
+    },
+    {
+      ref: "Évangile selon Saint Jean 21:15",
+      display: "« Jésus dit à Simon Pierre : Simon, fils de Jonas, m'aimes-tu ? ... Jésus lui dit : ________ mes agneaux. »",
+      answer: "Pais"
+    },
+    {
+      ref: "Évangile selon Saint Matthieu 5:16",
+      display: "« Que votre ________ luise ainsi devant les hommes, afin qu'ils voient vos bonnes œuvres, et qu'ils glorifient votre Père. »",
+      answer: "lumière"
+    },
+    {
+      ref: "Psaume 119:105 (Agpeya)",
+      display: "« Ta ________ est une lampe à mes pieds, et une lumière sur mon sentier. »",
+      answer: "parole"
+    },
+    {
+      ref: "Prière d'Action de Grâce",
+      display: "« Rends-nous dignes de participer à Tes saints, ________ et célestes mystères... »",
+      answer: "immortels"
+    },
+    {
+      ref: "Hymne du Trisagion",
+      display: "« Saint Dieu, Saint ________, Saint Immortel, qui es né de la Vierge, aie pitié de nous. »",
+      answer: "Fort (Ischyros)"
+    }
+  ],
+
+  pictionary: [
+    "Saint Ménas debout entre les deux chameaux",
+    "Le buisson ardent qui brûle sans se consumer",
+    "Le miracle du déplacement de la montagne du Mokattam",
+    "Saint Paul l'Ermite et le corbeau avec le demi-pain",
+    "Le pain du Qorban avec les 13 croix et les 5 trous",
+    "David avec sa fronde face au géant Goliath",
+    "La Chouraya (Encensoir copte à 3 chaînes)",
+    "Sainte Vérène avec son peigne et sa cruche d'eau",
+    "Jonas recraché sur la plage par le grand poisson",
+    "Saint Georges à cheval terrassant le dragon",
+    "Le Pape Cyrille VI priant devant son moulin à vent",
+    "La Fuite de la Sainte Famille en Égypte en barque",
+    "Daniel priant sans crainte dans la fosse aux lions",
+    "Saint Bishoy lavant les pieds du Christ",
+    "Les deux œufs d'autruche suspendus devant l'iconostase"
+  ]
+};
+
+/* ============================================================================
+   2. ÉTAT GLOBAL & MQTT
+   ============================================================================ */
+let myRole = localStorage.getItem('coptic_game_role') || null;
+let state = {
+  scores: { 1: 0, 2: 0, 3: 0 },
+  currentGame: 'LOBBY',
+  roundIndex: 0,
+  clueStep: 0,
+  buzzedBy: null,
+  revealed: false,
+  fiestaChains: {
+    1: { step: 0, target: "", currentWord: "", history: [] },
+    2: { step: 0, target: "", currentWord: "", history: [] },
+    3: { step: 0, target: "", currentWord: "", history: [] }
+  },
+  fiestaPhase: 'WRITING',
+  fiestaVotes: {},
+  fiestaScored: false,
+  ucAssignments: {},
+  ucVotes: {},
+  ucRevealed: false,
+  verseSubmissions: [],
+  verseStartTime: 0,
+  picDrawerSlot: '1A',
+  picPrompt: ''
+};
+
+let currentDrawColor = '#0f172a';
+let currentDrawWidth = 3;
+let mqttClient = null;
+
+// Broker MQTT public et hautement performant (zéro configuration)
+const MQTT_BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
+const MQTT_TOPIC = "coptic/serviteurs/conf/2026/room";
+
+function initMqtt() {
+  const badge = document.getElementById('conn-badge');
+  try {
+    mqttClient = mqtt.connect(MQTT_BROKER_URL);
+    mqttClient.on('connect', () => {
+      badge.textContent = "🟢 Temps Réel Connecté";
+      badge.className = "text-xs px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+      mqttClient.subscribe(MQTT_TOPIC);
+      if (myRole && myRole !== 'HOST') sendEvent('REQUEST_STATE', {});
+    });
+    mqttClient.on('message', (topic, payload) => {
+      try {
+        const packet = JSON.parse(payload.toString());
+        handleNetworkMessage(packet);
+      } catch(e){}
+    });
+    mqttClient.on('error', () => {
+      badge.textContent = "🔴 Erreur réseau";
+    });
+  } catch(e) {
+    badge.textContent = "⚠️ Mode hors-ligne";
+  }
+}
+
+function sendEvent(type, data) {
+  const packet = { type, data, sender: myRole, ts: Date.now() };
+  if (mqttClient && mqttClient.connected) {
+    mqttClient.publish(MQTT_TOPIC, JSON.stringify(packet));
+  }
+}
+
+function broadcastState() {
+  if (myRole === 'HOST') {
+    sendEvent('STATE_SYNC', state);
+    render();
+  }
+}
+
+function handleNetworkMessage(packet) {
+  if (!packet) return;
+  const { type, data } = packet;
+
+  if (type === 'STATE_SYNC') {
+    state = data;
+    render();
+  } else if (type === 'DRAW_LINE') {
+    drawOnHostCanvas(data);
+  } else if (type === 'CLEAR_CANVAS') {
+    clearHostCanvas();
+  } else if (myRole === 'HOST') {
+    if (type === 'REQUEST_STATE') {
+      broadcastState();
+    } else if (type === 'BUZZ') {
+      if (!state.buzzedBy) {
+        state.buzzedBy = { slot: data.slot, team: data.team, answer: data.answer || '' };
+        broadcastState();
+      }
+    } else if (type === 'FIESTA_WORD') {
+      const chain = state.fiestaChains[data.team];
+      if (chain && chain.step < 4) {
+        chain.history.push(data.word);
+        chain.currentWord = data.word;
+        chain.step += 1;
+        if (state.fiestaChains[1].step >= 4 && state.fiestaChains[2].step >= 4 && state.fiestaChains[3].step >= 4) {
+          state.fiestaPhase = 'VOTING';
+        }
+        broadcastState();
+      }
+    } else if (type === 'FIESTA_VOTE') {
+      state.fiestaVotes[data.team] = data.guesses;
+      broadcastState();
+    } else if (type === 'UC_VOTE') {
+      state.ucVotes[data.team] = data.targetSlot;
+      broadcastState();
+    } else if (type === 'VERSE_SUBMIT') {
+      const exists = state.verseSubmissions.find(s => s.team === data.team);
+      if (!exists) {
+        const elapsed = ((Date.now() - state.verseStartTime) / 1000).toFixed(1);
+        state.verseSubmissions.push({ team: data.team, text: data.text, time: elapsed + 's' });
+        broadcastState();
+      }
+    }
+  }
+}
+
+/* ============================================================================
+   3. GESTION DES RÔLES & SCORES
+   ============================================================================ */
+function selectRole(role) {
+  myRole = role;
+  localStorage.setItem('coptic_game_role', role);
+  if (role !== 'HOST') sendEvent('REQUEST_STATE', {});
+  render();
+}
+
+function resetRole() {
+  localStorage.removeItem('coptic_game_role');
+  myRole = null;
+  render();
+}
+
+function addPoints(team, pts) {
+  state.scores[team] = Math.max(0, (state.scores[team] || 0) + pts);
+  broadcastState();
+}
+
+function updateScoreHeader() {
+  document.getElementById('score-team-1').textContent = state.scores[1] || 0;
+  document.getElementById('score-team-2').textContent = state.scores[2] || 0;
+  document.getElementById('score-team-3').textContent = state.scores[3] || 0;
+}
+
+/* ============================================================================
+   4. CONTRÔLES DU MAÎTRE DU JEU (HOST)
+   ============================================================================ */
+function startGame(gameName, roundIdx = 0) {
+  state.currentGame = gameName;
+  state.roundIndex = Math.max(0, roundIdx);
+  state.buzzedBy = null;
+  state.revealed = false;
+
+  if (gameName === 'SYNAXAIRE') {
+    state.clueStep = 0;
+  } else if (gameName === 'FIESTA') {
+    const pack = GAME_DATA.fiesta[state.roundIndex % GAME_DATA.fiesta.length];
+    state.fiestaPhase = 'WRITING';
+    state.fiestaVotes = {};
+    state.fiestaScored = false;
+    [1, 2, 3].forEach((t, idx) => {
+      state.fiestaChains[t] = { step: 0, target: pack.targets[idx], currentWord: "", history: [] };
+    });
+  } else if (gameName === 'UNDERCOVER') {
+    const pack = GAME_DATA.undercover[state.roundIndex % GAME_DATA.undercover.length];
+    const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
+    const ucSlot = slots[Math.floor(Math.random() * slots.length)];
+    state.ucAssignments = {};
+    state.ucVotes = {};
+    state.ucRevealed = false;
+    slots.forEach(s => {
+      state.ucAssignments[s] = { word: (s === ucSlot) ? pack.undercover : pack.orthodox, isUC: (s === ucSlot) };
+    });
+  } else if (gameName === 'VERSES') {
+    state.verseSubmissions = [];
+    state.verseStartTime = Date.now();
+  } else if (gameName === 'PICTIONARY') {
+    const slots = ['1A', '2A', '3A', '1B', '2B', '3B'];
+    state.picDrawerSlot = slots[state.roundIndex % slots.length];
+    state.picPrompt = GAME_DATA.pictionary[state.roundIndex % GAME_DATA.pictionary.length];
+  }
+  broadcastState();
+}
+
+function scoreFiestaAutomatically() {
+  if (state.fiestaScored) return;
+  [1, 2, 3].forEach(voterTeam => {
+    const guesses = state.fiestaVotes[voterTeam];
+    if (guesses) {
+      [1, 2, 3].forEach(chainNum => {
+        if (guesses[chainNum] === state.fiestaChains[chainNum].target) {
+          state.scores[voterTeam] += 10;
+        }
+      });
+    }
+  });
+  state.fiestaScored = true;
+  state.fiestaPhase = 'REVEAL';
+  broadcastState();
+}
+
+/* ============================================================================
+   5. RENDU GRAPHIQUE
+   ============================================================================ */
+function render() {
+  updateScoreHeader();
+  const root = document.getElementById('app-container');
+
+  if (!myRole) {
+    root.innerHTML = `
+      <div class="bg-slate-900/95 border border-amber-500/40 rounded-2xl p-6 max-w-2xl mx-auto w-full space-y-6 shadow-2xl">
+        <div class="text-center space-y-2">
+          <h2 class="text-2xl font-bold text-amber-400">Sélectionnez votre Terminal</h2>
+          <p class="text-sm text-slate-300">Aucune configuration requise : choisissez votre rôle pour rejoindre la session en temps réel.</p>
+        </div>
+
+        <button onclick="selectRole('HOST')" class="w-full py-4 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-extrabold rounded-xl text-lg shadow-lg">
+          🖥️ ÉCRAN MAÎTRE (Projecteur / Animateur)
+        </button>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <div class="bg-blue-950/60 border border-blue-500/40 p-4 rounded-xl space-y-2.5">
+            <div class="font-bold text-blue-300 text-center text-sm">ÉQUIPE 1</div>
+            <button onclick="selectRole('1A')" class="w-full py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold text-sm">📱 Téléphone 1A (Capitaine)</button>
+            <button onclick="selectRole('1B')" class="w-full py-3 bg-blue-800 hover:bg-blue-700 rounded-lg font-semibold text-sm">📱 Téléphone 1B (Second)</button>
+          </div>
+          <div class="bg-emerald-950/60 border border-emerald-500/40 p-4 rounded-xl space-y-2.5">
+            <div class="font-bold text-emerald-300 text-center text-sm">ÉQUIPE 2</div>
+            <button onclick="selectRole('2A')" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold text-sm">📱 Téléphone 2A (Capitaine)</button>
+            <button onclick="selectRole('2B')" class="w-full py-3 bg-emerald-800 hover:bg-emerald-700 rounded-lg font-semibold text-sm">📱 Téléphone 2B (Second)</button>
+          </div>
+          <div class="bg-purple-950/60 border border-purple-500/40 p-4 rounded-xl space-y-2.5">
+            <div class="font-bold text-purple-300 text-center text-sm">ÉQUIPE 3</div>
+            <button onclick="selectRole('3A')" class="w-full py-3 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm">📱 Téléphone 3A (Capitaine)</button>
+            <button onclick="selectRole('3B')" class="w-full py-3 bg-purple-800 hover:bg-purple-700 rounded-lg font-semibold text-sm">📱 Téléphone 3B (Second)</button>
+          </div>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  if (myRole === 'HOST') {
+    renderHost(root);
+  } else {
+    renderPlayer(root);
+  }
+}
+
+function renderHost(root) {
+  const navBar = `
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4 bg-slate-900/90 p-3 rounded-xl border border-slate-700">
+      <div class="flex flex-wrap gap-1.5">
+        <button onclick="startGame('LOBBY', 0)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='LOBBY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">QR Code</button>
+        <button onclick="startGame('SYNAXAIRE', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='SYNAXAIRE'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">1. Synaxaire (15)</button>
+        <button onclick="startGame('FIESTA', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='FIESTA'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">2. Évolution Copte (6)</button>
+        <button onclick="startGame('UNDERCOVER', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (10)</button>
+        <button onclick="startGame('VERSES', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
+        <button onclick="startGame('PICTIONARY', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (15)</button>
+      </div>
+      <div class="flex items-center gap-1 text-xs">
+        <button onclick="addPoints(1, 10)" class="bg-blue-700 hover:bg-blue-600 px-2 py-1 rounded font-bold">+10 Éq.1</button>
+        <button onclick="addPoints(1, -10)" class="bg-blue-950 border border-blue-700 px-1.5 py-1 rounded text-blue-300">-10</button>
+        <button onclick="addPoints(2, 10)" class="bg-emerald-700 hover:bg-emerald-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.2</button>
+        <button onclick="addPoints(2, -10)" class="bg-emerald-950 border border-emerald-700 px-1.5 py-1 rounded text-emerald-300">-10</button>
+        <button onclick="addPoints(3, 10)" class="bg-purple-700 hover:bg-purple-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.3</button>
+        <button onclick="addPoints(3, -10)" class="bg-purple-950 border border-purple-700 px-1.5 py-1 rounded text-purple-300">-10</button>
+      </div>
+    </div>
+  `;
+
+  let content = '';
+
+  if (state.currentGame === 'LOBBY') {
+    const pageUrl = window.location.href.split('#')[0];
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(pageUrl)}`;
+    content = `
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-slate-900/70 rounded-2xl border border-amber-500/30 p-8">
+        <div class="space-y-4">
+          <span class="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider">Session de 2 Heures • 58 Manches</span>
+          <h2 class="text-3xl font-extrabold text-white">Grand Jeu des Serviteurs de Catéchisme</h2>
+          <p class="text-slate-300 text-sm leading-relaxed">
+            Répartissez les 34 serviteurs en <strong>3 équipes</strong>. Scannez le QR Code pour connecter les terminaux <strong>A (Capitaine)</strong> et <strong>B (Second)</strong> sur vos téléphones.
+          </p>
+        </div>
+        <div class="flex flex-col items-center justify-center space-y-3 bg-slate-950/80 p-6 rounded-2xl border border-slate-800">
+          <img src="${qrUrl}" alt="QR Code" class="w-48 h-48 rounded-xl border-4 border-white shadow-lg bg-white p-1">
+          <div class="text-xs text-amber-400 font-bold uppercase tracking-wider">Scannez pour rejoindre</div>
+          <div class="text-[11px] text-slate-400 break-all text-center">${pageUrl}</div>
+        </div>
+      </div>
+    `;
+  } else if (state.currentGame === 'SYNAXAIRE') {
+    const idx = state.roundIndex % GAME_DATA.synaxaire.length;
+    const item = GAME_DATA.synaxaire[idx];
+    const ptsMap = [30, 20, 10];
+    const currentPts = ptsMap[state.clueStep] || 10;
+
+    content = `
+      <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
+          <div>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 1 • Le Synaxaire Mystère (${idx + 1} / ${GAME_DATA.synaxaire.length})</span>
+            <h3 class="text-2xl font-bold text-white">Qui est ce Saint ou Personnage Biblique ?</h3>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="state.clueStep = Math.min(2, state.clueStep + 1); broadcastState();" class="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded-lg text-xs font-bold">Indice Suivant (${ptsMap[Math.min(2, state.clueStep+1)]} pts)</button>
+            <button onclick="state.revealed = true; broadcastState();" class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-xs font-bold">Révéler</button>
+            <button onclick="startGame('SYNAXAIRE', state.roundIndex + 1)" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
+          </div>
+        </div>
+        <div class="space-y-3">
+          ${item.clues.slice(0, state.clueStep + 1).map(c => `<div class="p-4 rounded-xl bg-slate-800/90 border-l-4 border-amber-500 text-lg text-slate-100 shadow">${c}</div>`).join('')}
+        </div>
+        ${state.buzzedBy ? `
+          <div class="p-5 rounded-xl bg-amber-500/20 border-2 border-amber-400 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div class="text-xs uppercase font-bold text-amber-300">🔔 Buzzer verrouillé !</div>
+              <div class="text-2xl font-extrabold text-white">Équipe ${state.buzzedBy.team} (Terminal ${state.buzzedBy.slot})</div>
+              ${state.buzzedBy.answer ? `<div class="text-lg text-amber-200 mt-1">« ${state.buzzedBy.answer} »</div>` : ''}
+            </div>
+            <div class="flex gap-2">
+              <button onclick="addPoints(${state.buzzedBy.team}, ${currentPts}); state.revealed=true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">✅ Valider (+${currentPts} pts)</button>
+              <button onclick="state.buzzedBy=null; broadcastState();" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux</button>
+            </div>
+          </div>
+        ` : `<div class="text-center text-sm text-slate-400 italic py-2">En attente d'un buzz...</div>`}
+        ${state.revealed ? `<div class="p-6 rounded-xl bg-emerald-950/90 border border-emerald-400 text-center"><div class="text-3xl font-extrabold text-white">${item.answer}</div></div>` : ''}
+      </div>
+    `;
+  } else if (state.currentGame === 'FIESTA') {
+    const idx = state.roundIndex % GAME_DATA.fiesta.length;
+    const pack = GAME_DATA.fiesta[idx];
+    const allOptions = [...pack.targets, ...pack.decoys].sort();
+
+    content = `
+      <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
+          <div>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 2 • L'Évolution Copte (${idx + 1} / ${GAME_DATA.fiesta.length})</span>
+            <h3 class="text-xl font-bold text-white">Passez le téléphone entre les coéquipiers</h3>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="state.fiestaPhase='VOTING'; broadcastState();" class="bg-amber-600 px-3 py-2 rounded-lg text-xs font-bold">Passer au Vote</button>
+            <button onclick="scoreFiestaAutomatically()" class="bg-emerald-600 px-3 py-2 rounded-lg text-xs font-bold">Calculer les Points</button>
+            <button onclick="startGame('FIESTA', state.roundIndex + 1)" class="bg-indigo-600 px-3 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
+          </div>
+        </div>
+        ${state.fiestaPhase === 'WRITING' ? `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${[1, 2, 3].map(t => `<div class="p-6 rounded-xl bg-slate-800 border border-slate-700 text-center space-y-2"><div class="font-bold text-lg text-amber-400">Équipe ${t}</div><div class="text-4xl font-extrabold text-white">${state.fiestaChains[t].step} / 4</div></div>`).join('')}
+          </div>
+        ` : ''}
+        ${state.fiestaPhase === 'VOTING' ? `
+          <div class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              ${[1, 2, 3].map(t => `<div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/40 text-center"><div class="text-xs text-amber-300 uppercase font-bold">Mot Final n°${t}</div><div class="text-2xl font-extrabold text-white mt-1">« ${state.fiestaChains[t].currentWord || '...'} »</div></div>`).join('')}
+            </div>
+            <div class="bg-slate-800/80 p-4 rounded-xl flex flex-wrap gap-2">
+              ${allOptions.map(opt => `<span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-600 text-sm font-semibold text-amber-200">${opt}</span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+        ${state.fiestaPhase === 'REVEAL' ? `
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            ${[1, 2, 3].map(t => `<div class="p-4 rounded-xl bg-slate-800 border border-emerald-500/40 space-y-2"><div class="text-xs font-bold text-emerald-400">Chaîne n°${t}</div><div class="text-lg font-extrabold text-white">Départ : ${state.fiestaChains[t].target}</div><div class="text-sm text-slate-300 space-y-1 pt-2 border-t border-slate-700">${state.fiestaChains[t].history.map((w, i) => `<div>Serviteur ${i+1} ➔ <strong class="text-amber-300">${w}</strong></div>`).join('')}</div></div>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else if (state.currentGame === 'UNDERCOVER') {
+    const idx = state.roundIndex % GAME_DATA.undercover.length;
+    const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
+    content = `
+      <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
+          <div>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 3 • L'Hérésie Cachée (${idx + 1} / ${GAME_DATA.undercover.length})</span>
+            <h3 class="text-xl font-bold text-white">Trouvez l'infiltré</h3>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="state.ucRevealed = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Révéler</button>
+            <button onclick="startGame('UNDERCOVER', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          ${slots.map(s => {
+            const info = state.ucAssignments[s] || {};
+            return `<div class="p-4 rounded-xl border ${state.ucRevealed && info.isUC ? 'bg-rose-950/90 border-rose-500' : 'bg-slate-800 border-slate-700'} text-center space-y-1"><div class="text-lg font-extrabold text-white">Joueur ${s}</div>${state.ucRevealed ? `<div class="pt-2 text-xs font-bold ${info.isUC ? 'text-rose-300' : 'text-emerald-300'}">${info.isUC ? '🕵️ INFILTRÉ' : '☦️ ORTHODOXE'}</div><div class="text-[11px] text-slate-200">${info.word}</div>` : `<div class="pt-2 text-xs text-amber-400">Prêt</div>`}</div>`;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  } else if (state.currentGame === 'VERSES') {
+    const idx = state.roundIndex % GAME_DATA.verses.length;
+    const v = GAME_DATA.verses[idx];
+    content = `
+      <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
+          <div>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 4 • Le Verset (${idx + 1} / ${GAME_DATA.verses.length})</span>
+            <h3 class="text-xl font-bold text-white">${v.ref}</h3>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="state.revealed = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Solution</button>
+            <button onclick="startGame('VERSES', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
+          </div>
+        </div>
+        <div class="p-6 rounded-xl bg-slate-800 border-l-4 border-amber-500 text-2xl font-serif text-slate-100">${v.display}</div>
+        ${state.revealed ? `<div class="p-4 rounded-xl bg-emerald-950 border border-emerald-500 text-center"><span class="text-2xl font-extrabold text-white">${v.answer}</span></div>` : ''}
+        <div class="space-y-2">
+          <div class="text-xs uppercase font-bold text-slate-400">Réponses reçues :</div>
+          ${state.verseSubmissions.map((sub, i) => `<div class="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700"><div><span class="font-bold text-amber-400">#${i+1} Équipe ${sub.team}</span> (${sub.time}) : <span class="text-white">« ${sub.text} »</span></div><button onclick="addPoints(${sub.team}, 20)" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">+20 pts</button></div>`).join('')}
+        </div>
+      </div>
+    `;
+  } else if (state.currentGame === 'PICTIONARY') {
+    const idx = state.roundIndex % GAME_DATA.pictionary.length;
+    content = `
+      <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-4">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-3">
+          <div>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 5 • Iconographe (${idx + 1} / ${GAME_DATA.pictionary.length})</span>
+            <h3 class="text-xl font-bold text-white">Terminal <span class="text-amber-400">${state.picDrawerSlot}</span> dessine</h3>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="clearHostCanvas()" class="bg-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold">Effacer</button>
+            <button onclick="state.revealed = true; broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded-lg text-xs font-bold">Révéler</button>
+            <button onclick="startGame('PICTIONARY', state.roundIndex + 1)" class="bg-indigo-600 px-3 py-1.5 rounded-lg text-xs font-bold">Suivant ➔</button>
+          </div>
+        </div>
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-center">
+          <canvas id="host-canvas" width="620" height="390" class="bg-white rounded-xl shadow-inner border-4 border-amber-500/50 max-w-full"></canvas>
+          <div class="w-full md:w-72 space-y-3">
+            ${state.buzzedBy ? `
+              <div class="p-4 rounded-xl bg-amber-500/20 border-2 border-amber-400 space-y-2">
+                <div class="text-xs uppercase font-bold text-amber-300">🔔 Buzz Équipe ${state.buzzedBy.team}</div>
+                <div class="text-sm text-white">« ${state.buzzedBy.answer || 'Oral'} »</div>
+                <div class="flex gap-2 pt-1">
+                  <button onclick="addPoints(${state.buzzedBy.team}, 25); addPoints(${state.picDrawerSlot[0]}, 10); state.revealed=true; broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">✅ +25 pts</button>
+                  <button onclick="state.buzzedBy=null; broadcastState();" class="bg-rose-700 px-3 py-1.5 rounded text-xs font-bold">❌ Reprendre</button>
+                </div>
+              </div>
+            ` : `<div class="p-4 rounded-xl bg-slate-800 text-xs text-slate-300">Les capitaines peuvent buzzer dès qu'ils reconnaissent la scène.</div>`}
+            ${state.revealed ? `<div class="p-4 rounded-xl bg-emerald-950 border border-emerald-400 text-center"><div class="text-lg font-extrabold text-white">${state.picPrompt}</div></div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  root.innerHTML = navBar + content;
+}
+
+function renderPlayer(root) {
+  const myTeam = parseInt(myRole[0], 10);
+  const isCaptain = myRole[1] === 'A';
+  let body = '';
+
+  if (state.currentGame === 'LOBBY') {
+    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} connecté</div><p class="text-sm text-slate-400">Votre téléphone se mettra à jour automatiquement dès le lancement des jeux.</p></div>`;
+  } else if (state.currentGame === 'SYNAXAIRE') {
+    if (!isCaptain) {
+      body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
+    } else {
+      const locked = state.buzzedBy !== null;
+      body = `
+        <div class="space-y-4">
+          <div class="text-xs uppercase font-bold text-amber-400 text-center">Manche 1 • Le Synaxaire</div>
+          <input id="buzz-input" type="text" placeholder="Optionnel : tapez la réponse..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white">
+          <button ${locked ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-8 rounded-2xl font-extrabold text-2xl ${locked ? 'bg-slate-700 text-slate-400' : 'bg-rose-600 text-white'}">
+            ${locked ? (state.buzzedBy.team === myTeam ? '🔔 VOUS AVEZ LA MAIN !' : `🔒 Verrouillé`) : '🔔 BUZZER !'}
+          </button>
+        </div>
+      `;
+    }
+  } else if (state.currentGame === 'FIESTA') {
+    if (!isCaptain) {
+      body = `<div class="text-center py-8 text-sm text-slate-300">Passez le <strong>Téléphone ${myTeam}A</strong> entre coéquipiers !</div>`;
+    } else if (state.fiestaPhase === 'WRITING') {
+      const chain = state.fiestaChains[myTeam];
+      if (chain.step >= 4) {
+        body = `<div class="text-center py-8 text-emerald-400 font-bold">✅ Chaîne transmise avec succès !</div>`;
+      } else {
+        const promptLabel = chain.step === 0 ? `Sujet de départ : <strong class="text-amber-300 block text-xl mt-1">${chain.target}</strong>` : `Mot précédent : <strong class="text-amber-300 block text-xl mt-1">« ${chain.currentWord} »</strong>`;
+        body = `
+          <div class="space-y-4">
+            <div class="bg-slate-800 p-4 rounded-xl text-center border border-slate-700"><div class="text-xs uppercase text-slate-400 font-bold">Serviteur ${chain.step + 1} / 4</div><div class="mt-2 text-sm text-slate-200">${promptLabel}</div></div>
+            <input id="fiesta-word" type="text" placeholder="UN SEUL mot indice..." class="w-full bg-slate-800 border border-amber-500/50 rounded-xl px-4 py-3 text-white text-lg">
+            <button onclick="submitFiestaWord(${myTeam})" class="w-full py-4 bg-amber-600 rounded-xl font-extrabold text-slate-950">Valider & Passer le mobile ➔</button>
+          </div>
+        `;
+      }
+    } else if (state.fiestaPhase === 'VOTING') {
+      const pack = GAME_DATA.fiesta[state.roundIndex % GAME_DATA.fiesta.length];
+      const allOptions = [...pack.targets, ...pack.decoys].sort();
+      body = `
+        <div class="space-y-4">
+          <div class="text-sm font-bold text-amber-400">Associez les mots finaux :</div>
+          ${[1, 2, 3].map(idx => `<div class="bg-slate-800 p-3 rounded-xl space-y-1"><label class="text-xs text-slate-300 block">Mot n°${idx} : <strong>« ${state.fiestaChains[idx].currentWord} »</strong></label><select id="fiesta-sel-${idx}" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">${allOptions.map(o => `<option value="${o}">${o}</option>`).join('')}</select></div>`).join('')}
+          <button onclick="submitFiestaVote(${myTeam})" class="w-full py-3 bg-emerald-600 rounded-xl font-bold text-white">Envoyer le vote</button>
+        </div>
+      `;
+    } else {
+      body = `<div class="text-center py-8 text-sm text-slate-300">Regardez les résultats sur le grand écran !</div>`;
+    }
+  } else if (state.currentGame === 'UNDERCOVER') {
+    const myInfo = state.ucAssignments[myRole] || { word: '...' };
+    const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
+    body = `
+      <div class="space-y-5">
+        <div class="bg-slate-800 border-2 border-amber-500/50 rounded-2xl p-5 text-center space-y-2">
+          <div class="text-xs uppercase text-slate-400 font-bold">Votre Mot Secret (Gardez-le caché)</div>
+          <div class="text-2xl font-extrabold text-amber-300">${myInfo.word}</div>
+        </div>
+        ${isCaptain ? `
+          <div class="bg-slate-800/70 p-4 rounded-xl space-y-2 border border-slate-700">
+            <div class="text-xs uppercase font-bold text-slate-300">Qui est l'infiltré ?</div>
+            <div class="grid grid-cols-3 gap-2">
+              ${slots.map(s => `<button onclick="sendEvent('UC_VOTE', { team: ${myTeam}, targetSlot: '${s}' })" class="py-2.5 rounded-lg font-bold text-xs ${state.ucVotes[myTeam]===s ? 'bg-rose-600 text-white' : 'bg-slate-900 text-slate-300 border border-slate-600'}">Joueur ${s}</button>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  } else if (state.currentGame === 'VERSES') {
+    if (!isCaptain) {
+      body = `<div class="text-center py-8 text-sm text-slate-300">Aidez votre capitaine à taper les mots manquants !</div>`;
+    } else {
+      const alreadySent = state.verseSubmissions.find(s => s.team === myTeam);
+      body = alreadySent ? `<div class="text-center py-8 text-emerald-400 font-bold">✅ Réponse envoyée !</div>` : `
+        <div class="space-y-4">
+          <div class="text-xs uppercase font-bold text-amber-400">Mots manquants :</div>
+          <input id="verse-input" type="text" placeholder="Ex: charité, foi" class="w-full bg-slate-800 border border-amber-500/50 rounded-xl px-4 py-3 text-white text-lg">
+          <button onclick="submitVerse(${myTeam})" class="w-full py-4 bg-emerald-600 rounded-xl font-extrabold text-white">Envoyer</button>
+        </div>
+      `;
+    }
+  } else if (state.currentGame === 'PICTIONARY') {
+    if (myRole === state.picDrawerSlot) {
+      body = `
+        <div class="space-y-3">
+          <div class="bg-amber-500/20 border border-amber-400 p-3 rounded-xl text-center">
+            <div class="text-[11px] uppercase text-amber-300 font-bold">À vous de dessiner !</div>
+            <div class="text-base font-extrabold text-white">${state.picPrompt}</div>
+          </div>
+          <div class="flex justify-between items-center bg-slate-800 p-2 rounded-lg">
+            <div class="flex gap-2">
+              <button onclick="currentDrawColor='#0f172a'" class="w-6 h-6 rounded-full bg-slate-950 border border-white"></button>
+              <button onclick="currentDrawColor='#dc2626'" class="w-6 h-6 rounded-full bg-red-600 border border-white"></button>
+              <button onclick="currentDrawColor='#d97706'" class="w-6 h-6 rounded-full bg-amber-600 border border-white"></button>
+              <button onclick="currentDrawColor='#2563eb'" class="w-6 h-6 rounded-full bg-blue-600 border border-white"></button>
+            </div>
+            <button onclick="clearPlayerCanvas()" class="px-2.5 py-1 bg-rose-700 rounded text-xs font-bold text-white">Effacer</button>
+          </div>
+          <canvas id="player-canvas" width="340" height="240" class="bg-white rounded-xl mx-auto block border-2 border-amber-500"></canvas>
+        </div>
+      `;
+    } else if (isCaptain) {
+      const locked = state.buzzedBy !== null;
+      body = `
+        <div class="space-y-4">
+          <div class="text-xs text-center text-slate-300">Terminal <strong>${state.picDrawerSlot}</strong> dessine !</div>
+          <input id="buzz-input" type="text" placeholder="Réponse optionnelle..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white">
+          <button ${locked ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-6 rounded-2xl font-extrabold text-xl ${locked ? 'bg-slate-700 text-slate-400' : 'bg-rose-600 text-white'}">🔔 BUZZER !</button>
+        </div>
+      `;
+    } else {
+      body = `<div class="text-center py-8 text-sm text-slate-300">Regardez le projecteur et soufflez la réponse !</div>`;
+    }
+  }
+
+  root.innerHTML = `<div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-5 max-w-md mx-auto w-full space-y-4 shadow-xl"><div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-extrabold text-amber-400">Terminal ${myRole}</span><span class="text-xs text-slate-400">${isCaptain ? 'Capitaine' : 'Second'}</span></div>${body}</div>`;
+
+  if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
+    setupPlayerDrawingCanvas();
+  }
+}
+
+/* ============================================================================
+   6. INTERACTIONS ET DESSIN
+   ============================================================================ */
+function playerBuzz() {
+  const input = document.getElementById('buzz-input');
+  sendEvent('BUZZ', { slot: myRole, team: parseInt(myRole[0], 10), answer: input ? input.value.trim() : '' });
+}
+function submitFiestaWord(team) {
+  const el = document.getElementById('fiesta-word');
+  if (el && el.value.trim()) sendEvent('FIESTA_WORD', { team, word: el.value.trim() });
+}
+function submitFiestaVote(team) {
+  sendEvent('FIESTA_VOTE', { team, guesses: { 1: document.getElementById('fiesta-sel-1').value, 2: document.getElementById('fiesta-sel-2').value, 3: document.getElementById('fiesta-sel-3').value } });
+}
+function submitVerse(team) {
+  const el = document.getElementById('verse-input');
+  if (el && el.value.trim()) sendEvent('VERSE_SUBMIT', { team, text: el.value.trim() });
+}
+
+function setupPlayerDrawingCanvas() {
+  const canvas = document.getElementById('player-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.lineCap = 'round';
+  let drawing = false, lastPos = { x: 0, y: 0 };
+
+  function getPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) / rect.width, y: (clientY - rect.top) / rect.height };
+  }
+  function start(e) { e.preventDefault(); drawing = true; lastPos = getPos(e); }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const pos = getPos(e);
+    ctx.lineWidth = currentDrawWidth;
+    ctx.strokeStyle = currentDrawColor;
+    ctx.beginPath();
+    ctx.moveTo(lastPos.x * canvas.width, lastPos.y * canvas.height);
+    ctx.lineTo(pos.x * canvas.width, pos.y * canvas.height);
+    ctx.stroke();
+    sendEvent('DRAW_LINE', { x0: lastPos.x, y0: lastPos.y, x1: pos.x, y1: pos.y, color: currentDrawColor, width: currentDrawWidth });
+    lastPos = pos;
+  }
+  function stop() { drawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', stop);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  window.addEventListener('touchend', stop);
+}
+
+function clearPlayerCanvas() {
+  const c = document.getElementById('player-canvas');
+  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  sendEvent('CLEAR_CANVAS', {});
+}
+
+function drawOnHostCanvas(seg) {
+  const c = document.getElementById('host-canvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.lineWidth = seg.width ? seg.width + 1 : 4;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = seg.color || '#0f172a';
+  ctx.beginPath();
+  ctx.moveTo(seg.x0 * c.width, seg.y0 * c.height);
+  ctx.lineTo(seg.x1 * c.width, seg.y1 * c.height);
+  ctx.stroke();
+}
+
+function clearHostCanvas() {
+  const c = document.getElementById('host-canvas');
+  if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+}
+
+// Lancement automatique
+initMqtt();
+render();
+</script>
+</body>
+</html>

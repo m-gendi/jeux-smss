@@ -1,16 +1,3 @@
-Voici le fichier **`conference-nov-2026.html`** mis à jour avec ces deux fonctionnalités explicitement visibles dans la barre supérieure (header) :
-
-1. **Bouton « 🚪 Quitter Terminal » pour les joueurs :** Affiché en permanence en haut à droite lorsqu'un appareil est connecté en tant que joueur (`1A` à `3B`). En cliquant dessus (après confirmation), il supprime le verrouillage du `localStorage`, nettoie le paramètre `?role=...` de l'URL et ramène immédiatement l'appareil sur l'écran de connexion du Maître.
-2. **Bouton « 🗑️ RESET GLOBAL » bien visible pour le Maître :** Placé directement dans la barre supérieure à côté du bouton de déconnexion du Maître (en plus de la barre d'outils). Lorsqu'il est activé :
-* Il remet tous les scores et l'état du jeu à zéro.
-* Il vide le `localStorage` et le `sessionStorage` du Maître.
-* Il envoie un paquet MQTT spécial `FORCE_GLOBAL_RESET` à tous les téléphones connectés pour vider leur `localStorage`, effacer leurs écrans, couper puis relancer proprement toutes les connexions WebSocket MQTT.
-
-
-
-Voici le code complet :
-
-```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -1418,5 +1405,3 @@ render();
 </script>
 </body>
 </html>
-
-```

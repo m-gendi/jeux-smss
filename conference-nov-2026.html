@@ -1,3 +1,16 @@
+Voici le fichier **`conference-nov-2026.html`** mis à jour avec ces deux fonctionnalités explicitement visibles dans la barre supérieure (header) :
+
+1. **Bouton « 🚪 Quitter Terminal » pour les joueurs :** Affiché en permanence en haut à droite lorsqu'un appareil est connecté en tant que joueur (`1A` à `3B`). En cliquant dessus (après confirmation), il supprime le verrouillage du `localStorage`, nettoie le paramètre `?role=...` de l'URL et ramène immédiatement l'appareil sur l'écran de connexion du Maître.
+2. **Bouton « 🗑️ RESET GLOBAL » bien visible pour le Maître :** Placé directement dans la barre supérieure à côté du bouton de déconnexion du Maître (en plus de la barre d'outils). Lorsqu'il est activé :
+* Il remet tous les scores et l'état du jeu à zéro.
+* Il vide le `localStorage` et le `sessionStorage` du Maître.
+* Il envoie un paquet MQTT spécial `FORCE_GLOBAL_RESET` à tous les téléphones connectés pour vider leur `localStorage`, effacer leurs écrans, couper puis relancer proprement toutes les connexions WebSocket MQTT.
+
+
+
+Voici le code complet :
+
+```html
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -14,7 +27,7 @@
 </head>
 <body class="coptic-bg min-h-screen flex flex-col justify-between">
 
-  <!-- BARRE SUPÉRIEURE : SCORES, TIMER & STATUT -->
+  <!-- BARRE SUPÉRIEURE : SCORES, TIMER & BOUTONS D'ACTION (LOGOUT JOUEUR / RESET GLOBAL MAÎTRE) -->
   <header class="border-b border-amber-600/30 bg-slate-900/95 backdrop-blur p-3 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center gap-3">
@@ -45,11 +58,24 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <!-- Statut, Reset Global Maître & Déconnexion (Maître ET Joueur) -->
+      <div class="flex flex-wrap items-center gap-2">
         <span id="role-badge" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-amber-500/30 font-bold"></span>
         <span id="conn-badge" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Connexion...</span>
-        <button id="host-logout-btn" onclick="logoutHost()" class="hidden text-xs bg-rose-800 hover:bg-rose-700 border border-rose-500 px-2.5 py-1 rounded text-white font-bold">
-          🔒 Se déconnecter
+        
+        <!-- Bouton Reset Global (Visible uniquement pour le Maître authentifié) -->
+        <button id="host-reset-btn" onclick="resetEntireTournament()" class="hidden text-xs bg-red-900 hover:bg-red-700 border border-red-400 px-2.5 py-1 rounded text-white font-extrabold shadow">
+          🗑️ RESET GLOBAL
+        </button>
+
+        <!-- Bouton Logout Maître -->
+        <button id="host-logout-btn" onclick="logoutHost()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 border border-slate-500 px-2.5 py-1 rounded text-slate-200 font-bold">
+          🔒 Déconnexion Maître
+        </button>
+
+        <!-- Bouton Logout Joueur (Permet de quitter le rôle joueur et revenir en Maître) -->
+        <button id="player-logout-btn" onclick="logoutPlayer()" class="hidden text-xs bg-rose-800 hover:bg-rose-700 border border-rose-500 px-2.5 py-1 rounded text-white font-bold">
+          🚪 Quitter Terminal
         </button>
       </div>
     </div>
@@ -60,7 +86,7 @@
 
 <script>
 /* ============================================================================
-   0. SÉCURITÉ CRYPTOGRAPHIQUE (MOT DE PASSE MAÎTRE)
+0. SÉCURITÉ CRYPTOGRAPHIQUE (MOT DE PASSE MAÎTRE)
    ============================================================================ */
 function simpleHash(str) {
   let hash = 0;
@@ -91,7 +117,7 @@ let activeRemoteHost = { id: null, lastSeen: 0 };
 let authErrorMsg = "";
 
 /* ============================================================================
-   1. ROUTAGE ET VERROUILLAGE AUTOMATIQUE DES RÔLES
+1. ROUTAGE ET GESTION DES RÔLES (AVEC DÉCONNEXION JOUEUR)
    ============================================================================ */
 const VALID_PLAYER_SLOTS = ['1A', '1B', '2A', '2B', '3A', '3B'];
 const urlParams = new URLSearchParams(window.location.search);
@@ -112,173 +138,206 @@ if (VALID_PLAYER_SLOTS.includes(roleFromUrl)) {
   }
 }
 
-document.getElementById('role-badge').textContent = (myRole === 'HOST') ? '🖥️ Écran Maître' : `📱 Terminal ${myRole} (Verrouillé)`;
+function updateRoleBadgeAndButtons() {
+  const badge = document.getElementById('role-badge');
+  const hostLogoutBtn = document.getElementById('host-logout-btn');
+  const hostResetBtn = document.getElementById('host-reset-btn');
+  const playerLogoutBtn = document.getElementById('player-logout-btn');
+
+  if (myRole === 'HOST') {
+    badge.textContent = '🖥️ Écran Maître';
+    if (playerLogoutBtn) playerLogoutBtn.classList.add('hidden');
+    if (isHostAuthenticated) {
+      if (hostLogoutBtn) hostLogoutBtn.classList.remove('hidden');
+      if (hostResetBtn) hostResetBtn.classList.remove('hidden');
+    } else {
+      if (hostLogoutBtn) hostLogoutBtn.classList.add('hidden');
+      if (hostResetBtn) hostResetBtn.classList.add('hidden');
+    }
+  } else {
+    badge.textContent = `📱 Terminal ${myRole}`;
+    if (hostLogoutBtn) hostLogoutBtn.classList.add('hidden');
+    if (hostResetBtn) hostResetBtn.classList.add('hidden');
+    if (playerLogoutBtn) playerLogoutBtn.classList.remove('hidden');
+  }
+}
+
+// Déconnexion d'un joueur pour libérer le navigateur et permettre de passer en mode Maître
+function logoutPlayer() {
+  if (!confirm(`Voulez-vous quitter le Terminal ${myRole} et revenir à l'accueil (Écran Maître) ?`)) return;
+  localStorage.removeItem('coptic_locked_player_role');
+  myRole = 'HOST';
+  const cleanUrl = window.location.origin + window.location.pathname;
+  window.history.replaceState(null, '', cleanUrl);
+  announceHostLock('WHO_IS_HOST');
+  render();
+}
 
 /* ============================================================================
-   2. BANQUE DE DONNÉES MASSIVE (58 MANCHES POUR ~2 HEURES DE JEU)
+2. BANQUE DE DONNÉES NIVEAU SERVITEURS EXPÉRIMENTÉS (58 MANCHES)
    ============================================================================ */
 const GAME_DATA = {
   synaxaire: [
     {
       answer: "Saint Moïse le Noir (Anba Moussa)",
       clues: [
-        "Indice 1 (30 pts) : Mes reliques reposent aujourd'hui sur l'autel principal du monastère d'Al-Baramous à Wadi El-Natrun.",
-        "Indice 2 (20 pts) : Saint Isidore m'a demandé de regarder vers l'Ouest et l'Est pour contempler que les anges avec nous sont plus nombreux que les démons.",
-        "Indice 3 (10 pts) : Ancien chef de brigands en Égypte devenu Père du désert, j'ai refusé de fuir lors de l'attaque des Berbères."
+        "Indice 1 (30 pts) : Ordonné prêtre par le Pape Théophile d'Alexandrie qui avait d'abord voulu l'éprouver en le chassant de l'autel, je suis commémoré le 24 Paoni et mes reliques reposent aux côtés de celles de Saint Isidore.",
+        "Indice 2 (20 pts) : Alors que les frères allaient juger un moine fautif à Scété, je suis entré dans l'assemblée en portant sur mon dos un panier percé rempli de sable qui s'écoulait derrière moi.",
+        "Indice 3 (10 pts) : Ancien chef de brigands en Égypte converti par les Pères du désert, j'ai refusé de fuir lors de l'attaque des Berbères en citant Matthieu 26:52."
       ]
     },
     {
       answer: "Saint Athanase l'Apostolique (20e Patriarche)",
       clues: [
-        "Indice 1 (30 pts) : J'ai rédigé la célèbre biographie de Saint Antoine le Grand et fixé la liste canonique exacte des 27 livres du Nouveau Testament.",
-        "Indice 2 (20 pts) : Exilé 5 fois de mon siège d'Alexandrie, on a forgé pour moi l'adage 'Contra Mundum' (Contre le monde entier).",
-        "Indice 3 (10 pts) : Jeune diacre au Concile de Nicée en 325, j'ai défendu la divinité du Christ face à l'hérésie d'Arius."
+        "Indice 1 (30 pts) : Auteur à l'âge d'environ 20 ans du traité 'Contre les Païens et sur l'Incarnation du Verbe', j'ai fixé dans ma 39e Lettre Festale de l'an 367 le canon exact des 27 livres du Nouveau Testament.",
+        "Indice 2 (20 pts) : Consacré évêque d'Alexandrie en 328 à la mort du Pape Alexandre, j'ai passé 17 de mes 45 années d'épiscopat à travers 5 exils imposés par quatre empereurs romains.",
+        "Indice 3 (10 pts) : Jeune archidiacre au Concile de Nicée en 325 et biographe de Saint Antoine le Grand, on m'a surnommé le 'Père de l'Orthodoxie' (Contra Mundum)."
       ]
     },
     {
       answer: "Sainte Vérène (Sainte Verena)",
       clues: [
-        "Indice 1 (30 pts) : Originaire de Garagos en Haute-Égypte, mes reliques sont vénérées à Zurzach en Suisse.",
-        "Indice 2 (20 pts) : J'ai accompagné la Légion Thébaine jusqu'en Europe pour soigner les blessés et propager la foi.",
-        "Indice 3 (10 pts) : Dans l'iconographie copte, je suis représentée avec une cruche d'eau et un peigne à double rangée."
+        "Indice 1 (30 pts) : Originaire de Garagos en Thébaïde et baptisée par l'évêque Chaeremon de Nilopolis, je me suis établie comme recluse dans une grotte à Solothurn puis à Zurzach après le massacre d'Octodure.",
+        "Indice 2 (20 pts) : Parente d'un officier du corps expéditionnaire égyptien envoyé par Maximien Hercule en Gaule, j'ai traversé les Alpes pour assister les soldats chrétiens et évangéliser l'Helvétie.",
+        "Indice 3 (10 pts) : Sainte copte très vénérée en Suisse, l'iconographie me représente portant une cruche d'eau et un peigne à double rangée."
       ]
     },
     {
-      answer: "Saint Timothée (Disciple de Saint Paul)",
+      answer: "Saint Timothée (Évêque d'Éphèse)",
       clues: [
-        "Indice 1 (30 pts) : Ma grand-mère Loïs et ma mère Eunice m'ont instruit dès l'enfance dans les Saintes Écritures.",
-        "Indice 2 (20 pts) : Premier évêque d'Éphèse, Saint Paul m'a conseillé de prendre un peu de vin à cause de mes maux d'estomac.",
-        "Indice 3 (10 pts) : C'est à moi que s'adresse la devise de notre conférence : 'Que personne ne méprise ta jeunesse'."
+        "Indice 1 (30 pts) : Né à Lystre en Lycaonie d'un père grec païen et d'une mère juive croyante, j'ai subi le martyre sous l'empereur Domitien (ou Nerva) en m'opposant aux processions idolâtres des Katagogia.",
+        "Indice 2 (20 pts) : Co-expéditeur de six épîtres pauliniennes (dont 2 Corinthiens, Philippiens et Colossiens), j'ai été envoyé à Corinthe et à Thessalonique pour affermir les Églises dans les tribulations.",
+        "Indice 3 (10 pts) : Fils spirituel de Saint Paul instruit par Loïs et Eunice, j'ai reçu l'exhortation : 'Que personne ne méprise ta jeunesse'."
       ]
     },
     {
       answer: "Le Pape Cyrille VI (Anba Kyrillos VI)",
       clues: [
-        "Indice 1 (30 pts) : Avant mon patriarcat, j'ai vécu en ermite dans un vieux moulin à vent abandonné sur la colline du Mokattam.",
-        "Indice 2 (20 pts) : J'ai célébré plus de 12 000 liturgies et j'avais une profonde dévotion pour Saint Ménas.",
-        "Indice 3 (10 pts) : 116e Pape d'Alexandrie, sous mon pontificat ont eu lieu les apparitions de la Vierge à Zeitoun en 1968."
+        "Indice 1 (30 pts) : Né Azer Youssef Atta à Damanhour en 1902 et tonsuré moine au monastère d'Al-Baramous en 1928, j'ai restauré dans les années 1940 l'église de Saint-Ménas au Vieux-Caire avant de diriger le monastère de Saint-Samuel le Confesseur.",
+        "Indice 2 (20 pts) : Élu 116e Patriarche par le tirage au sort de l'autel (Heikal) en 1959, j'ai consacré le premier Catholicos-Patriarche d'Éthiopie (Abouna Baslios) et présidé le retour des reliques de Saint Marc en juin 1968.",
+        "Indice 3 (10 pts) : Ermite du moulin à vent du Mokattam et grand ami spirituel de Mar Mina, les apparitions de la Vierge à Zeitoun ont eu lieu sous mon pontificat."
       ]
     },
     {
       answer: "Saint Marc l'Évangéliste",
       clues: [
-        "Indice 1 (30 pts) : La maison de ma mère à Jérusalem fut le Cénacle où le Christ institua l'Eucharistie.",
-        "Indice 2 (20 pts) : En entrant à Alexandrie, la courroie de ma sandale s'est rompue et j'ai guéri le cordonnier Anianus.",
-        "Indice 3 (10 pts) : Fondateur de l'Église d'Alexandrie, mon symbole est le Lion et j'ai subi le martyre."
+        "Indice 1 (30 pts) : Neveu de Barnabas originaire de la Pentapole (Cyrénaïque), j'ai d'abord quitté Paul et Barnabas à Pergé en Pamphylie avant que Paul, prisonnier à Rome, ne demande à Timothée de m'amener car je lui étais 'utile pour le ministère'.",
+        "Indice 2 (20 pts) : Fondateur du Didaskaleion d'Alexandrie dont j'ai confié la direction à Saint Juste, j'ai ordonné le premier évêque de la ville (Anianus), trois prêtres (Milius, Sabinus, Cerdon) et sept diacres.",
+        "Indice 3 (10 pts) : Premier Patriarche d'Alexandrie et auteur du deuxième Évangile, j'ai été traîné par une corde dans les rues de Baucalis jusqu'à mon martyre le 30 Baramouda."
       ]
     },
     {
-      answer: "Sainte Damienne et les 40 Vierges",
+      answer: "Sainte Damienne (Sainte Demiana)",
       clues: [
-        "Indice 1 (30 pts) : Mon père Marc était gouverneur d'El-Borollos et j'ai refusé de sacrifier aux idoles de Dioclétien.",
-        "Indice 2 (20 pts) : J'ai encouragé mon propre père à mourir en martyr après qu'il ait brièvement fléchi.",
-        "Indice 3 (10 pts) : Je suis la fondatrice du monachisme féminin en Égypte, entourée de mes 40 vierges."
+        "Indice 1 (30 pts) : Commémorée le 13 Touba (martyre) et le 12 Bachans (consécration de son église par la reine Hélène), j'ai subi les tortures du commandant romain nommé Prince d'Antioche envoyé à Zaafarana.",
+        "Indice 2 (20 pts) : Fille unique du gouverneur chrétien de la région d'El-Borollos dans le delta du Nil, j'ai obtenu de mon père la construction d'un monastère retiré près de Bilqas dès l'âge de 15 ans.",
+        "Indice 3 (10 pts) : Après avoir ramené mon père Marc à la foi des martyrs, j'ai été décapitée sous Dioclétien avec les 40 vierges qui vivaient avec moi."
       ]
     },
     {
       answer: "Saint Abanoub de Nehisa",
       clues: [
-        "Indice 1 (30 pts) : J'ai distribué tous mes biens aux pauvres après avoir entendu un sermon à l'église.",
-        "Indice 2 (20 pts) : L'Archange Michel m'a visité et guéri miraculeusement à plusieurs reprises dans ma cellule.",
-        "Indice 3 (10 pts) : Je suis un jeune martyr copte âgé de seulement 12 ans."
+        "Indice 1 (30 pts) : Orphelin de Makari et Maryam à Nehisa, j'ai confessé le Christ devant le gouverneur Lucien à Samanoud, où j'ai été suspendu la tête en bas au mât de son navire avant d'être emmené à Alexandrie.",
+        "Indice 2 (20 pts) : C'est Saint Jules d'Aqfahs (le scribe des martyrs) qui a rédigé les actes de mon combat, enveloppé mon corps à Alexandrie et renvoyé mes reliques dans ma ville natale le 24 Abib.",
+        "Indice 3 (10 pts) : Célèbre enfant martyr copte de 12 ans que l'Archange Michel a guéri à plusieurs reprises dans les prisons de Samanoud et d'Athribis."
       ]
     },
     {
-      answer: "Saint Bishoy (L'Homme Parfait)",
+      answer: "Saint Bishoy (Anba Bishoy)",
       clues: [
-        "Indice 1 (30 pts) : J'attachais mes cheveux avec une corde au plafond de ma grotte à Scété pour ne pas m'endormir en prière.",
-        "Indice 2 (20 pts) : Mon corps est resté incorrompu jusqu'à ce jour dans mon monastère de Wadi El-Natrun.",
-        "Indice 3 (10 pts) : J'ai porté sur mes épaules un vieillard qui était en réalité le Seigneur Jésus Lui-même."
+        "Indice 1 (30 pts) : Né à Shansa dans le delta en 320, le plus jeune de sept frères après qu'un ange eut demandé à ma mère de m'offrir à Dieu, j'ai dû quitter Scété lors de la première incursion des Maziques en 407 pour m'installer à Antinoé (Ansena).",
+        "Indice 2 (20 pts) : C'est à Ansena que j'ai lié une fraternité spirituelle indissoluble avec Saint Paul de Tammah ; lorsque le Pape Joseph Ier a voulu séparer nos deux corps au IXe siècle, le bateau a refusé d'avancer sur le Nil.",
+        "Indice 3 (10 pts) : Surnommé 'L'Homme Parfait' et 'L'Étoile du Désert', j'attachais mes cheveux au plafond de ma grotte et j'ai porté le Christ sous les traits d'un vieillard."
       ]
     },
     {
-      answer: "Saint Maurice (Chef de la Légion Thébaine)",
+      answer: "Saint Maurice d'Agaune",
       clues: [
-        "Indice 1 (30 pts) : Officier chrétien de Haute-Égypte envoyé avec 6 600 soldats pour traverser les Alpes.",
-        "Indice 2 (20 pts) : Nous avons écrit à l'empereur que nous étions ses soldats mais avant tout serviteurs de Dieu.",
-        "Indice 3 (10 pts) : Toute notre légion a été massacrée à Agaune pour avoir refusé d'adorer les idoles."
+        "Indice 1 (30 pts) : Primicier d'une unité militaire romaine recrutée en Haute-Égypte aux côtés des officiers Exupère (Campidoctor) et Candide (Sénateur militaire), mon martyre a été consigné au Ve siècle dans la 'Passio' rédigée par Saint Eucher de Lyon.",
+        "Indice 2 (20 pts) : Stationné dans le Valais actuel vers l'an 286, j'ai refusé d'obéir aux ordres impériaux exigeant de réprimer les populations chrétiennes locales et de prêter serment sur les autels païens avant la bataille.",
+        "Indice 3 (10 pts) : Commandant de la célèbre Légion Thébaine (6 600 soldats coptes) décimée puis entièrement martyrisée dans les Alpes suisses."
       ]
     },
     {
-      answer: "Anba Abraam (Évêque du Fayoum)",
+      answer: "Anba Abraam (Évêque du Fayoum et de Gizeh)",
       clues: [
-        "Indice 1 (30 pts) : Mon évêché était surnommé la 'Maison des Pauvres' en raison de ma grande générosité.",
-        "Indice 2 (20 pts) : J'ai donné aux pauvres le châle de soie précieux qu'on venait de m'offrir.",
-        "Indice 3 (10 pts) : Grand saint égyptien du XIXe-XXe siècle, canonisé pour ses miracles et sa charité."
+        "Indice 1 (30 pts) : Né Boulos Gabriel à Delga (Minya) en 1829 et ordonné diacre à 15 ans par l'évêque Anba Youannis de Mallawi, j'ai été rappelé au Caire par le Pape Démétrius II puis élu abbé (Higoumène) du monastère d'El-Muharraq.",
+        "Indice 2 (20 pts) : Sacré évêque en 1881 par le Pape Cyrille V, j'ai exigé que la construction du nouveau palais épiscopal ne comporte aucun étage de luxe afin que tout l'argent du diocèse soit intégralement versé à la table quotidienne des indigents.",
+        "Indice 3 (10 pts) : Grand saint contemporain égyptien (décédé en 1914) surnommé 'L'Ami des Pauvres', célèbre pour avoir donné son châle de soie et guéri les malades par la prière de l'Évangile."
       ]
     },
     {
-      answer: "Saint Mercure (Abou Sefein)",
+      answer: "Saint Mercure",
       clues: [
-        "Indice 1 (30 pts) : Né à Rome sous le nom de Philopater, mes parents étaient chrétiens.",
-        "Indice 2 (20 pts) : Saint Basile a prié devant mon icône pour éliminer l'impie empereur Julien l'Apostat.",
-        "Indice 3 (10 pts) : L'Archange Michel m'a remis une seconde épée céleste, d'où mon surnom 'L'Homme aux deux épées'."
+        "Indice 1 (30 pts) : Fils de l'officier scythe converti Yares (rebaptisé Noé) et de Rophomia, j'ai triomphé des armées barbares sous l'empereur Dèce avant d'être exilé et décapité à Césarée de Cappadoce le 25 Hator à l'âge de 25 ans.",
+        "Indice 2 (20 pts) : Plus d'un siècle après mon martyre, en l'an 363, Saint Basile le Grand a prié devant mon reliquaire ; la lance de mon icône a alors disparu puis est réapparue tachée du sang de l'empereur Julien l'Apostat en Perse.",
+        "Indice 3 (10 pts) : Général chrétien né sous le nom de Philopater ('Celui qui aime le Père'), l'Archange Michel m'a remis une seconde épée lumineuse, d'où mon titre arabe 'Abou Sefein'."
       ]
     },
     {
-      answer: "Saint Jean le Petit (Colobos)",
+      answer: "Saint Jean le Petit (Anba Youannis Colobos)",
       clues: [
-        "Indice 1 (30 pts) : Mon maître spirituel m'a ordonné d'arroser chaque jour un bâton de bois sec planté dans le désert.",
-        "Indice 2 (20 pts) : Après trois ans d'obéissance aveugle, ce bois sec a fleuri et donné des fruits.",
-        "Indice 3 (10 pts) : Je suis l'exemple parfait de l'obéissance monastique chez les Pères du désert."
+        "Indice 1 (30 pts) : Né à Thèbes en 339 et retiré à Scété à l'âge de 18 ans sous la direction d'Anba Pambo, j'ai terminé ma vie sur le Mont de Saint-Antoine (Mer Rouge) après le sac de Wadi El-Natrun en 407, avant que mes reliques ne soient ramenées à Scété en 515.",
+        "Indice 2 (20 pts) : Un jour, absorbé par la prière et la contemplation divine, j'ai tressé mes feuilles de palmier en une seule longue corde sans m'en rendre compte jusqu'à ce qu'elle sorte de ma cellule et atteigne le mur extérieur.",
+        "Indice 3 (10 pts) : Compagnon de Saint Bishoy et modèle d'humilité chez les Pères du désert, j'ai arrosé un bâton de bois sec pendant trois ans par obéissance jusqu'à ce qu'il donne du fruit."
       ]
     },
     {
       answer: "Saint Samuel le Confesseur",
       clues: [
-        "Indice 1 (30 pts) : J'ai vécu au VIIe siècle face aux pressions politiques et aux querelles christologiques.",
-        "Indice 2 (20 pts) : J'ai déchiré de mes mains le document impérial qu'on voulait me forcer à signer.",
-        "Indice 3 (10 pts) : Frappé au visage et borgne, j'ai fondé le monastère d'El-Qalamoun."
+        "Indice 1 (30 pts) : Né à Pelhip (Dakahliya) d'un père prêtre nommé Silas, j'ai été formé à Scété par Anba Agathon avant d'être capturé pendant trois ans par les tribus berbères Maziques qui voulaient me forcer à adorer le soleil.",
+        "Indice 2 (20 pts) : En l'an 631, lorsque l'émissaire impérial byzantin de Cyrus (Al-Muqawqis) est venu à Scété pour imposer par la force le Tome de Léon, j'ai arraché et déchiré la charte devant les troupes en criant anathème.",
+        "Indice 3 (10 pts) : Ayant perdu mon œil droit sous les coups des soldats chalcédoniens, j'ai ensuite fondé le monastère du mont El-Qalamoun."
       ]
     },
     {
       answer: "Saint Didyme l'Aveugle",
       clues: [
-        "Indice 1 (30 pts) : Devenu aveugle dans mon enfance, j'ai inventé un système de lecture en relief sur bois.",
-        "Indice 2 (20 pts) : Saint Antoine le Grand est venu me voir et m'a dit que j'avais les yeux des anges.",
-        "Indice 3 (10 pts) : J'ai dirigé la célèbre École catéchétique d'Alexandrie au IVe siècle."
+        "Indice 1 (30 pts) : Théologien alexandrin du IVe siècle (313-398), auteur d'un célèbre 'Traité du Saint-Esprit' traduit en latin par Saint Jérôme qui m'appelait 'Didyme le Voyant', j'ai enseigné l'exégèse, la dialectique et la géométrie.",
+        "Indice 2 (20 pts) : Ayant perdu la vue à l'âge de 4 ans avant d'avoir appris à lire, j'ai maîtrisé l'intégralité des Écritures par l'écoute et la gravure de caractères sur bois, et Saint Antoine le Grand m'a consolé en me parlant des 'yeux des anges'.",
+        "Indice 3 (10 pts) : Nommé doyen de la prestigieuse École catéchétique d'Alexandrie par Saint Athanase l'Apostolique."
       ]
     }
   ],
 
   fiesta: [
     {
-      targets: ["La Chouraya (Encensoir)", "Saint Ménas (Mar Mina)", "Le Roi David"],
-      decoys: ["Le Qorban (Pain liturgique)", "Saint Georges", "Le Prophète Élie", "Les Cymbales (Naqous)"]
+      targets: ["L'Hypostase (Miaphysisme)", "L'Épiclèse (Invocation de l'Esprit)", "L'École d'Alexandrie (Didaskaleion)"],
+      decoys: ["L'Homoousios (Consubstantiel)", "L'Anaphore Eucharistique", "Le Concile d'Éphèse", "La Fraction (Qesma)"]
     },
     {
-      targets: ["L'Agpeya (Livre des Heures)", "Jonas dans le grand poisson", "Le Pape Shenouda III"],
-      decoys: ["Le Katamaros", "L'Arche de Noé", "Saint Antoine le Grand", "L'Épée d'Abou Sefein"]
+      targets: ["Le Synaxaire", "Le Difnar (Antiphonaire)", "Le Kholagui (Euchologe)"],
+      decoys: ["Le Katamaros", "L'Agpeya", "La Psalmodie (Tasbeha)", "L'Évangéliaire (Bishara)"]
     },
     {
-      targets: ["Le Buisson Ardent (Moïse)", "Sainte Marie l'Égyptienne", "Le Saint Chrême (Mayroun)"],
-      decoys: ["La Colonne de Nuée", "Sainte Vérène", "L'Eau du Baptême", "Le Voile du Sanctuaire"]
+      targets: ["Saint Cyrille le Pilier de la Foi", "Saint Dioscore d'Alexandrie", "Saint Sévère d'Antioche"],
+      decoys: ["Saint Athanase l'Apostolique", "Saint Basile le Grand", "Saint Grégoire le Théologien", "Saint Jean Chrysostome"]
     },
     {
-      targets: ["La Montagne du Mokattam", "Saint Simon le Tanneur", "Le Jeûne de Ninive"],
-      decoys: ["Le Désert de Wadi El-Natrun", "Le Pape Abraham Ibn Zaraa", "Le Grand Carême", "La Mer Rouge"]
+      targets: ["Le Char d'Ézéchiel (Les 4 Vivants)", "L'Échelle de Jacob", "Le Buisson Ardent (Théotokos)"],
+      decoys: ["La Verge d'Aaron qui a fleuri", "L'Arche d'Alliance", "La Porte Fermée d'Ézéchiel", "Le Rocher d'Horeb"]
     },
     {
-      targets: ["Le Jeune Samuel au Temple", "Le Prophète Jérémie", "Saint Paul l'Ermite (et son corbeau)"],
-      decoys: ["Le Sacrificateur Éli", "Le Prophète Ésaïe", "Saint Macaire le Grand", "Saint Jean-Baptiste"]
+      targets: ["Le Saint Chrême (Mayroun)", "L'Huile de l'Apocalypse (Abou Ghalamsis)", "L'Huile des Catéchumènes (Ghalilaon)"],
+      decoys: ["L'Onction des Malades (Qandil)", "L'Eau de la Consécration", "Le Sang Précieux", "L'Encens de l'Aube"]
     },
     {
-      targets: ["L'Étoile des Rois Mages", "La Fuite en Égypte", "La Couronne des Martyrs"],
-      decoys: ["La Crèche de Bethléem", "Les Noces de Cana", "La Croix de Lumière", "Le Fleuve du Nil"]
+      targets: ["L'Hymne Golgotha (Vendredi Saint)", "L'Hymne Pekethronos", "L'Hymne Ekhristos Anesti"],
+      decoys: ["L'Hymne Tai Shouri", "L'Hymne O Monogenis", "L'Hymne Epouro", "Le chant des 3 Jeunes Gens (Aripasalin)"]
     }
   ],
 
   undercover: [
-    { orthodox: "L'Agpeya (Livre des prières des heures)", undercover: "Le Kholagui (Livre de la Divine Liturgie)" },
-    { orthodox: "Le Jeûne de Ninive (3 jours)", undercover: "Le Grand Carême (55 jours)" },
-    { orthodox: "Saint Antoine le Grand (Père des moines)", undercover: "Saint Paul le Premier Ermite (Anba Paula)" },
-    { orthodox: "Le Qorban (L'Agneau choisi pour l'autel)", undercover: "Le Baraka / Eulogie (Pain bénit distribué à la sortie)" },
-    { orthodox: "Les Cymbales (Al-Naqous)", undercover: "Le Triangle liturgique (Al-Tiryanto)" },
-    { orthodox: "La Liturgie de Saint Basile", undercover: "La Liturgie de Saint Grégoire" },
-    { orthodox: "Le Katamaros (Livre des lectures quotidiennes)", undercover: "Le Synaxaire (Livre de la vie des Saints)" },
-    { orthodox: "L'Épître de Saint Paul (Al-Boulos)", undercover: "L'Épître Catholique (Al-Katholikon)" },
-    { orthodox: "Le Monastère Saint-Bishoy (Wadi El-Natrun)", undercover: "Le Monastère des Syriens (Al-Sourian)" },
-    { orthodox: "L'Éventail liturgique / Flabellum", undercover: "Le Voile de l'Autel (Al-Prosferin)" }
+    { orthodox: "Le Synaxaire (Récits historiques de la vie des Saints du jour)", undercover: "Le Difnar / Antiphonaire (Hymnes poétiques chantées sur les Saints du jour)" },
+    { orthodox: "Le Concile de Nicée en 325 (Condamnation d'Arius)", undercover: "Le Concile d'Éphèse en 431 (Condamnation de Nestorius)" },
+    { orthodox: "La Liturgie de Saint Basile (Adressée à Dieu le Père)", undercover: "La Liturgie de Saint Grégoire le Théologien (Adressée à Dieu le Fils)" },
+    { orthodox: "L'Épître Catholique / Al-Katholikon (Jacques, Pierre, Jean ou Jude)", undercover: "Le Praxis (Livre des Actes des Apôtres)" },
+    { orthodox: "L'Orarion / Badrashil (Étole portée par les diacres)", undercover: "L'Épitrachilion / Sadréya (Étole portée par les prêtres)" },
+    { orthodox: "Le Saint Mayroun (Sacrement de la Confirmation — 36 onctions)", undercover: "L'Huile du Ghalilaon (Huile d'exorcisme avant l'immersion baptismale)" },
+    { orthodox: "La 1re Hoas de la Tasbeha (Cantique de Moïse après la Mer Rouge)", undercover: "La 3e Hoas de la Tasbeha (Cantique des Trois Jeunes Gens dans la fournaise)" },
+    { orthodox: "L'Astérisque / Al-Qobba (Dôme métallique croisé posé sur la patène)", undercover: "Le Trône / Al-Korsi (Coffre en bois sur l'autel abritant le calice)" },
+    { orthodox: "Saint Macaire le Grand (Père du désert de Scété / Wadi El-Natrun)", undercover: "Saint Pacôme le Grand (Fondateur du monachisme cénobitique en Haute-Égypte)" },
+    { orthodox: "L'Hymne du Trisagion (Agios O Theos)", undercover: "L'Hymne d'O Monogenis (Fils Unique et Verbe de Dieu)" }
   ],
 
   verses: [
@@ -289,82 +348,82 @@ const GAME_DATA = {
     },
     {
       ref: "1 Timothée 4:13 & 16 (Texte 1 — Suite)",
-      display: "« Applique-toi à la ________, à l'exhortation, à l'________... Veille sur toi-même et sur ton enseignement. »",
-      answer: "lecture, enseignement"
+      display: "« Applique-toi à la ________, à l'exhortation, à l'________... Veille sur toi-même et sur ton enseignement ; persévère dans ces choses, car, en agissant ainsi, tu te ________ toi-même, et tu sauveras ceux qui t'écoutent. »",
+      answer: "lecture, enseignement, sauveras"
     },
     {
-      ref: "Jérémie 1:6-7 (Texte 2 — Vocation)",
-      display: "« Je répondis : Ah ! Seigneur Éternel ! voici, je ne sais point ________, car je suis un ________. Et l'Éternel me dit : Ne dis pas : Je suis un enfant. »",
-      answer: "parler, enfant"
+      ref: "Jérémie 1:6-7 & 9 (Texte 2 — Vocation prophétique)",
+      display: "« Ah ! Seigneur Éternel ! voici, je ne sais point ________, car je suis un ________... Puis l'Éternel étendit sa main, et toucha ma ________ ; et l'Éternel me dit : Voici, je mets mes paroles dans ta bouche. »",
+      answer: "parler, enfant, bouche"
     },
     {
-      ref: "Épître à Tite 2:7-8 (Texte 3 — Intégrité)",
-      display: "« Te montrant toi-même à tous égards un modèle de ________ ________, et donnant un enseignement pur, digne, une parole saine. »",
-      answer: "bonnes œuvres"
+      ref: "Épître à Tite 2:7-8 (Texte 3 — L'intégrité du serviteur)",
+      display: "« Te montrant toi-même à tous égards un modèle de ________ ________, et donnant un enseignement pur, digne, une ________ saine, irréprochable, afin que l'adversaire soit confus. »",
+      answer: "bonnes œuvres, parole"
     },
     {
-      ref: "1 Samuel 3:10 (Texte 4 — L'écoute)",
-      display: "« L'Éternel vint et se présenta, et il appela : Samuel, Samuel ! Et Samuel répondit : ________, car ton ________ écoute. »",
-      answer: "Parle, serviteur"
+      ref: "1 Samuel 3:7 & 10 (Texte 4 — L'initiation à l'écoute)",
+      display: "« Or Samuel ne connaissait pas encore l'Éternel, et la parole de l'Éternel ne lui avait pas encore été ________... Et Samuel répondit : ________, car ton ________ écoute. »",
+      answer: "révélée, Parle, serviteur"
     },
     {
-      ref: "2 Timothée 1:7 (Courage dans le service)",
-      display: "« Car ce n'est pas un esprit de ________ que Dieu nous a donné, mais un esprit de force, d'amour et de sagesse. »",
-      answer: "timidité (ou peur)"
+      ref: "2 Timothée 2:15 (L'exigence doctrinale du catéchiste)",
+      display: "« Efforce-toi de te présenter devant Dieu comme un homme éprouvé, un ________ qui n'a point à rougir, qui dispense ________ la parole de la vérité. »",
+      answer: "ouvrier, droitement"
     },
     {
-      ref: "1 Pierre 5:2-3 (Paître le troupeau)",
-      display: "« Paissez le troupeau de Dieu... non par contrainte, mais volontairement... en étant les ________ du troupeau. »",
-      answer: "modèles"
+      ref: "1 Timothée 3:16 (Hymne christologique de l'Incarnation)",
+      display: "« Et, sans contredit, le mystère de la ________ est grand : Celui qui a été manifesté en ________, justifié par l'Esprit, vu des ________, prêché aux gentils, cru dans le monde, élevé dans la gloire. »",
+      answer: "piété, chair, anges"
     },
     {
-      ref: "Évangile selon Saint Jean 21:15",
-      display: "« Jésus dit à Simon Pierre : Simon, fils de Jonas, m'aimes-tu ? ... Jésus lui dit : ________ mes agneaux. »",
-      answer: "Pais"
+      ref: "Actes des Apôtres 20:28 (Discours de Saint Paul aux anciens d'Éphèse)",
+      display: "« Prenez donc garde à vous-mêmes, et à tout le ________ sur lequel le Saint-Esprit vous a établis évêques, pour paître l'________ du Seigneur, qu'il s'est acquise par son propre ________. »",
+      answer: "troupeau, Église, sang"
     },
     {
-      ref: "Évangile selon Saint Matthieu 5:16",
-      display: "« Que votre ________ luise ainsi devant les hommes, afin qu'ils voient vos bonnes œuvres, et qu'ils glorifient votre Père. »",
-      answer: "lumière"
+      ref: "Épître de Saint Jacques 3:1 (La responsabilité de l'enseignant)",
+      display: "« Mes frères, qu'il n'y ait pas parmi vous un grand nombre de personnes qui se mettent à ________, car vous savez que nous serons jugés plus ________. »",
+      answer: "enseigner, sévèrement"
     },
     {
-      ref: "Psaume 119:105 (Agpeya)",
-      display: "« Ta ________ est une lampe à mes pieds, et une lumière sur mon sentier. »",
-      answer: "parole"
+      ref: "1 Pierre 3:15 (Apologétique et douceur)",
+      display: "« Mais sanctifiez dans vos cœurs Christ le Seigneur, étant toujours prêts à vous ________, avec douceur et ________, devant quiconque vous demande raison de l'________ qui est en vous. »",
+      answer: "défendre, respect (ou crainte), espérance"
     },
     {
-      ref: "Prière d'Action de Grâce",
-      display: "« Rends-nous dignes de participer à Tes saints, ________ et célestes mystères... »",
-      answer: "immortels"
+      ref: "Confession finale de la Divine Liturgie (Saint Basile)",
+      display: "« Je crois, je crois, je crois et je confesse jusqu'au dernier souffle que ceci est la ________ vivifiante que Ton Fils Unique, notre Seigneur, Dieu et Sauveur Jésus-Christ, a prise de notre Dame, la Reine de nous tous, la sainte ________... Il l'a unie à Sa divinité sans mélange, sans ________ et sans altération. »",
+      answer: "Chair, Théotokos (ou Mère de Dieu), confusion"
     },
     {
-      ref: "Hymne du Trisagion",
-      display: "« Saint Dieu, Saint ________, Saint Immortel, qui es né de la Vierge, aie pitié de nous. »",
-      answer: "Fort (Ischyros)"
+      ref: "Absolution des Serviteurs (Liturgie Copte)",
+      display: "« Tes serviteurs les ministres de ce jour, l'________, le prêtre, le ________, le clergé, tout le peuple et ma propre faiblesse, puissent-ils être absous de la bouche de la Sainte ________ Consubstantielle. »",
+      answer: "higoumène, diacre, Trinité"
     }
   ],
 
   pictionary: [
-    "Saint Ménas debout entre les deux chameaux",
-    "Le buisson ardent qui brûle sans se consumer",
-    "Le miracle du déplacement de la montagne du Mokattam",
-    "Saint Paul l'Ermite et le corbeau avec le demi-pain",
-    "Le pain du Qorban avec les 13 croix et les 5 trous",
-    "David avec sa fronde face au géant Goliath",
-    "La Chouraya (Encensoir copte à 3 chaînes)",
-    "Sainte Vérène avec son peigne et sa cruche d'eau",
-    "Jonas recraché sur la plage par le grand poisson",
-    "Saint Georges à cheval terrassant le dragon",
-    "Le Pape Cyrille VI priant devant son moulin à vent",
-    "La Fuite de la Sainte Famille en Égypte en barque",
-    "Daniel priant sans crainte dans la fosse aux lions",
-    "Saint Bishoy lavant les pieds du Christ",
-    "Les deux œufs d'autruche suspendus devant l'iconostase"
+    "Le buisson ardent contenant la Vierge Marie (Théotokos) portant l'Enfant Jésus",
+    "Le pain du Qorban avec le Spoudikon (12 croix autour de la croix centrale) et les 5 trous",
+    "Saint Athanase au Concile de Nicée tenant l'Évangile face à Arius",
+    "Le prophète Ésaïe dont les lèvres sont purifiées par un séraphin avec un charbon ardent",
+    "Saint Jean le Petit arrosant le bâton de bois sec qui devient un arbre fruitier",
+    "La vision du char d'Ézéchiel entouré des quatre animaux incorporels (Homme, Lion, Taureau, Aigle)",
+    "L'Archange Michel tenant l'épée de feu et la balance pesant les âmes",
+    "Saint Simon le Tanneur portant une jarre d'eau face à la montagne du Mokattam qui s'élève",
+    "Saint Bishoy lavant les pieds du Christ dans un bassin",
+    "L'autel copte avec le Korsi (coffre du calice), la patène surmontée du dôme (Qobba) et les deux éventails (Marawih)",
+    "Sainte Damienne entourée des 40 vierges martyres dans son palais monastique",
+    "Le cordonnier Anianus d'Alexandrie guéri par Saint Marc après s'être transpercé la main en réparant sa sandale",
+    "Le jeune Samuel couché près de l'Arche d'Alliance dans le Temple d'Éli",
+    "Saint Moïse le Noir marchant vers les moines avec un sac de sable percé qui coule derrière son dos",
+    "Les 24 prêtres de l'Apocalypse portant des couronnes d'or et des coupes d'encens devant le Trône"
   ]
 };
 
 /* ============================================================================
-   3. ÉTAT GLOBAL PERSISTANT
+3. ÉTAT GLOBAL PERSISTANT
    ============================================================================ */
 const DEFAULT_STATE = {
   scores: { 1: 0, 2: 0, 3: 0 },
@@ -423,6 +482,12 @@ const MQTT_TOPIC_HOST_LOCK = "coptic/serviteurs/conf-nov-2026/host_lock_v2";
 function initMqtt() {
   const badge = document.getElementById('conn-badge');
   try {
+    if (mqttClient) {
+      try { mqttClient.end(true); } catch (e) {}
+    }
+    badge.textContent = "Connexion...";
+    badge.className = "text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30";
+
     mqttClient = mqtt.connect(MQTT_BROKER_URL);
     mqttClient.on('connect', () => {
       badge.textContent = "🟢 En Ligne";
@@ -461,7 +526,7 @@ function initMqtt() {
 }
 
 /* ============================================================================
-   4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE
+4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE
    ============================================================================ */
 function announceHostLock(action) {
   if (!mqttClient || !mqttClient.connected) return;
@@ -525,7 +590,6 @@ function verifyHostPassword(e) {
     authErrorMsg = "";
     isHostAuthenticated = true;
     sessionStorage.setItem('coptic_host_authed', 'true');
-    document.getElementById('host-logout-btn').classList.remove('hidden');
     announceHostLock('HEARTBEAT');
     broadcastState();
   } else {
@@ -538,12 +602,11 @@ function logoutHost() {
   announceHostLock('RELEASE');
   isHostAuthenticated = false;
   sessionStorage.removeItem('coptic_host_authed');
-  document.getElementById('host-logout-btn').classList.add('hidden');
   render();
 }
 
 /* ============================================================================
-   5. SYNCHRONISATION RÉSEAU & PERSISTANCE
+5. SYNCHRONISATION RÉSEAU & PERSISTANCE
    ============================================================================ */
 function sendEvent(type, data) {
   const packet = { type, data, sender: myRole, ts: Date.now() };
@@ -565,7 +628,19 @@ function broadcastState() {
 
 function handleNetworkMessage(packet) {
   if (!packet) return;
-  const { type, data, sender } = packet;
+  const { type, data } = packet;
+
+  if (type === 'FORCE_GLOBAL_RESET') {
+    // Tous les clients nettoient leur état local et reconnectent leur WebSocket MQTT
+    state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    try { localStorage.removeItem('coptic_conf_persisted_state_v2'); } catch (e) {}
+    clearCanvasUI();
+    render();
+    if (myRole !== 'HOST') {
+      initMqtt();
+    }
+    return;
+  }
 
   if (type === 'STATE_SYNC') {
     if (myRole !== 'HOST') {
@@ -574,7 +649,6 @@ function handleNetworkMessage(packet) {
       render();
     }
   } else if (type === 'DRAW_BATCH') {
-    // Si c'est l'hôte ou un autre terminal, on dessine le lot de segments
     if (data.roundId === state.picRoundId) {
       drawBatchOnCanvas(data.segments);
     }
@@ -623,7 +697,7 @@ function handleNetworkMessage(packet) {
 }
 
 /* ============================================================================
-   6. CHRONOMÈTRE PERSISTANT
+6. CHRONOMÈTRE PERSISTANT
    ============================================================================ */
 function startTimer(seconds) {
   state.timerEndAt = Date.now() + seconds * 1000;
@@ -649,7 +723,7 @@ setInterval(() => {
     if (rem === 0 && myRole === 'HOST' && isHostAuthenticated) {
       state.timerEndAt = null;
       savePersistedState();
-      broadcastState(); // Diffusion de l'état pour débloquer les téléphones à 0s
+      broadcastState();
     }
   } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
     box.classList.remove('hidden');
@@ -660,7 +734,7 @@ setInterval(() => {
 }, 300);
 
 /* ============================================================================
-   7. CONTRÔLES DU MAÎTRE DU JEU (HOST)
+7. CONTRÔLES DU MAÎTRE DU JEU (HOST) & RESET GLOBAL COMPLET
    ============================================================================ */
 function addPoints(team, pts) {
   state.scores[team] = Math.max(0, (state.scores[team] || 0) + pts);
@@ -668,20 +742,36 @@ function addPoints(team, pts) {
 }
 
 function resetEntireTournament() {
-  if (!confirm("Voulez-vous vraiment remettre les scores et la progression à zéro ?")) return;
+  if (!confirm("⚠️ CONFIRMATION REQUISE — RESET GLOBAL :\n\nVoulez-vous vraiment :\n1. Remettre tous les points des 3 équipes à 0\n2. Effacer le localStorage (état sauvegardé)\n3. Réinitialiser les connexions WebSocket MQTT de tous les appareils ?")) return;
+
+  // 1. Remise à zéro de l'état
   state = JSON.parse(JSON.stringify(DEFAULT_STATE));
-  broadcastState();
+  state.picRoundId = Date.now();
+
+  // 2. Nettoyage complet du localStorage (hors mot de passe maître)
+  try {
+    localStorage.removeItem('coptic_conf_persisted_state_v2');
+    localStorage.removeItem('coptic_conf_persisted_state_v1');
+  } catch (e) {}
+
+  // 3. Diffusion de l'ordre de purge sur les WebSockets MQTT + purge du message retained
+  if (mqttClient && mqttClient.connected) {
+    const emptyPacket = { type: 'STATE_SYNC', data: state, sender: 'HOST', ts: Date.now() };
+    mqttClient.publish(MQTT_TOPIC_STATE, JSON.stringify(emptyPacket), { qos: 0, retain: true });
+    sendEvent('FORCE_GLOBAL_RESET', { ts: Date.now() });
+  }
+
+  // 4. Reconnexion propre du WebSocket MQTT du Maître
+  clearCanvasUI();
+  initMqtt();
+  render();
 }
 
 function updateScoreHeader() {
   document.getElementById('score-team-1').textContent = state.scores[1] || 0;
   document.getElementById('score-team-2').textContent = state.scores[2] || 0;
   document.getElementById('score-team-3').textContent = state.scores[3] || 0;
-  const logoutBtn = document.getElementById('host-logout-btn');
-  if (logoutBtn) {
-    if (myRole === 'HOST' && isHostAuthenticated) logoutBtn.classList.remove('hidden');
-    else logoutBtn.classList.add('hidden');
-  }
+  updateRoleBadgeAndButtons();
 }
 
 function startGame(gameName, roundIdx = 0) {
@@ -723,7 +813,7 @@ function startGame(gameName, roundIdx = 0) {
     const slots = ['1A', '2A', '3A', '1B', '2B', '3B'];
     state.picDrawerSlot = slots[state.roundIndex % slots.length];
     state.picPrompt = GAME_DATA.pictionary[state.roundIndex % GAME_DATA.pictionary.length];
-    state.picRoundId = (state.picRoundId || 1) + 1; // Incrémente la manche de dessin
+    state.picRoundId = (state.picRoundId || 1) + 1;
     startTimer(90);
   }
   broadcastState();
@@ -747,7 +837,7 @@ function scoreFiestaAutomatically() {
 }
 
 /* ============================================================================
-   8. RENDU GRAPHIQUE
+8. RENDU GRAPHIQUE
    ============================================================================ */
 function render() {
   updateScoreHeader();
@@ -777,7 +867,7 @@ function renderHostLoginGate(root) {
         <div class="text-5xl">🔒</div>
         <h2 class="text-xl font-extrabold text-rose-400">Écran Maître déjà actif</h2>
         <p class="text-sm text-slate-300 leading-relaxed">
-          Un autre appareil contrôle actuellement la conférence. Pour prendre la main ici, l'autre maître doit quitter la page ou cliquer sur <strong>« Se déconnecter »</strong>.
+          Un autre appareil contrôle actuellement la conférence. Pour prendre la main ici, l'autre maître doit quitter la page ou cliquer sur <strong>« Déconnexion Maître »</strong>.
         </p>
         <div class="text-xs text-slate-500 italic">Vérification automatique en temps réel...</div>
       </div>
@@ -826,7 +916,6 @@ function renderHost(root) {
         <button onclick="addPoints(3, 10)" class="bg-purple-700 hover:bg-purple-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.3</button>
         <button onclick="addPoints(3, -10)" class="bg-purple-950 border border-purple-700 px-1.5 py-1 rounded text-purple-300">-10</button>
         <button onclick="startTimer(60)" title="Relancer 60s" class="bg-amber-700 hover:bg-amber-600 px-2 py-1 rounded font-bold ml-1">⏱️ 60s</button>
-        <button onclick="resetEntireTournament()" title="Tout remettre à zéro" class="bg-slate-800 hover:bg-rose-900 border border-slate-600 px-2 py-1 rounded text-slate-300 ml-1">🗑️ RAZ</button>
       </div>
     </div>
   `;
@@ -845,7 +934,7 @@ function renderHost(root) {
       <div class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 space-y-6">
         <div class="text-center space-y-1">
           <h2 class="text-2xl font-extrabold text-amber-400">Scannez le QR Code attribué à votre équipe</h2>
-          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié.</p>
+          <p class="text-xs text-slate-300">Vous pouvez aussi cliquer sur un terminal pour le tester (un bouton « Quitter Terminal » en haut à droite permet de revenir en Maître).</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -859,7 +948,7 @@ function renderHost(root) {
                   const isCap = slot.endsWith('A');
                   return `
                     <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5 flex flex-col items-center space-y-2">
-                      <span class="text-xs font-extrabold text-white px-2 py-0.5 rounded bg-slate-800">Terminal ${slot}</span>
+                      <a href="?role=${slot}" class="text-xs font-extrabold text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-amber-600 transition">Terminal ${slot}</a>
                       <img src="${qrImg}" alt="QR ${slot}" class="w-28 h-28 rounded-lg bg-white p-1">
                       <span class="text-[10px] uppercase tracking-wider font-bold ${isCap ? 'text-amber-400' : 'text-slate-400'}">${isCap ? 'Capitaine' : 'Second'}</span>
                     </div>
@@ -1048,7 +1137,7 @@ function renderPlayer(root) {
   let body = '';
 
   if (state.currentGame === 'LOBBY') {
-    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Votre téléphone est verrouillé pour l'Équipe ${myTeam}.</p></div>`;
+    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Connecté pour l'Équipe ${myTeam}. Si vous êtes l'animateur et souhaitez revenir à l'Écran Maître, cliquez sur « 🚪 Quitter Terminal » en haut à droite.</p></div>`;
   } else if (state.currentGame === 'SYNAXAIRE') {
     if (!isCaptain) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
@@ -1169,7 +1258,7 @@ function renderPlayer(root) {
 }
 
 /* ============================================================================
-   9. GESTION DU DESSIN PAR PAQUETS (DRAW_BATCH) & NETTOYAGE DES ÉCOUTEURS
+9. GESTION DU DESSIN PAR PAQUETS (DRAW_BATCH) & NETTOYAGE DES ÉCOUTEURS
    ============================================================================ */
 function playerBuzz() {
   const input = document.getElementById('buzz-input');
@@ -1195,7 +1284,6 @@ function initCanvasForElement(canvasId) {
   const ctx = canvas.getContext('2d');
   ctx.lineCap = 'round';
 
-  // Nettoyage des anciens écouteurs globaux/locaux pour éviter les fuites
   if (activeCanvasHandlers) {
     window.removeEventListener('mouseup', activeCanvasHandlers.stop);
     window.removeEventListener('touchend', activeCanvasHandlers.stop);
@@ -1210,7 +1298,6 @@ function initCanvasForElement(canvasId) {
     const rect = canvas.getBoundingClientRect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    // Coordonnées arrondies et normalisées (0 à 1)
     return {
       x: parseFloat(((clientX - rect.left) / rect.width).toFixed(4)),
       y: parseFloat(((clientY - rect.top) / rect.height).toFixed(4))
@@ -1223,17 +1310,14 @@ function initCanvasForElement(canvasId) {
     lastPos = getPos(e);
     pendingSegments = [];
 
-    // Envoi par paquets toutes les 60ms pendant le tracé
     if (!batchInterval) {
       batchInterval = setInterval(() => {
         if (pendingSegments.length > 0) {
           const batchToSend = [...pendingSegments];
           pendingSegments = [];
           
-          // Dessin local immédiat sur le canvas du téléphone
           drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);
           
-          // Envoi au broker MQTT
           sendEvent('DRAW_BATCH', {
             roundId: state.picRoundId,
             segments: batchToSend
@@ -1248,7 +1332,6 @@ function initCanvasForElement(canvasId) {
     e.preventDefault();
     const pos = getPos(e);
 
-    // Filtrer les micro-segments (< 0.3% de la largeur)
     const dx = pos.x - lastPos.x;
     const dy = pos.y - lastPos.y;
     if (Math.abs(dx) < 0.003 && Math.abs(dy) < 0.003) return;
@@ -1273,7 +1356,6 @@ function initCanvasForElement(canvasId) {
       clearInterval(batchInterval);
       batchInterval = null;
     }
-    // Envoi des derniers segments restants
     if (pendingSegments.length > 0) {
       const batchToSend = [...pendingSegments];
       pendingSegments = [];
@@ -1285,7 +1367,6 @@ function initCanvasForElement(canvasId) {
     }
   }
 
-  // Remplacement des écouteurs
   canvas.onmousedown = start;
   canvas.onmousemove = move;
   canvas.ontouchstart = start;
@@ -1314,7 +1395,6 @@ function drawBatchOnCanvas(segments) {
     drawSegmentsArrayLocally(hostCanvas.getContext('2d'), segments, hostCanvas.width, hostCanvas.height);
   }
   const playerCanvas = document.getElementById('player-canvas');
-  // Si un autre terminal ou le même joueur reçoit le batch
   if (playerCanvas && myRole !== state.picDrawerSlot) {
     drawSegmentsArrayLocally(playerCanvas.getContext('2d'), segments, playerCanvas.width, playerCanvas.height);
   }
@@ -1338,3 +1418,5 @@ render();
 </script>
 </body>
 </html>
+
+```

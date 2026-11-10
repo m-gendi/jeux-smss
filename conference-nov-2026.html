@@ -149,7 +149,6 @@ function updateRoleBadgeAndButtons() {
   }
 }
 
-// Déconnexion d'un joueur pour libérer le navigateur et permettre de passer en mode Maître
 function logoutPlayer() {
   if (!confirm(`Voulez-vous quitter le Terminal ${myRole} et revenir à l'accueil (Écran Maître) ?`)) return;
   localStorage.removeItem('coptic_locked_player_role');
@@ -340,7 +339,7 @@ const GAME_DATA = {
     },
     {
       ref: "Jérémie 1:6-7 & 9 (Texte 2 — Vocation prophétique)",
-      display: "« Ah ! Seigneur Éternel ! voici, je ne sais point ________, car je suis un ________... Puis l'Éternel étendit sa main, et toucha ma ________ ; et l'Éternel me dit : Voici, je mets mes paroles dans ta bouche. »",
+      display: "« Ah ! Seigneur Éternel ! voici, je ne sais point ________, car je suis un ________...Puis l'Éternel étendit sa main, et toucha ma ________ ; et l'Éternel me dit : Voici, je mets mes paroles dans ta bouche. »",
       answer: "parler, enfant, bouche"
     },
     {
@@ -380,7 +379,7 @@ const GAME_DATA = {
     },
     {
       ref: "Confession finale de la Divine Liturgie (Saint Basile)",
-      display: "« Je crois, je crois, je crois et je confesse jusqu'au dernier souffle que ceci est la ________ vivifiante que Ton Fils Unique, notre Seigneur, Dieu et Sauveur Jésus-Christ, a prise de notre Dame, la Reine de nous tous, la sainte ________... Il l'a unie à Sa divinité sans mélange, sans ________ et sans altération. »",
+      display: "« Je crois, je crois, je crois et je confesse jusqu'au dernier souffle que ceci est la ________ vivifiante que Ton Fils Unique, notre Seigneur, Dieu et Sauveur Jésus-Christ, a prise de notre Dame, la Reine de nous tous, la sainte ________...Il l'a unie à Sa divinité sans mélange, sans ________ et sans altération. »",
       answer: "Chair, Théotokos (ou Mère de Dieu), confusion"
     },
     {
@@ -426,13 +425,20 @@ const DEFAULT_STATE = {
     2: { step: 0, target: "", currentWord: "", history: [] },
     3: { step: 0, target: "", currentWord: "", history: [] }
   },
+  fiestaShuffledOrder: [1, 2, 3],
   fiestaPhase: 'WRITING',
   fiestaVotes: {},
   fiestaScored: false,
   ucAssignments: {},
+  ucSpeakingOrder: ['1A', '2A', '3A', '1B', '2B', '3B'],
+  ucCurrentSpeakerIdx: 0,
+  ucTourNumber: 1,
+  ucVotingOpen: false,
   ucVotes: {},
   ucRevealed: false,
   verseSubmissions: [],
+  verseRevealedTeams: {},
+  verseForceShowAll: false,
   verseStartTime: 0,
   picDrawerSlot: '1A',
   picPrompt: '',
@@ -455,6 +461,15 @@ function savePersistedState() {
   try {
     localStorage.setItem('coptic_conf_persisted_state_v2', JSON.stringify(state));
   } catch (e) {}
+}
+
+function shuffleArray(arr) {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 let currentDrawColor = '#0f172a';
@@ -613,12 +628,18 @@ function broadcastState() {
   }
 }
 
+function switchToFiestaVoting() {
+  // Mélange aléatoire des 3 chaînes pour que l'ordre d'affichage ne révèle pas quelle équipe a écrit quel mot
+  state.fiestaShuffledOrder = shuffleArray([1, 2, 3]);
+  state.fiestaPhase = 'VOTING';
+  broadcastState();
+}
+
 function handleNetworkMessage(packet) {
   if (!packet) return;
-  const { type, data } = packet;
+  const { type, data, sender } = packet;
 
   if (type === 'FORCE_GLOBAL_RESET') {
-    // Tous les clients nettoient leur état local et reconnectent leur WebSocket MQTT
     state = JSON.parse(JSON.stringify(DEFAULT_STATE));
     try { localStorage.removeItem('coptic_conf_persisted_state_v2'); } catch (e) {}
     clearCanvasUI();
@@ -662,7 +683,8 @@ function handleNetworkMessage(packet) {
         chain.currentWord = data.word;
         chain.step += 1;
         if (state.fiestaChains[1].step >= 4 && state.fiestaChains[2].step >= 4 && state.fiestaChains[3].step >= 4) {
-          state.fiestaPhase = 'VOTING';
+          switchToFiestaVoting();
+          return;
         }
         broadcastState();
       }
@@ -670,7 +692,18 @@ function handleNetworkMessage(packet) {
       state.fiestaVotes[data.team] = data.guesses;
       broadcastState();
     } else if (type === 'UC_VOTE') {
-      state.ucVotes[data.team] = data.targetSlot;
+      if (!state.ucVotingOpen) return;
+      const currentArr = Array.isArray(state.ucVotes[data.team])
+        ? [...state.ucVotes[data.team]]
+        : (state.ucVotes[data.team] ? [state.ucVotes[data.team]] : []);
+      const idx = currentArr.indexOf(data.targetSlot);
+      if (idx >= 0) {
+        currentArr.splice(idx, 1);
+      } else {
+        if (currentArr.length >= 2) currentArr.shift();
+        currentArr.push(data.targetSlot);
+      }
+      state.ucVotes[data.team] = currentArr;
       broadcastState();
     } else if (type === 'VERSE_SUBMIT') {
       const exists = state.verseSubmissions.find(s => s.team === data.team);
@@ -684,7 +717,7 @@ function handleNetworkMessage(packet) {
 }
 
 /* ============================================================================
-6. CHRONOMÈTRE PERSISTANT
+6. CHRONOMÈTRE PERSISTANT (AVEC FONCTION PAUSE/REPRISE)
    ============================================================================ */
 function startTimer(seconds) {
   state.timerEndAt = Date.now() + seconds * 1000;
@@ -695,6 +728,17 @@ function startTimer(seconds) {
 function stopTimer() {
   state.timerEndAt = null;
   state.timerRemainingPaused = null;
+  broadcastState();
+}
+
+function toggleTimerPause() {
+  if (state.timerEndAt && state.timerEndAt > Date.now()) {
+    state.timerRemainingPaused = Math.ceil((state.timerEndAt - Date.now()) / 1000);
+    state.timerEndAt = null;
+  } else if (state.timerRemainingPaused !== null) {
+    state.timerEndAt = Date.now() + state.timerRemainingPaused * 1000;
+    state.timerRemainingPaused = null;
+  }
   broadcastState();
 }
 
@@ -731,24 +775,20 @@ function addPoints(team, pts) {
 function resetEntireTournament() {
   if (!confirm("⚠️ CONFIRMATION REQUISE — RESET GLOBAL :\n\nVoulez-vous vraiment :\n1. Remettre tous les points des 3 équipes à 0\n2. Effacer le localStorage (état sauvegardé)\n3. Réinitialiser les connexions WebSocket MQTT de tous les appareils ?")) return;
 
-  // 1. Remise à zéro de l'état
   state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   state.picRoundId = Date.now();
 
-  // 2. Nettoyage complet du localStorage (hors mot de passe maître)
   try {
     localStorage.removeItem('coptic_conf_persisted_state_v2');
     localStorage.removeItem('coptic_conf_persisted_state_v1');
   } catch (e) {}
 
-  // 3. Diffusion de l'ordre de purge sur les WebSockets MQTT + purge du message retained
   if (mqttClient && mqttClient.connected) {
     const emptyPacket = { type: 'STATE_SYNC', data: state, sender: 'HOST', ts: Date.now() };
     mqttClient.publish(MQTT_TOPIC_STATE, JSON.stringify(emptyPacket), { qos: 0, retain: true });
     sendEvent('FORCE_GLOBAL_RESET', { ts: Date.now() });
   }
 
-  // 4. Reconnexion propre du WebSocket MQTT du Maître
   clearCanvasUI();
   initMqtt();
   render();
@@ -777,6 +817,7 @@ function startGame(gameName, roundIdx = 0) {
     state.fiestaPhase = 'WRITING';
     state.fiestaVotes = {};
     state.fiestaScored = false;
+    state.fiestaShuffledOrder = shuffleArray([1, 2, 3]);
     [1, 2, 3].forEach((t, idx) => {
       state.fiestaChains[t] = { step: 0, target: pack.targets[idx], currentWord: "", history: [] };
     });
@@ -784,16 +825,38 @@ function startGame(gameName, roundIdx = 0) {
   } else if (gameName === 'UNDERCOVER') {
     const pack = GAME_DATA.undercover[state.roundIndex % GAME_DATA.undercover.length];
     const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
-    const ucSlot = slots[Math.floor(Math.random() * slots.length)];
+
+    // Sélection de 2 Undercover dans 2 équipes différentes (4 Orthodoxes + 2 Undercover)
+    const shuffledTeams = shuffleArray([1, 2, 3]);
+    const ucSlot1 = shuffledTeams[0] + (Math.random() < 0.5 ? 'A' : 'B');
+    const ucSlot2 = shuffledTeams[1] + (Math.random() < 0.5 ? 'A' : 'B');
+    const ucSet = new Set([ucSlot1, ucSlot2]);
+
     state.ucAssignments = {};
     state.ucVotes = {};
     state.ucRevealed = false;
+    state.ucVotingOpen = false;
+    state.ucTourNumber = 1;
+
     slots.forEach(s => {
-      state.ucAssignments[s] = { word: (s === ucSlot) ? pack.undercover : pack.orthodox, isUC: (s === ucSlot) };
+      const isUC = ucSet.has(s);
+      state.ucAssignments[s] = { word: isUC ? pack.undercover : pack.orthodox, isUC };
     });
+
+    // Ordre de parole aléatoire (en s'assurant que le 1er orateur est un Orthodoxe)
+    let order = shuffleArray(slots);
+    const firstOrthodoxIdx = order.findIndex(s => !ucSet.has(s));
+    if (firstOrthodoxIdx > 0) {
+      [order[0], order[firstOrthodoxIdx]] = [order[firstOrthodoxIdx], order[0]];
+    }
+    state.ucSpeakingOrder = order;
+    state.ucCurrentSpeakerIdx = 0;
+
     startTimer(120);
   } else if (gameName === 'VERSES') {
     state.verseSubmissions = [];
+    state.verseRevealedTeams = {};
+    state.verseForceShowAll = false;
     state.verseStartTime = Date.now();
     startTimer(45);
   } else if (gameName === 'PICTIONARY') {
@@ -806,13 +869,34 @@ function startGame(gameName, roundIdx = 0) {
   broadcastState();
 }
 
+function nextUndercoverSpeaker() {
+  const order = state.ucSpeakingOrder || ['1A', '2A', '3A', '1B', '2B', '3B'];
+  if (state.ucCurrentSpeakerIdx < order.length - 1) {
+    state.ucCurrentSpeakerIdx += 1;
+  } else {
+    // Fin du tour de parole : on ouvre automatiquement les votes
+    state.ucVotingOpen = true;
+  }
+  broadcastState();
+}
+
+function startNewUndercoverSpeakingTour() {
+  state.ucTourNumber = (state.ucTourNumber || 1) + 1;
+  state.ucCurrentSpeakerIdx = 0;
+  state.ucVotingOpen = false;
+  broadcastState();
+}
+
 function scoreFiestaAutomatically() {
   if (state.fiestaScored) return;
+  const displayOrder = state.fiestaShuffledOrder || [1, 2, 3];
   [1, 2, 3].forEach(voterTeam => {
     const guesses = state.fiestaVotes[voterTeam];
     if (guesses) {
-      [1, 2, 3].forEach(chainNum => {
-        if (guesses[chainNum] === state.fiestaChains[chainNum].target) {
+      // guesses[displayPos] contient le choix de l'équipe pour le Mot Final affiché en position displayPos (1, 2 ou 3)
+      displayOrder.forEach((actualTeamChainId, idx) => {
+        const displayPos = idx + 1;
+        if (guesses[displayPos] === state.fiestaChains[actualTeamChainId].target) {
           state.scores[voterTeam] += 10;
         }
       });
@@ -903,6 +987,7 @@ function renderHost(root) {
         <button onclick="addPoints(3, 10)" class="bg-purple-700 hover:bg-purple-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.3</button>
         <button onclick="addPoints(3, -10)" class="bg-purple-950 border border-purple-700 px-1.5 py-1 rounded text-purple-300">-10</button>
         <button onclick="startTimer(60)" title="Relancer 60s" class="bg-amber-700 hover:bg-amber-600 px-2 py-1 rounded font-bold ml-1">⏱️ 60s</button>
+        <button onclick="toggleTimerPause()" title="Pause / Reprendre" class="bg-amber-600 hover:bg-amber-500 px-2 py-1 rounded font-bold ml-1">⏸️</button>
       </div>
     </div>
   `;
@@ -921,7 +1006,7 @@ function renderHost(root) {
       <div class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 space-y-6">
         <div class="text-center space-y-1">
           <h2 class="text-2xl font-extrabold text-amber-400">Scannez le QR Code attribué à votre équipe</h2>
-          <p class="text-xs text-slate-300">Vous pouvez aussi cliquer sur un terminal pour le tester (un bouton « Quitter Terminal » en haut à droite permet de revenir en Maître).</p>
+          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié.</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -990,6 +1075,8 @@ function renderHost(root) {
     const idx = state.roundIndex % GAME_DATA.fiesta.length;
     const pack = GAME_DATA.fiesta[idx];
     const allOptions = [...pack.targets, ...pack.decoys].sort();
+    const displayOrder = state.fiestaShuffledOrder || [1, 2, 3];
+    const letters = ['A', 'B', 'C'];
 
     content = `
       <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
@@ -1000,7 +1087,7 @@ function renderHost(root) {
           </div>
           <div class="flex flex-wrap gap-2">
             <button onclick="startGame('FIESTA', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
-            <button onclick="state.fiestaPhase='VOTING'; broadcastState();" class="bg-amber-600 px-3 py-2 rounded-lg text-xs font-bold">Passer au Vote</button>
+            <button onclick="switchToFiestaVoting()" class="bg-amber-600 px-3 py-2 rounded-lg text-xs font-bold">Passer au Vote (Mélanger)</button>
             <button onclick="scoreFiestaAutomatically()" class="bg-emerald-600 px-3 py-2 rounded-lg text-xs font-bold">Calculer les Points</button>
             <button onclick="startGame('FIESTA', state.roundIndex + 1)" class="bg-indigo-600 px-3 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
@@ -1012,8 +1099,9 @@ function renderHost(root) {
         ` : ''}
         ${state.fiestaPhase === 'VOTING' ? `
           <div class="space-y-6">
+            <div class="text-xs text-amber-300 font-semibold text-center uppercase tracking-wider">🔀 Les 3 mots finaux ont été mélangés aléatoirement !</div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              ${[1, 2, 3].map(t => `<div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/40 text-center"><div class="text-xs text-amber-300 uppercase font-bold">Mot Final n°${t}</div><div class="text-2xl font-extrabold text-white mt-1">« ${state.fiestaChains[t].currentWord || '...'} »</div></div>`).join('')}
+              ${displayOrder.map((actualTeamId, posIdx) => `<div class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/40 text-center"><div class="text-xs text-amber-300 uppercase font-bold">Mot Mystère ${letters[posIdx]}</div><div class="text-2xl font-extrabold text-white mt-1">« ${state.fiestaChains[actualTeamId].currentWord || '...'} »</div></div>`).join('')}
             </div>
             <div class="bg-slate-800/80 p-4 rounded-xl flex flex-wrap gap-2">
               ${allOptions.map(opt => `<span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-600 text-sm font-semibold text-amber-200">${opt}</span>`).join('')}
@@ -1023,41 +1111,97 @@ function renderHost(root) {
         ` : ''}
         ${state.fiestaPhase === 'REVEAL' ? `
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            ${[1, 2, 3].map(t => `<div class="p-4 rounded-xl bg-slate-800 border border-emerald-500/40 space-y-2"><div class="text-xs font-bold text-emerald-400">Chaîne n°${t}</div><div class="text-lg font-extrabold text-white">Départ : ${state.fiestaChains[t].target}</div><div class="text-sm text-slate-300 space-y-1 pt-2 border-t border-slate-700">${state.fiestaChains[t].history.map((w, i) => `<div>Serviteur ${i+1} ➔ <strong class="text-amber-300">${w}</strong></div>`).join('')}</div></div>`).join('')}
+            ${displayOrder.map((actualTeamId, posIdx) => `<div class="p-4 rounded-xl bg-slate-800 border border-emerald-500/40 space-y-2"><div class="text-xs font-bold text-emerald-400">Mot Mystère ${letters[posIdx]} (Équipe ${actualTeamId})</div><div class="text-lg font-extrabold text-white">Départ : ${state.fiestaChains[actualTeamId].target}</div><div class="text-sm text-slate-300 space-y-1 pt-2 border-t border-slate-700">${state.fiestaChains[actualTeamId].history.map((w, i) => `<div>Serviteur ${i+1} ➔ <strong class="text-amber-300">${w}</strong></div>`).join('')}</div></div>`).join('')}
           </div>
         ` : ''}
       </div>
     `;
   } else if (state.currentGame === 'UNDERCOVER') {
     const idx = state.roundIndex % GAME_DATA.undercover.length;
-    const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
+    const order = state.ucSpeakingOrder || ['1A', '2A', '3A', '1B', '2B', '3B'];
+    const currentSpeaker = order[state.ucCurrentSpeakerIdx] || order[0];
+
     content = `
       <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
         <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
           <div>
-            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 3 • L'Hérésie Cachée (${idx + 1} / ${GAME_DATA.undercover.length})</span>
-            <h3 class="text-xl font-bold text-white">Trouvez l'infiltré parmi les 6 terminaux</h3>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 3 • L'Hérésie Cachée (${idx + 1} / ${GAME_DATA.undercover.length}) — 4 Orthodoxes vs 2 Infiltrés</span>
+            <h3 class="text-xl font-bold text-white">Tour de parole n°${state.ucTourNumber || 1} dirigé par l'Écran Maître</h3>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button onclick="startGame('UNDERCOVER', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
-            <button onclick="state.ucRevealed = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Révéler</button>
-            <button onclick="startGame('UNDERCOVER', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
+            <button onclick="startNewUndercoverSpeakingTour()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-xs font-bold">🔄 Nouveau tour de parole</button>
+            <button onclick="state.ucVotingOpen = true; broadcastState();" class="bg-amber-600 hover:bg-amber-500 px-3 py-2 rounded-lg text-xs font-bold">🗳️ Ouvrir les Votes</button>
+            <button onclick="state.ucRevealed = true; broadcastState();" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-2 rounded-lg text-xs font-bold">Révéler les 2 Infiltrés</button>
+            <button onclick="startGame('UNDERCOVER', state.roundIndex + 1)" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
         </div>
+
+        <!-- BANDEAU DU JOUEUR QUI DOIT PARLER OU PHASE DE VOTE -->
+        ${!state.ucVotingOpen && !state.ucRevealed ? `
+          <div class="p-5 rounded-xl bg-amber-500/15 border-2 border-amber-400 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <div class="text-xs uppercase font-bold text-amber-300">🎙️ Orateur ${state.ucCurrentSpeakerIdx + 1} sur 6 (Tour ${state.ucTourNumber || 1})</div>
+              <div class="text-2xl font-extrabold text-white">C'est au tour du Terminal <span class="text-amber-400">${currentSpeaker}</span> (Équipe ${currentSpeaker[0]}) de donner un indice !</div>
+            </div>
+            <button onclick="nextUndercoverSpeaker()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-5 py-3 rounded-xl text-sm shadow-lg">
+              ${state.ucCurrentSpeakerIdx < 5 ? 'Joueur suivant ➔' : 'Terminer le tour & Lancer les votes 🗳️'}
+            </button>
+          </div>
+        ` : ''}
+
+        ${state.ucVotingOpen && !state.ucRevealed ? `
+          <div class="p-4 rounded-xl bg-rose-950/60 border-2 border-rose-500 text-center space-y-1">
+            <div class="text-sm font-extrabold text-rose-300 uppercase">🗳️ Phase de vote ouverte sur les téléphones Capitaines (1A, 2A, 3A) !</div>
+            <div class="text-xs text-slate-300">Chaque équipe désigne les <strong>2 joueurs</strong> qu'elle soupçonne d'être les infiltrés.</div>
+          </div>
+        ` : ''}
+
+        <!-- CARTES DES 6 JOUEURS DANS L'ORDRE DE PASSAGE -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          ${slots.map(s => {
+          ${order.map((s, orderIdx) => {
             const info = state.ucAssignments[s] || {};
-            return `<div class="p-4 rounded-xl border ${state.ucRevealed && info.isUC ? 'bg-rose-950/90 border-rose-500' : 'bg-slate-800 border-slate-700'} text-center space-y-1"><div class="text-lg font-extrabold text-white">Joueur ${s}</div>${state.ucRevealed ? `<div class="pt-2 text-xs font-bold ${info.isUC ? 'text-rose-300' : 'text-emerald-300'}">${info.isUC ? '🕵️ INFILTRÉ' : '☦️ ORTHODOXE'}</div><div class="text-[11px] text-slate-200">${info.word}</div>` : `<div class="pt-2 text-xs text-amber-400">Prêt</div>`}</div>`;
+            const isSpeaking = !state.ucVotingOpen && !state.ucRevealed && orderIdx === state.ucCurrentSpeakerIdx;
+            const hasSpoken = !state.ucVotingOpen && !state.ucRevealed && orderIdx < state.ucCurrentSpeakerIdx;
+            let cardStyle = 'bg-slate-800 border-slate-700';
+            if (state.ucRevealed) {
+              cardStyle = info.isUC ? 'bg-rose-950/90 border-2 border-rose-500' : 'bg-emerald-950/70 border border-emerald-500/50';
+            } else if (isSpeaking) {
+              cardStyle = 'bg-amber-500/20 border-2 border-amber-400 scale-105 shadow-lg';
+            } else if (hasSpoken) {
+              cardStyle = 'bg-slate-900/70 border-slate-800 opacity-75';
+            }
+            return `
+              <div class="p-4 rounded-xl border ${cardStyle} text-center space-y-1 transition">
+                <div class="text-[10px] uppercase font-bold text-slate-400">Passage #${orderIdx + 1}</div>
+                <div class="text-lg font-extrabold text-white">Joueur ${s}</div>
+                ${state.ucRevealed ? `
+                  <div class="pt-2 text-xs font-bold ${info.isUC ? 'text-rose-300' : 'text-emerald-300'}">${info.isUC ? '🕵️ INFILTRÉ' : '☦️ ORTHODOXE'}</div>
+                  <div class="text-[11px] text-slate-200">${info.word}</div>
+                ` : `
+                  <div class="pt-2 text-xs font-bold ${isSpeaking ? 'text-amber-300' : (hasSpoken ? 'text-emerald-400' : 'text-slate-500')}">
+                    ${isSpeaking ? '🎙️ Parle...' : (hasSpoken ? '✅ A parlé' : '⏳ En attente')}
+                  </div>
+                `}
+              </div>
+            `;
           }).join('')}
         </div>
+
         <div class="bg-slate-800/80 p-4 rounded-xl flex flex-wrap gap-6 text-sm">
-          ${[1, 2, 3].map(t => `<div>Équipe ${t} accuse : <strong class="text-amber-400">${state.ucVotes[t] || 'En attente...'}</strong></div>`).join('')}
+          ${[1, 2, 3].map(t => {
+            const v = state.ucVotes[t];
+            const label = Array.isArray(v) && v.length > 0 ? v.join(' & ') : 'En attente...';
+            return `<div>Équipe ${t} accuse (2 max) : <strong class="text-amber-400">${label}</strong></div>`;
+          }).join('')}
         </div>
       </div>
     `;
   } else if (state.currentGame === 'VERSES') {
     const idx = state.roundIndex % GAME_DATA.verses.length;
     const v = GAME_DATA.verses[idx];
+    const allTeamsAnswered = state.verseSubmissions.length >= 3;
+
     content = `
       <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
         <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
@@ -1065,17 +1209,37 @@ function renderHost(root) {
             <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 4 • Le Verset (${idx + 1} / ${GAME_DATA.verses.length})</span>
             <h3 class="text-xl font-bold text-white">${v.ref}</h3>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <button onclick="startGame('VERSES', state.roundIndex - 1)" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-xs font-bold">⬅ Préc.</button>
-            <button onclick="state.revealed = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Solution</button>
+            <button onclick="state.verseForceShowAll = true; broadcastState();" class="bg-amber-600 hover:bg-amber-500 px-3 py-2 rounded-lg text-xs font-bold">👁️ Tout afficher</button>
+            <button onclick="state.revealed = true; state.verseForceShowAll = true; broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg text-xs font-bold">Solution</button>
             <button onclick="startGame('VERSES', state.roundIndex + 1)" class="bg-indigo-600 px-4 py-2 rounded-lg text-xs font-bold">Suivant ➔</button>
           </div>
         </div>
         <div class="p-6 rounded-xl bg-slate-800 border-l-4 border-amber-500 text-2xl font-serif text-slate-100">${v.display}</div>
         ${state.revealed ? `<div class="p-4 rounded-xl bg-emerald-950 border border-emerald-500 text-center"><span class="text-2xl font-extrabold text-white">${v.answer}</span></div>` : ''}
         <div class="space-y-2">
-          <div class="text-xs uppercase font-bold text-slate-400">Réponses reçues :</div>
-          ${state.verseSubmissions.map((sub, i) => `<div class="flex items-center justify-between bg-slate-800 p-3 rounded-lg border border-slate-700"><div><span class="font-bold text-amber-400">#${i+1} Équipe ${sub.team}</span> (${sub.time}) : <span class="text-white">« ${sub.text} »</span></div><button onclick="addPoints(${sub.team}, 20)" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">+20 pts</button></div>`).join('')}
+          <div class="text-xs uppercase font-bold text-slate-400">
+            Réponses reçues (${state.verseSubmissions.length} / 3 équipes) — ${allTeamsAnswered || state.verseForceShowAll ? 'Réponses visibles' : 'Masquées tant que les 3 équipes n\'ont pas répondu'} :
+          </div>
+          ${state.verseSubmissions.map((sub, i) => {
+            const isVisible = allTeamsAnswered || state.verseForceShowAll || (state.verseRevealedTeams && state.verseRevealedTeams[sub.team]);
+            return `
+              <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-800 p-3 rounded-lg border border-slate-700">
+                <div>
+                  <span class="font-bold text-amber-400">#${i+1} Équipe ${sub.team}</span> (${sub.time}) :
+                  ${isVisible
+                    ? `<span class="text-white font-semibold ml-1">« ${sub.text} »</span>`
+                    : `<span class="text-slate-400 italic ml-1">🔒 Réponse enregistrée (masquée)</span>`
+                  }
+                </div>
+                <div class="flex gap-2">
+                  ${!isVisible ? `<button onclick="state.verseRevealedTeams = state.verseRevealedTeams || {}; state.verseRevealedTeams[${sub.team}] = true; broadcastState();" class="bg-slate-700 hover:bg-slate-600 px-2.5 py-1.5 rounded text-xs font-bold text-amber-300">👁️ Afficher</button>` : ''}
+                  <button onclick="addPoints(${sub.team}, 20)" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">+20 pts</button>
+                </div>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -1124,7 +1288,7 @@ function renderPlayer(root) {
   let body = '';
 
   if (state.currentGame === 'LOBBY') {
-    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Connecté pour l'Équipe ${myTeam}. Si vous êtes l'animateur et souhaitez revenir à l'Écran Maître, cliquez sur « 🚪 Quitter Terminal » en haut à droite.</p></div>`;
+    body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Connecté pour l'Équipe ${myTeam}. Si vous êtes l'animateur, cliquez sur « 🚪 Quitter Terminal » en haut à droite.</p></div>`;
   } else if (state.currentGame === 'SYNAXAIRE') {
     if (!isCaptain) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
@@ -1161,10 +1325,24 @@ function renderPlayer(root) {
       const pack = GAME_DATA.fiesta[state.roundIndex % GAME_DATA.fiesta.length];
       const allOptions = [...pack.targets, ...pack.decoys].sort();
       const myPrevVote = state.fiestaVotes[myTeam] || {};
+      const displayOrder = state.fiestaShuffledOrder || [1, 2, 3];
+      const letters = ['A', 'B', 'C'];
       body = `
         <div class="space-y-4">
-          <div class="text-sm font-bold text-amber-400">Associez les mots finaux :</div>
-          ${[1, 2, 3].map(idx => `<div class="bg-slate-800 p-3 rounded-xl space-y-1"><label class="text-xs text-slate-300 block">Mot n°${idx} : <strong>« ${state.fiestaChains[idx].currentWord} »</strong></label><select id="fiesta-sel-${idx}" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">${allOptions.map(o => `<option value="${o}" ${myPrevVote[idx]===o?'selected':''}>${o}</option>`).join('')}</select></div>`).join('')}
+          <div class="text-sm font-bold text-amber-400">Associez chaque Mot Mystère à son sujet initial :</div>
+          ${displayOrder.map((actualTeamId, posIdx) => {
+            const displayPos = posIdx + 1;
+            const prevVal = myPrevVote[displayPos] || '';
+            return `
+              <div class="bg-slate-800 p-3 rounded-xl space-y-1">
+                <label class="text-xs text-slate-300 block">Mot Mystère ${letters[posIdx]} : <strong>« ${state.fiestaChains[actualTeamId].currentWord} »</strong></label>
+                <select id="fiesta-sel-${displayPos}" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">
+                  <option value="" disabled ${!prevVal ? 'selected' : ''}>-- Sélectionner --</option>
+                  ${allOptions.map(o => `<option value="${o}" ${prevVal===o?'selected':''}>${o}</option>`).join('')}
+                </select>
+              </div>
+            `;
+          }).join('')}
           <button onclick="submitFiestaVote(${myTeam})" class="w-full py-3 bg-emerald-600 rounded-xl font-bold text-white">${state.fiestaVotes[myTeam] ? '✅ Vote enregistré (Mettre à jour)' : 'Envoyer le vote'}</button>
         </div>
       `;
@@ -1173,21 +1351,35 @@ function renderPlayer(root) {
     }
   } else if (state.currentGame === 'UNDERCOVER') {
     const myInfo = state.ucAssignments[myRole] || { word: '...' };
+    const order = state.ucSpeakingOrder || ['1A', '2A', '3A', '1B', '2B', '3A'];
+    const currentSpeaker = order[state.ucCurrentSpeakerIdx] || order[0];
+    const isMyTurn = !state.ucVotingOpen && !state.ucRevealed && currentSpeaker === myRole;
+    const myVotesArr = Array.isArray(state.ucVotes[myTeam]) ? state.ucVotes[myTeam] : [];
     const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
+
     body = `
-      <div class="space-y-5">
+      <div class="space-y-4">
         <div class="bg-slate-800 border-2 border-amber-500/50 rounded-2xl p-5 text-center space-y-2">
           <div class="text-xs uppercase text-slate-400 font-bold">Votre Mot Secret (Gardez-le caché)</div>
           <div class="text-2xl font-extrabold text-amber-300">${myInfo.word}</div>
         </div>
-        ${isCaptain ? `
-          <div class="bg-slate-800/70 p-4 rounded-xl space-y-2 border border-slate-700">
-            <div class="text-xs uppercase font-bold text-slate-300">Qui est l'infiltré ?</div>
-            <div class="grid grid-cols-3 gap-2">
-              ${slots.map(s => `<button onclick="sendEvent('UC_VOTE', { team: ${myTeam}, targetSlot: '${s}' })" class="py-2.5 rounded-lg font-bold text-xs ${state.ucVotes[myTeam]===s ? 'bg-rose-600 text-white' : 'bg-slate-900 text-slate-300 border border-slate-600'}">Joueur ${s}</button>`).join('')}
-            </div>
+
+        ${!state.ucVotingOpen && !state.ucRevealed ? `
+          <div class="p-4 rounded-xl border ${isMyTurn ? 'bg-amber-500/20 border-amber-400 text-amber-200' : 'bg-slate-800/80 border-slate-700 text-slate-300'} text-center text-sm font-bold">
+            ${isMyTurn ? '🎙️ C\'EST À VOUS DE DONNER UN INDICE ORAL !' : `🎙️ Au tour du Joueur <strong>${currentSpeaker}</strong> de parler...`}
           </div>
         ` : ''}
+
+        ${isCaptain ? (
+          state.ucVotingOpen ? `
+            <div class="bg-slate-800/70 p-4 rounded-xl space-y-2 border border-rose-500/50">
+              <div class="text-xs uppercase font-bold text-rose-300">Vote ouvert — Sélectionnez les 2 Infiltrés (${myVotesArr.length}/2) :</div>
+              <div class="grid grid-cols-3 gap-2">
+                ${slots.map(s => `<button onclick="sendEvent('UC_VOTE', { team: ${myTeam}, targetSlot: '${s}' })" class="py-2.5 rounded-lg font-bold text-xs ${myVotesArr.includes(s) ? 'bg-rose-600 text-white border-2 border-white' : 'bg-slate-900 text-slate-300 border border-slate-600'}">Joueur ${s}</button>`).join('')}
+              </div>
+            </div>
+          ` : `<div class="text-center text-xs text-slate-400 italic">Les votes s'ouvriront sur votre téléphone dès que les 6 joueurs auront parlé.</div>`
+        ) : ''}
       </div>
     `;
   } else if (state.currentGame === 'VERSES') {
@@ -1198,7 +1390,7 @@ function renderPlayer(root) {
       body = alreadySent ? `<div class="text-center py-8 text-emerald-400 font-bold">✅ Réponse envoyée (${alreadySent.time}) !</div>` : `
         <div class="space-y-4">
           <div class="text-xs uppercase font-bold text-amber-400">Mots manquants :</div>
-          <input id="verse-input" type="text" placeholder="Ex: charité, foi" class="w-full bg-slate-800 border border-amber-500/50 rounded-xl px-4 py-3 text-white text-lg">
+          <input id="verse-input" type="text" placeholder="Ex: mot 1, mot 2..." class="w-full bg-slate-800 border border-amber-500/50 rounded-xl px-4 py-3 text-white text-lg">
           <button onclick="submitVerse(${myTeam})" class="w-full py-4 bg-emerald-600 rounded-xl font-extrabold text-white">Envoyer</button>
         </div>
       `;
@@ -1256,7 +1448,14 @@ function submitFiestaWord(team) {
   if (el && el.value.trim()) sendEvent('FIESTA_WORD', { team, word: el.value.trim() });
 }
 function submitFiestaVote(team) {
-  sendEvent('FIESTA_VOTE', { team, guesses: { 1: document.getElementById('fiesta-sel-1').value, 2: document.getElementById('fiesta-sel-2').value, 3: document.getElementById('fiesta-sel-3').value } });
+  const v1 = document.getElementById('fiesta-sel-1').value;
+  const v2 = document.getElementById('fiesta-sel-2').value;
+  const v3 = document.getElementById('fiesta-sel-3').value;
+  if (!v1 || !v2 || !v3) {
+    alert("Veuillez sélectionner une proposition pour chacun des 3 mots mystères avant de valider.");
+    return;
+  }
+  sendEvent('FIESTA_VOTE', { team, guesses: { 1: v1, 2: v2, 3: v3 } });
 }
 function submitVerse(team) {
   const el = document.getElementById('verse-input');

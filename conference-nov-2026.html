@@ -12,24 +12,39 @@
     canvas { touch-action: none; }
 
     @keyframes pulseGold {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.8); }
-      40% { transform: scale(1.04); box-shadow: 0 0 35px 12px rgba(245, 158, 11, 0.55); }
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.95); }
+      35% { transform: scale(1.04); box-shadow: 0 0 45px 16px rgba(245, 158, 11, 0.7); }
+      70% { transform: scale(1.01); box-shadow: 0 0 25px 8px rgba(245, 158, 11, 0.4); }
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
     }
     @keyframes pulseEmerald {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.9); }
-      40% { transform: scale(1.05); box-shadow: 0 0 40px 14px rgba(16, 185, 129, 0.65); }
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.95); }
+      35% { transform: scale(1.05); box-shadow: 0 0 55px 20px rgba(16, 185, 129, 0.8); }
+      70% { transform: scale(1.02); box-shadow: 0 0 30px 10px rgba(16, 185, 129, 0.45); }
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
+    @keyframes numberBounce {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.45) rotate(-4deg); color: #fde047; }
+      60% { transform: scale(1.2) rotate(3deg); }
+      100% { transform: scale(1); }
+    }
+    @keyframes wrongShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); border-color: #f43f5e !important; }
+      40%, 80% { transform: translateX(8px); border-color: #f43f5e !important; }
+    }
     @keyframes popBanner {
-      0% { opacity: 0; transform: translateY(12px) scale(0.85); }
-      20% { opacity: 1; transform: translateY(0) scale(1.05); }
-      80% { opacity: 1; transform: translateY(0) scale(1); }
+      0% { opacity: 0; transform: translateY(-14px) scale(0.85); }
+      15% { opacity: 1; transform: translateY(0) scale(1.04); }
+      85% { opacity: 1; transform: translateY(0) scale(1); }
       100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
     }
-    .anim-unlock-gold { animation: pulseGold 1.3s ease-out; border-color: #f59e0b !important; }
-    .anim-match-emerald { animation: pulseEmerald 1.5s ease-out; border-color: #10b981 !important; }
-    .anim-pop-banner { animation: popBanner 2.4s ease-in-out forwards; }
+    .anim-unlock-gold { animation: pulseGold 2.2s ease-out; border-color: #fbbf24 !important; }
+    .anim-match-emerald { animation: pulseEmerald 2.4s ease-out; border-color: #34d399 !important; }
+    .anim-number-pop { display: inline-block; animation: numberBounce 1.2s ease-out; }
+    .anim-wrong-shake { animation: wrongShake 0.6s ease-in-out; }
+    .anim-pop-banner { animation: popBanner 3.4s ease-in-out forwards; }
   </style>
 </head>
 <body class="coptic-bg min-h-screen flex flex-col justify-between">
@@ -427,8 +442,6 @@ const GAME_DATA = {
     "Les 24 prêtres de l'Apocalypse portant des couronnes d'or et des coupes d'encens devant le Trône"
   ],
 
-  // JEU 6 : LA CHASSE AUX COFFRES DES 12 APÔTRES (Option A — 5 minutes)
-  // Toutes les énigmes d'ouverture sont désormais 100% indépendantes des 12 Apôtres (Ancien Testament, Liturgie Copte, Vie du Christ)
   apostles: [
     {
       id: 1,
@@ -553,13 +566,14 @@ const DEFAULT_STATE = {
   picDrawerSlot: '1A',
   picPrompt: '',
   picRoundId: 1,
-  // État du Jeu 6 : Chasse aux Coffres des 12 Apôtres + Événement d'animation par équipe
+  // État du Jeu 6 : Chasse aux Coffres des 12 Apôtres + Événements d'animation
   apostlesBoxOrder: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   apostlesProgress: {
     1: { unlocked: {}, guesses: {}, lastEvent: null },
     2: { unlocked: {}, guesses: {}, lastEvent: null },
     3: { unlocked: {}, guesses: {}, lastEvent: null }
   },
+  apostlesGlobalAnnouncement: null,
   apostlesScored: false,
   apostlesRevealed: false
 };
@@ -600,6 +614,25 @@ function normalizeAnswer(str) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s-]/g, "")
     .trim();
+}
+
+function isApostleGuessCorrect(boxNum, guessedApostleName) {
+  if (!guessedApostleName) return false;
+  const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const itemId = boxOrder[(boxNum - 1) % 12];
+  const item = GAME_DATA.apostles.find(a => a.id === itemId);
+  return !!(item && item.apostle === guessedApostleName);
+}
+
+function getTeamCorrectApostlesCount(team) {
+  const prog = (state.apostlesProgress && state.apostlesProgress[team]) ? state.apostlesProgress[team] : { guesses: {} };
+  let count = 0;
+  for (let b = 1; b <= 12; b++) {
+    if (prog.guesses && isApostleGuessCorrect(b, prog.guesses[b])) {
+      count++;
+    }
+  }
+  return count;
 }
 
 let currentDrawColor = '#0f172a';
@@ -800,7 +833,6 @@ function handleNetworkMessage(packet) {
       return;
     }
 
-    // VERROUILLAGE PENDANT LA PAUSE MANUELLE : Aucune action joueur n'est traitée tant que le chrono est en pause
     if (state.isManualPaused) return;
 
     if (type === 'BUZZ') {
@@ -852,10 +884,17 @@ function handleNetworkMessage(packet) {
       state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
       state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {}, lastEvent: null };
       state.apostlesProgress[data.team].unlocked[data.boxNum] = true;
+      const nowTs = Date.now();
       state.apostlesProgress[data.team].lastEvent = {
         type: 'UNLOCK',
         boxNum: data.boxNum,
-        ts: Date.now()
+        ts: nowTs
+      };
+      state.apostlesGlobalAnnouncement = {
+        team: data.team,
+        type: 'UNLOCK',
+        boxNum: data.boxNum,
+        ts: nowTs
       };
       broadcastState();
     } else if (type === 'APOSTLE_GUESS') {
@@ -863,15 +902,24 @@ function handleNetworkMessage(packet) {
       state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {}, lastEvent: null };
       state.apostlesProgress[data.team].guesses[data.boxNum] = data.apostle;
 
-      // Vérifie si l'apôtre associé est correct pour déclencher l'animation de réussite
-      const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-      const itemId = boxOrder[(data.boxNum - 1) % 12];
-      const item = GAME_DATA.apostles.find(a => a.id === itemId);
-      if (item && item.apostle === data.apostle) {
+      const nowTs = Date.now();
+      if (isApostleGuessCorrect(data.boxNum, data.apostle)) {
         state.apostlesProgress[data.team].lastEvent = {
           type: 'CORRECT_MATCH',
           boxNum: data.boxNum,
-          ts: Date.now()
+          ts: nowTs
+        };
+        state.apostlesGlobalAnnouncement = {
+          team: data.team,
+          type: 'CORRECT_MATCH',
+          boxNum: data.boxNum,
+          ts: nowTs
+        };
+      } else {
+        state.apostlesProgress[data.team].lastEvent = {
+          type: 'WRONG_MATCH',
+          boxNum: data.boxNum,
+          ts: nowTs
         };
       }
       broadcastState();
@@ -1043,6 +1091,7 @@ function startGame(gameName, roundIdx = 0) {
       2: { unlocked: {}, guesses: {}, lastEvent: null },
       3: { unlocked: {}, guesses: {}, lastEvent: null }
     };
+    state.apostlesGlobalAnnouncement = null;
     state.apostlesScored = false;
     state.apostlesRevealed = false;
     selectedApostleBox = 1;
@@ -1089,16 +1138,9 @@ function scoreFiestaAutomatically() {
 
 function scoreApostlesAutomatically() {
   if (!state.apostlesScored) {
-    const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     [1, 2, 3].forEach(team => {
-      const prog = (state.apostlesProgress && state.apostlesProgress[team]) ? state.apostlesProgress[team] : { guesses: {} };
-      boxOrder.forEach((itemId, idx) => {
-        const boxNum = idx + 1;
-        const item = GAME_DATA.apostles.find(a => a.id === itemId);
-        if (item && prog.guesses && prog.guesses[boxNum] === item.apostle) {
-          state.scores[team] += 5;
-        }
-      });
+      const correctCount = getTeamCorrectApostlesCount(team);
+      state.scores[team] += correctCount * 5;
     });
     state.apostlesScored = true;
   }
@@ -1503,6 +1545,26 @@ function renderHost(root) {
       3: { title: "ÉQUIPE 3", color: "text-purple-300", border: "border-purple-500/50", bg: "bg-purple-950/40" }
     };
 
+    // Bandeau géant d'annonce en haut de l'écran maître lors d'un déverrouillage ou d'une bonne association
+    const ga = state.apostlesGlobalAnnouncement;
+    const isGlobalRecent = ga && (Date.now() - ga.ts < 3500);
+    let globalToastHtml = '';
+    if (isGlobalRecent) {
+      if (ga.type === 'UNLOCK') {
+        globalToastHtml = `
+          <div class="anim-pop-banner p-4 rounded-2xl bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-slate-950 font-extrabold text-xl text-center shadow-2xl border-2 border-white">
+            🔓 L'ÉQUIPE ${ga.team} VIENT DE DÉVERROUILLER LE COFFRE #${ga.boxNum} !
+          </div>
+        `;
+      } else if (ga.type === 'CORRECT_MATCH') {
+        globalToastHtml = `
+          <div class="anim-pop-banner p-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-500 text-slate-950 font-extrabold text-xl text-center shadow-2xl border-2 border-white">
+            🎉 BRAVO ! L'ÉQUIPE ${ga.team} VIENT D'ASSOCIER CORRECTEMENT L'APÔTRE DU COFFRE #${ga.boxNum} !
+          </div>
+        `;
+      }
+    }
+
     content = `
       <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
         <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
@@ -1517,31 +1579,32 @@ function renderHost(root) {
           </div>
         </div>
 
-        <!-- TABLEAU DE BORD GÉANT DES 3 ÉQUIPES AVEC ANIMATIONS EN DIRECT -->
+        ${globalToastHtml}
+
+        <!-- TABLEAU DE BORD GÉANT DES 3 ÉQUIPES AVEC PROGRESSION VISUELLE DES 12 COFFRES -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           ${[1, 2, 3].map(t => {
             const prog = (state.apostlesProgress && state.apostlesProgress[t]) ? state.apostlesProgress[t] : { unlocked: {}, guesses: {}, lastEvent: null };
             const unlockedCount = Object.keys(prog.unlocked || {}).length;
-            const guessedCount = Object.keys(prog.guesses || {}).filter(k => prog.guesses[k]).length;
-            let correctCount = 0;
-            boxOrder.forEach((itemId, idx) => {
-              const bNum = idx + 1;
-              const it = GAME_DATA.apostles.find(a => a.id === itemId);
-              if (it && prog.guesses && prog.guesses[bNum] === it.apostle) correctCount++;
-            });
+            const correctCount = getTeamCorrectApostlesCount(t);
 
-            // Vérifie si un événement récent (< 3.5 secondes) doit déclencher une animation sur la carte de l'équipe
             const ev = prog.lastEvent;
             const isRecent = ev && (Date.now() - ev.ts < 3500);
             let cardAnimClass = '';
             let bannerHtml = '';
+            let unlockNumAnim = '';
+            let correctNumAnim = '';
             if (isRecent) {
               if (ev.type === 'UNLOCK') {
                 cardAnimClass = 'anim-unlock-gold';
-                bannerHtml = `<div class="anim-pop-banner bg-amber-500 text-slate-950 font-extrabold text-xs px-3 py-1 rounded-full text-center shadow-lg">🔓 COFFRE #${ev.boxNum} DÉVERROUILLÉ !</div>`;
+                unlockNumAnim = 'anim-number-pop';
+                bannerHtml = `<div class="anim-pop-banner bg-amber-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-full text-center shadow-lg">🔓 COFFRE #${ev.boxNum} OUVERT !</div>`;
               } else if (ev.type === 'CORRECT_MATCH') {
                 cardAnimClass = 'anim-match-emerald';
-                bannerHtml = `<div class="anim-pop-banner bg-emerald-500 text-slate-950 font-extrabold text-xs px-3 py-1 rounded-full text-center shadow-lg">🎉 APÔTRE DU COFFRE #${ev.boxNum} TROUVÉ !</div>`;
+                correctNumAnim = 'anim-number-pop';
+                bannerHtml = `<div class="anim-pop-banner bg-emerald-400 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-full text-center shadow-lg">🎉 APÔTRE #${ev.boxNum} BIEN ASSOCIÉ !</div>`;
+              } else if (ev.type === 'WRONG_MATCH') {
+                cardAnimClass = 'anim-wrong-shake';
               }
             }
 
@@ -1550,25 +1613,68 @@ function renderHost(root) {
               <div class="p-5 rounded-2xl ${st.bg} border-2 ${st.border} ${cardAnimClass} space-y-4 transition-all relative overflow-hidden">
                 <div class="flex justify-between items-center border-b border-slate-700/80 pb-2">
                   <span class="font-extrabold text-lg ${st.color}">${st.title} (Tél. ${t}A)</span>
-                  ${state.apostlesRevealed ? `<span class="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-600 text-white">${correctCount}/12 justes (+${correctCount*5} pts)</span>` : ''}
+                  <span class="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-600/90 text-white">+${correctCount * 5} pts potentiels</span>
                 </div>
 
                 ${bannerHtml}
 
-                <!-- COMPTEURS GÉANTS -->
+                <!-- COMPTEURS GÉANTS (COFFRES OUVERTS & APÔTRES CORRECTEMENT ASSOCIÉS) -->
                 <div class="grid grid-cols-2 gap-3 text-center">
-                  <div class="bg-slate-900/90 border border-amber-500/40 rounded-xl p-3">
-                    <div class="text-[11px] uppercase tracking-wider font-bold text-amber-300">🔓 Coffres Ouverts</div>
-                    <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1">${unlockedCount}<span class="text-lg text-slate-400">/12</span></div>
+                  <div class="bg-slate-900/95 border-2 border-amber-500/50 rounded-xl p-3 shadow-inner">
+                    <div class="text-[11px] uppercase tracking-wider font-extrabold text-amber-300">🔓 Coffres Ouverts</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1"><span class="${unlockNumAnim}">${unlockedCount}</span><span class="text-lg text-slate-400">/12</span></div>
                   </div>
-                  <div class="bg-slate-900/90 border border-emerald-500/40 rounded-xl p-3">
-                    <div class="text-[11px] uppercase tracking-wider font-bold text-emerald-300">✍️ Apôtres Associés</div>
-                    <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1">${guessedCount}<span class="text-lg text-slate-400">/12</span></div>
+                  <div class="bg-slate-900/95 border-2 border-emerald-500/60 rounded-xl p-3 shadow-inner">
+                    <div class="text-[11px] uppercase tracking-wider font-extrabold text-emerald-300">✅ Apôtres Justes</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-emerald-400 mt-1"><span class="${correctNumAnim}">${correctCount}</span><span class="text-lg text-slate-400">/12</span></div>
                   </div>
                 </div>
 
-                <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
-                  <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-full transition-all duration-500" style="width: ${(guessedCount/12)*100}%"></div>
+                <!-- MINI-GRILLE VISUELLE DES 12 COFFRES DE L'ÉQUIPE EN DIRECT -->
+                <div class="space-y-1">
+                  <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex justify-between">
+                    <span>État des 12 Coffres de l'Équipe ${t}</span>
+                    <span>${Math.round((correctCount / 12) * 100)}% complété</span>
+                  </div>
+                  <div class="grid grid-cols-6 gap-1.5 pt-1">
+                    ${boxOrder.map((_, idx) => {
+                      const bNum = idx + 1;
+                      const isUnlk = !!(prog.unlocked && prog.unlocked[bNum]);
+                      const guessVal = (prog.guesses && prog.guesses[bNum]) ? prog.guesses[bNum] : null;
+                      const isCorr = isApostleGuessCorrect(bNum, guessVal);
+                      const isJustChanged = isRecent && ev.boxNum === bNum;
+
+                      let pillStyle = 'bg-slate-900 text-slate-500 border-slate-700';
+                      let icon = '🔒';
+                      if (isCorr) {
+                        pillStyle = 'bg-emerald-600 text-white border-emerald-300 shadow-md shadow-emerald-500/30';
+                        icon = '✅';
+                      } else if (guessVal) {
+                        pillStyle = 'bg-rose-900/80 text-rose-200 border-rose-500';
+                        icon = '❌';
+                      } else if (isUnlk) {
+                        pillStyle = 'bg-amber-500 text-slate-950 border-yellow-200 shadow-md shadow-amber-500/30';
+                        icon = '🔓';
+                      }
+                      if (isJustChanged) pillStyle += ' scale-125 ring-2 ring-white z-10';
+
+                      return `
+                        <div class="py-1 px-1 rounded-lg border text-[10px] font-extrabold text-center transition-all duration-300 ${pillStyle}">
+                          #${bNum} ${icon}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+
+                <!-- DOUBLE BARRE DE PROGRESSION -->
+                <div class="space-y-1.5 pt-1">
+                  <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800" title="Coffres ouverts">
+                    <div class="bg-amber-500 h-full transition-all duration-500" style="width: ${(unlockedCount/12)*100}%"></div>
+                  </div>
+                  <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800" title="Apôtres correctement associés">
+                    <div class="bg-gradient-to-r from-emerald-500 to-green-400 h-full transition-all duration-500" style="width: ${(correctCount/12)*100}%"></div>
+                  </div>
                 </div>
               </div>
             `;
@@ -1581,15 +1687,17 @@ function renderHost(root) {
             const boxNum = idx + 1;
             const item = GAME_DATA.apostles.find(a => a.id === itemId) || GAME_DATA.apostles[0];
             const unlockedByTeams = [1, 2, 3].filter(t => state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].unlocked && state.apostlesProgress[t].unlocked[boxNum]);
+            const solvedByTeams = [1, 2, 3].filter(t => state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].guesses && state.apostlesProgress[t].guesses[boxNum] === item.apostle);
             return `
               <div class="p-3.5 rounded-xl border ${state.apostlesRevealed ? 'bg-emerald-950/50 border-emerald-500/50' : 'bg-slate-800/90 border-slate-700'} space-y-1.5">
                 <div class="flex justify-between items-center">
                   <span class="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                     ${state.apostlesRevealed ? `🔓 Coffre #${boxNum} — ${item.apostle}` : `🔒 Coffre #${boxNum}`}
                   </span>
-                  <span class="text-[11px] text-slate-400">
-                    ${unlockedByTeams.length > 0 ? `Ouvert par Éq. ${unlockedByTeams.join(', ')}` : 'Scellé'}
-                  </span>
+                  <div class="flex gap-1.5 text-[10px]">
+                    <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">🔓 ${unlockedByTeams.length}/3</span>
+                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">✅ ${solvedByTeams.length}/3</span>
+                  </div>
                 </div>
                 ${state.apostlesRevealed ? `
                   <p class="text-xs text-slate-200 leading-relaxed">${item.clueText}</p>
@@ -1601,7 +1709,9 @@ function renderHost(root) {
                     }).join(' • ')}
                   </div>
                 ` : `
-                  <p class="text-xs text-slate-400 italic">Énigme de déverrouillage sur les téléphones...</p>
+                  <p class="text-xs text-slate-400 italic">
+                    ${solvedByTeams.length > 0 ? `Apôtre identifié par Éq. ${solvedByTeams.join(', ')}` : (unlockedByTeams.length > 0 ? `Coffre ouvert par Éq. ${unlockedByTeams.join(', ')}` : 'Coffre scellé...')}
+                  </p>
                 `}
               </div>
             `;
@@ -1618,7 +1728,6 @@ function renderPlayer(root) {
   const myTeam = parseInt(myRole[0], 10);
   const isCaptain = myRole[1] === 'A';
 
-  // BLOCAGE TOTAL DES TERMINAUX SI LE MAÎTRE A MIS LE CHRONO EN PAUSE
   if (state.isManualPaused) {
     root.innerHTML = `
       <div class="bg-slate-900/95 border-2 border-rose-500 rounded-2xl p-8 max-w-md mx-auto w-full space-y-4 text-center shadow-2xl">
@@ -1783,15 +1892,15 @@ function renderPlayer(root) {
       const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
       const myProg = (state.apostlesProgress && state.apostlesProgress[myTeam]) ? state.apostlesProgress[myTeam] : { unlocked: {}, guesses: {}, lastEvent: null };
       const unlockedCount = Object.keys(myProg.unlocked || {}).length;
-      const guessedCount = Object.keys(myProg.guesses || {}).filter(k => myProg.guesses[k]).length;
+      const correctCount = getTeamCorrectApostlesCount(myTeam);
 
       const currentItemId = boxOrder[(selectedApostleBox - 1) % 12];
       const currentItem = GAME_DATA.apostles.find(a => a.id === currentItemId) || GAME_DATA.apostles[0];
       const isUnlocked = !!(myProg.unlocked && myProg.unlocked[selectedApostleBox]);
       const currentGuess = (myProg.guesses && myProg.guesses[selectedApostleBox]) ? myProg.guesses[selectedApostleBox] : '';
+      const isCurrentCorrect = isApostleGuessCorrect(selectedApostleBox, currentGuess);
       const allApostleNames = GAME_DATA.apostles.map(a => a.apostle).sort();
 
-      // Animation locale sur le téléphone de l'équipe
       const ev = myProg.lastEvent;
       const isRecent = ev && (Date.now() - ev.ts < 3000);
       let playerAnimClass = '';
@@ -1803,6 +1912,9 @@ function renderPlayer(root) {
         } else if (ev.type === 'CORRECT_MATCH') {
           playerAnimClass = 'anim-match-emerald';
           playerBanner = `<div class="anim-pop-banner bg-emerald-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">🎉 BONNE ASSOCIATION POUR LE COFFRE #${ev.boxNum} !</div>`;
+        } else if (ev.type === 'WRONG_MATCH') {
+          playerAnimClass = 'anim-wrong-shake';
+          playerBanner = `<div class="anim-pop-banner bg-rose-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">❌ CE N'EST PAS CET APÔTRE, RÉESSAYEZ !</div>`;
         }
       }
 
@@ -1810,13 +1922,13 @@ function renderPlayer(root) {
         <div class="space-y-4">
           <!-- COMPTEURS GÉANTS SUR LE TÉLÉPHONE -->
           <div class="grid grid-cols-2 gap-2.5 text-center">
-            <div class="bg-slate-800 border border-amber-500/40 rounded-xl p-2">
+            <div class="bg-slate-800 border-2 border-amber-500/40 rounded-xl p-2.5">
               <div class="text-[10px] uppercase font-bold text-amber-300">🔓 Coffres Ouverts</div>
-              <div class="text-2xl font-extrabold text-white">${unlockedCount} / 12</div>
+              <div class="text-3xl font-extrabold text-white">${unlockedCount} / 12</div>
             </div>
-            <div class="bg-slate-800 border border-emerald-500/40 rounded-xl p-2">
-              <div class="text-[10px] uppercase font-bold text-emerald-300">✍️ Associés</div>
-              <div class="text-2xl font-extrabold text-white">${guessedCount} / 12</div>
+            <div class="bg-slate-800 border-2 border-emerald-500/50 rounded-xl p-2.5">
+              <div class="text-[10px] uppercase font-bold text-emerald-300">✅ Apôtres Justes</div>
+              <div class="text-3xl font-extrabold text-emerald-400">${correctCount} / 12</div>
             </div>
           </div>
 
@@ -1826,15 +1938,17 @@ function renderPlayer(root) {
             ${boxOrder.map((_, idx) => {
               const bNum = idx + 1;
               const unlk = !!(myProg.unlocked && myProg.unlocked[bNum]);
-              const gsd = !!(myProg.guesses && myProg.guesses[bNum]);
+              const gVal = (myProg.guesses && myProg.guesses[bNum]) ? myProg.guesses[bNum] : null;
+              const isCorr = isApostleGuessCorrect(bNum, gVal);
               const isSel = bNum === selectedApostleBox;
               let btnClass = 'bg-slate-800 text-slate-300 border-slate-700';
-              if (gsd) btnClass = 'bg-emerald-800 text-white border-emerald-400';
-              else if (unlk) btnClass = 'bg-amber-700 text-white border-amber-400';
+              if (isCorr) btnClass = 'bg-emerald-700 text-white border-emerald-400';
+              else if (gVal) btnClass = 'bg-rose-900 text-rose-200 border-rose-500';
+              else if (unlk) btnClass = 'bg-amber-600 text-slate-950 border-amber-300';
               if (isSel) btnClass += ' ring-2 ring-white scale-105';
               return `
                 <button onclick="selectApostleBox(${bNum})" class="py-2 rounded-lg border text-xs font-extrabold transition ${btnClass}">
-                  #${bNum} ${gsd ? '✅' : (unlk ? '🔓' : '🔒')}
+                  #${bNum} ${isCorr ? '✅' : (gVal ? '❌' : (unlk ? '🔓' : '🔒'))}
                 </button>
               `;
             }).join('')}
@@ -1843,7 +1957,9 @@ function renderPlayer(root) {
           <div class="bg-slate-800 border border-slate-700 ${playerAnimClass} rounded-xl p-4 space-y-3 transition-all">
             <div class="flex justify-between items-center border-b border-slate-700 pb-2">
               <span class="font-extrabold text-amber-400 text-sm">Coffre #${selectedApostleBox}</span>
-              <span class="text-xs ${isUnlocked ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${isUnlocked ? '🔓 Déverrouillé' : '🔒 Verrouillé par énigme'}</span>
+              <span class="text-xs ${isCurrentCorrect ? 'text-emerald-400 font-extrabold' : (isUnlocked ? 'text-amber-300 font-bold' : 'text-rose-400 font-bold')}">
+                ${isCurrentCorrect ? '✅ Apôtre trouvé !' : (isUnlocked ? '🔓 Déverrouillé' : '🔒 Verrouillé par énigme')}
+              </span>
             </div>
 
             ${!isUnlocked ? `
@@ -1859,7 +1975,7 @@ function renderPlayer(root) {
               </div>
               <div class="space-y-1.5 pt-1">
                 <label class="text-xs text-amber-300 font-bold block">À quel Apôtre correspond cet indice ?</label>
-                <select onchange="submitApostleGuess(${myTeam}, ${selectedApostleBox}, this.value)" class="w-full bg-slate-900 border border-emerald-500/60 rounded-lg p-2.5 text-sm text-white">
+                <select onchange="submitApostleGuess(${myTeam}, ${selectedApostleBox}, this.value)" class="w-full bg-slate-900 border ${isCurrentCorrect ? 'border-emerald-500' : 'border-amber-500/60'} rounded-lg p-2.5 text-sm text-white">
                   <option value="" disabled ${!currentGuess ? 'selected' : ''}>-- Sélectionner --</option>
                   ${allApostleNames.map(name => `<option value="${name}" ${currentGuess === name ? 'selected' : ''}>${name}</option>`).join('')}
                 </select>
@@ -1917,11 +2033,10 @@ function submitApostleGuess(team, boxNum, apostleName) {
   state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {}, lastEvent: null };
   state.apostlesProgress[team].guesses[boxNum] = apostleName;
 
-  const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-  const itemId = boxOrder[(boxNum - 1) % 12];
-  const item = GAME_DATA.apostles.find(a => a.id === itemId);
-  if (item && item.apostle === apostleName) {
+  if (isApostleGuessCorrect(boxNum, apostleName)) {
     state.apostlesProgress[team].lastEvent = { type: 'CORRECT_MATCH', boxNum, ts: Date.now() };
+  } else {
+    state.apostlesProgress[team].lastEvent = { type: 'WRONG_MATCH', boxNum, ts: Date.now() };
   }
 
   sendEvent('APOSTLE_GUESS', { team, boxNum, apostle: apostleName });

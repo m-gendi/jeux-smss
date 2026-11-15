@@ -160,7 +160,7 @@ function logoutPlayer() {
 }
 
 /* ============================================================================
-2. BANQUE DE DONNÉES NIVEAU SERVITEURS EXPÉRIMENTÉS (58 MANCHES)
+2. BANQUE DE DONNÉES NIVEAU SERVITEURS EXPÉRIMENTÉS (6 JEUX COMPLETS)
    ============================================================================ */
 const GAME_DATA = {
   synaxaire: [
@@ -405,6 +405,94 @@ const GAME_DATA = {
     "Le jeune Samuel couché près de l'Arche d'Alliance dans le Temple d'Éli",
     "Saint Moïse le Noir marchant vers les moines avec un sac de sable percé qui coule derrière son dos",
     "Les 24 prêtres de l'Apocalypse portant des couronnes d'or et des coupes d'encens devant le Trône"
+  ],
+
+  // JEU 6 : LA CHASSE AUX COFFRES DES 12 APÔTRES (Option A — 5 minutes)
+  apostles: [
+    {
+      id: 1,
+      apostle: "Pierre (Céphas)",
+      riddleQuestion: "Combien de gros poissons les apôtres ont-ils pris dans le filet lors de la pêche miraculeuse au bord du lac de Tibériade (Jean 21:11) ?",
+      riddleAnswers: ["153", "cent cinquante trois", "cent cinquante-trois"],
+      clueText: "Après avoir prêché dans le Pont, la Galatie et la Bithynie, j'ai scellé mon témoignage à Rome sous Néron en demandant à ne pas être supplicié dans la même posture que mon Maître. Je suis fêté le 5 Abib."
+    },
+    {
+      id: 2,
+      apostle: "André (Le Protoclet)",
+      riddleQuestion: "Combien de corbeilles pleines de morceaux les disciples ont-ils remportées après la multiplication des 5 pains et 2 poissons (Matthieu 14:20) ?",
+      riddleAnswers: ["12", "douze"],
+      clueText: "Premier appelé parmi les disciples de Jean-Baptiste, j'ai évangélisé la Scythie et les rives du Pont-Euxin (mer Noire) avant d'être condamné par le proconsul Égée à Patras en Achaïe le 4 Kiahk."
+    },
+    {
+      id: 3,
+      apostle: "Thomas (Didyme)",
+      riddleQuestion: "Au bout de combien de jours après la Résurrection Jésus est-il apparu de nouveau aux disciples lorsque Thomas était présent (Jean 20:26) ?",
+      riddleAnswers: ["8", "huit"],
+      clueText: "Selon le Synaxaire, j'ai vu le corps de la Théotokos s'élever au ciel et j'ai reçu sa sainte ceinture. J'ai évangélisé le royaume du roi Gondophorès aux Indes, où j'ai été transpercé de lances le 26 Paoni."
+    },
+    {
+      id: 4,
+      apostle: "Barthélemy (Nathanaël)",
+      riddleQuestion: "Sous quel arbre ce disciple se trouvait-il lorsque Jésus l'a vu avant même que Philippe ne l'appelle (Jean 1:48) ?",
+      riddleAnswers: ["figuier", "un figuier", "le figuier"],
+      clueText: "Originaire de Cana en Galilée, j'ai prêché dans les oasis d'Égypte (Al-Bahansa) puis en Arabie et en Arménie, où le roi Astyage m'a fait écorcher vif et mettre dans un sac de crin jeté à la mer le 1er Tout."
+    },
+    {
+      id: 5,
+      apostle: "Matthieu (Lévi)",
+      riddleQuestion: "Combien de générations y a-t-il au total dans chacune des 3 séries de la généalogie de Jésus au chapitre 1 de cet Évangile (Matthieu 1:17) ?",
+      riddleAnswers: ["14", "quatorze"],
+      clueText: "Fils d'Alphée, j'ai prêché au pays des Kahanites et en Éthiopie (près de la mer Rouge) après avoir rédigé mon texte en hébreu/araméen ; j'ai subi le martyre le 12 Paopi."
+    },
+    {
+      id: 6,
+      apostle: "Jacques (fils d'Alphée)",
+      riddleQuestion: "Dans quelle ville les disciples furent-ils appelés « chrétiens » pour la première fois (Actes 11:26) ?",
+      riddleAnswers: ["antioche"],
+      clueText: "Appelé le Mineur, j'ai prêché en Syrie et jusqu'à Ostracine (aux portes de l'Égypte), où j'ai achevé ma course par la lapidation et le martyre le 10 Amchir."
+    },
+    {
+      id: 7,
+      apostle: "Philippe (de Bethsaïde)",
+      riddleQuestion: "Sur la route de quelle ville le diacre homonyme a-t-il baptisé le ministre eunuque de la reine Candace d'Éthiopie (Actes 8:26) ?",
+      riddleAnswers: ["gaza"],
+      clueText: "Originaire de la même ville que Pierre et André, j'ai porté la Bonne Nouvelle en Phrygie (Asie Mineure) et en Afrique avant d'être suspendu et torturé à Hiérapolis le 18 Hator."
+    },
+    {
+      id: 8,
+      apostle: "Jude (Thaddée / Lebbée)",
+      riddleQuestion: "Combien de chapitres comporte l'épître canonique écrite par cet apôtre dans le Nouveau Testament ?",
+      riddleAnswers: ["1", "un", "un seul"],
+      clueText: "Auteur d'une épître catholique qui mentionne le combat de l'Archange Michel pour le corps de Moïse, j'ai évangélisé Édesse, la Mésopotamie et la Perse, où j'ai reçu la couronne le 2 Abib."
+    },
+    {
+      id: 9,
+      apostle: "Simon le Cananéen (le Zélote)",
+      riddleQuestion: "Dans quel village de Galilée Jésus a-t-il accompli son premier signe en changeant l'eau en vin (Jean 2:11) ?",
+      riddleAnswers: ["cana"],
+      clueText: "Identifié dans la tradition orientale comme l'époux des noces de Galilée, j'ai prêché en Mauritanie, en Afrique puis en Perse (Suar) où j'ai été scié en deux le 15 Bachans."
+    },
+    {
+      id: 10,
+      apostle: "Jacques (fils de Zébédée)",
+      riddleQuestion: "Quel nom Jésus a-t-il donné aux deux fils de Zébédée, qui signifie « Fils du tonnerre » (Marc 3:17) ?",
+      riddleAnswers: ["boanerges", "boanergès"],
+      clueText: "Témoin privilégié de la Transfiguration sur le mont Thabor et de l'agonie à Gethsémané, j'ai été le tout premier des Douze à boire la coupe du martyre par le glaive sous Hérode Agrippa Ier le 17 Baramhat."
+    },
+    {
+      id: 11,
+      apostle: "Jean le Théologien (L'Évangéliste)",
+      riddleQuestion: "À combien d'Églises d'Asie le Seigneur demande-t-il d'écrire au début du livre de l'Apocalypse (Apocalypse 1:11) ?",
+      riddleAnswers: ["7", "sept"],
+      clueText: "Plongé dans une cuve d'huile bouillante à Rome sous Domitien sans en subir de mal avant d'être exilé dans les mines d'une île de la mer Égée, je me suis endormi dans la paix à un âge avancé le 4 Touba."
+    },
+    {
+      id: 12,
+      apostle: "Matthias",
+      riddleQuestion: "Quel était le nom de l'autre disciple (surnommé Justus) proposé avec lui lors du tirage au sort au Cénacle (Actes 1:23) ?",
+      riddleAnswers: ["joseph", "barsabbas", "joseph barsabbas", "justus"],
+      clueText: "Ayant suivi le Seigneur depuis le baptême de Jean jusqu'à l'Ascension, le sort est tombé sur moi pour compléter le collège apostolique ; selon le Synaxaire (8 Baramhat), j'ai évangélisé la ville des Anthropophages où j'ai été délivré de prison."
+    }
   ]
 };
 
@@ -442,10 +530,20 @@ const DEFAULT_STATE = {
   verseStartTime: 0,
   picDrawerSlot: '1A',
   picPrompt: '',
-  picRoundId: 1
+  picRoundId: 1,
+  // État du Jeu 6 : Chasse aux Coffres des 12 Apôtres
+  apostlesBoxOrder: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  apostlesProgress: {
+    1: { unlocked: {}, guesses: {} },
+    2: { unlocked: {}, guesses: {} },
+    3: { unlocked: {}, guesses: {} }
+  },
+  apostlesScored: false,
+  apostlesRevealed: false
 };
 
 let state = loadPersistedState();
+let selectedApostleBox = 1; // Coffre actuellement affiché sur le téléphone du joueur
 
 function loadPersistedState() {
   try {
@@ -470,6 +568,16 @@ function shuffleArray(arr) {
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
+}
+
+function normalizeAnswer(str) {
+  return (str || '')
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim();
 }
 
 let currentDrawColor = '#0f172a';
@@ -629,7 +737,6 @@ function broadcastState() {
 }
 
 function switchToFiestaVoting() {
-  // Mélange aléatoire des 3 chaînes pour que l'ordre d'affichage ne révèle pas quelle équipe a écrit quel mot
   state.fiestaShuffledOrder = shuffleArray([1, 2, 3]);
   state.fiestaPhase = 'VOTING';
   broadcastState();
@@ -637,7 +744,7 @@ function switchToFiestaVoting() {
 
 function handleNetworkMessage(packet) {
   if (!packet) return;
-  const { type, data, sender } = packet;
+  const { type, data } = packet;
 
   if (type === 'FORCE_GLOBAL_RESET') {
     state = JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -712,6 +819,16 @@ function handleNetworkMessage(packet) {
         state.verseSubmissions.push({ team: data.team, text: data.text, time: elapsed + 's' });
         broadcastState();
       }
+    } else if (type === 'APOSTLE_UNLOCK') {
+      state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
+      state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {} };
+      state.apostlesProgress[data.team].unlocked[data.boxNum] = true;
+      broadcastState();
+    } else if (type === 'APOSTLE_GUESS') {
+      state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
+      state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {} };
+      state.apostlesProgress[data.team].guesses[data.boxNum] = data.apostle;
+      broadcastState();
     }
   }
 }
@@ -826,7 +943,6 @@ function startGame(gameName, roundIdx = 0) {
     const pack = GAME_DATA.undercover[state.roundIndex % GAME_DATA.undercover.length];
     const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
 
-    // Sélection de 2 Undercover dans 2 équipes différentes (4 Orthodoxes + 2 Undercover)
     const shuffledTeams = shuffleArray([1, 2, 3]);
     const ucSlot1 = shuffledTeams[0] + (Math.random() < 0.5 ? 'A' : 'B');
     const ucSlot2 = shuffledTeams[1] + (Math.random() < 0.5 ? 'A' : 'B');
@@ -843,7 +959,6 @@ function startGame(gameName, roundIdx = 0) {
       state.ucAssignments[s] = { word: isUC ? pack.undercover : pack.orthodox, isUC };
     });
 
-    // Ordre de parole aléatoire (en s'assurant que le 1er orateur est un Orthodoxe)
     let order = shuffleArray(slots);
     const firstOrthodoxIdx = order.findIndex(s => !ucSet.has(s));
     if (firstOrthodoxIdx > 0) {
@@ -865,6 +980,18 @@ function startGame(gameName, roundIdx = 0) {
     state.picPrompt = GAME_DATA.pictionary[state.roundIndex % GAME_DATA.pictionary.length];
     state.picRoundId = (state.picRoundId || 1) + 1;
     startTimer(90);
+  } else if (gameName === 'APOSTLES') {
+    // Mélange aléatoire des 12 coffres et lancement du chrono de 5 minutes (300 secondes)
+    state.apostlesBoxOrder = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    state.apostlesProgress = {
+      1: { unlocked: {}, guesses: {} },
+      2: { unlocked: {}, guesses: {} },
+      3: { unlocked: {}, guesses: {} }
+    };
+    state.apostlesScored = false;
+    state.apostlesRevealed = false;
+    selectedApostleBox = 1;
+    startTimer(300);
   }
   broadcastState();
 }
@@ -874,7 +1001,6 @@ function nextUndercoverSpeaker() {
   if (state.ucCurrentSpeakerIdx < order.length - 1) {
     state.ucCurrentSpeakerIdx += 1;
   } else {
-    // Fin du tour de parole : on ouvre automatiquement les votes
     state.ucVotingOpen = true;
   }
   broadcastState();
@@ -893,7 +1019,6 @@ function scoreFiestaAutomatically() {
   [1, 2, 3].forEach(voterTeam => {
     const guesses = state.fiestaVotes[voterTeam];
     if (guesses) {
-      // guesses[displayPos] contient le choix de l'équipe pour le Mot Final affiché en position displayPos (1, 2 ou 3)
       displayOrder.forEach((actualTeamChainId, idx) => {
         const displayPos = idx + 1;
         if (guesses[displayPos] === state.fiestaChains[actualTeamChainId].target) {
@@ -904,6 +1029,36 @@ function scoreFiestaAutomatically() {
   });
   state.fiestaScored = true;
   state.fiestaPhase = 'REVEAL';
+  broadcastState();
+}
+
+function scoreApostlesAutomatically() {
+  if (!state.apostlesScored) {
+    const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    [1, 2, 3].forEach(team => {
+      const prog = (state.apostlesProgress && state.apostlesProgress[team]) ? state.apostlesProgress[team] : { guesses: {} };
+      boxOrder.forEach((itemId, idx) => {
+        const boxNum = idx + 1;
+        const item = GAME_DATA.apostles.find(a => a.id === itemId);
+        if (item && prog.guesses && prog.guesses[boxNum] === item.apostle) {
+          state.scores[team] += 5; // +5 pts par apôtre correctement identifié (max 60 pts)
+        }
+      });
+    });
+    state.apostlesScored = true;
+  }
+  state.apostlesRevealed = true;
+  stopTimer();
+  broadcastState();
+}
+
+function unlockAllApostlesBoxesForAll() {
+  [1, 2, 3].forEach(t => {
+    state.apostlesProgress[t] = state.apostlesProgress[t] || { unlocked: {}, guesses: {} };
+    for (let b = 1; b <= 12; b++) {
+      state.apostlesProgress[t].unlocked[b] = true;
+    }
+  });
   broadcastState();
 }
 
@@ -978,6 +1133,7 @@ function renderHost(root) {
         <button onclick="startGame('UNDERCOVER', state.currentGame==='UNDERCOVER'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (10)</button>
         <button onclick="startGame('VERSES', state.currentGame==='VERSES'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
         <button onclick="startGame('PICTIONARY', state.currentGame==='PICTIONARY'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (15)</button>
+        <button onclick="startGame('APOSTLES', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='APOSTLES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">6. Les 12 Apôtres (5m)</button>
       </div>
       <div class="flex flex-wrap items-center gap-1 text-xs">
         <button onclick="addPoints(1, 10)" class="bg-blue-700 hover:bg-blue-600 px-2 py-1 rounded font-bold">+10 Éq.1</button>
@@ -1137,7 +1293,6 @@ function renderHost(root) {
           </div>
         </div>
 
-        <!-- BANDEAU DU JOUEUR QUI DOIT PARLER OU PHASE DE VOTE -->
         ${!state.ucVotingOpen && !state.ucRevealed ? `
           <div class="p-5 rounded-xl bg-amber-500/15 border-2 border-amber-400 flex flex-wrap items-center justify-between gap-4">
             <div>
@@ -1157,7 +1312,6 @@ function renderHost(root) {
           </div>
         ` : ''}
 
-        <!-- CARTES DES 6 JOUEURS DANS L'ORDRE DE PASSAGE -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           ${order.map((s, orderIdx) => {
             const info = state.ucAssignments[s] || {};
@@ -1274,6 +1428,86 @@ function renderHost(root) {
             ` : `<div class="p-4 rounded-xl bg-slate-800 text-xs text-slate-300">Les capitaines peuvent buzzer dès qu'ils reconnaissent la scène.</div>`}
             ${state.revealed ? `<div class="p-4 rounded-xl bg-emerald-950 border border-emerald-400 text-center"><div class="text-lg font-extrabold text-white">${state.picPrompt}</div></div>` : ''}
           </div>
+        </div>
+      </div>
+    `;
+  } else if (state.currentGame === 'APOSTLES') {
+    const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    content = `
+      <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
+        <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
+          <div>
+            <span class="text-xs uppercase tracking-widest text-amber-400 font-bold">Manche 6 • La Chasse aux Indices des 12 Apôtres (Chrono 5 min)</span>
+            <h3 class="text-xl font-bold text-white">Déverrouillez les 12 coffres par une énigme biblique et associez chaque indice au bon Apôtre (+5 pts / apôtre)</h3>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="startTimer(300)" class="bg-amber-700 hover:bg-amber-600 px-3 py-2 rounded-lg text-xs font-bold">⏱️ Relancer 5 min</button>
+            <button onclick="unlockAllApostlesBoxesForAll()" class="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-xs font-bold">🔓 Ouvrir tous les coffres</button>
+            <button onclick="scoreApostlesAutomatically()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-2 rounded-lg text-xs font-bold">🏆 Calculer les Points & Révéler</button>
+          </div>
+        </div>
+
+        <!-- PROGRESSION EN DIRECT DES 3 ÉQUIPES -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          ${[1, 2, 3].map(t => {
+            const prog = (state.apostlesProgress && state.apostlesProgress[t]) ? state.apostlesProgress[t] : { unlocked: {}, guesses: {} };
+            const unlockedCount = Object.keys(prog.unlocked || {}).length;
+            const guessedCount = Object.keys(prog.guesses || {}).filter(k => prog.guesses[k]).length;
+            let correctCount = 0;
+            boxOrder.forEach((itemId, idx) => {
+              const bNum = idx + 1;
+              const it = GAME_DATA.apostles.find(a => a.id === itemId);
+              if (it && prog.guesses && prog.guesses[bNum] === it.apostle) correctCount++;
+            });
+            return `
+              <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-amber-400">Équipe ${t} (Tél. ${t}A)</span>
+                  ${state.apostlesRevealed ? `<span class="text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-600 text-white">${correctCount}/12 justes (+${correctCount*5} pts)</span>` : ''}
+                </div>
+                <div class="text-xs text-slate-300 flex justify-between">
+                  <span>🔓 Coffres ouverts : <strong>${unlockedCount} / 12</strong></span>
+                  <span>✍️ Associés : <strong>${guessedCount} / 12</strong></span>
+                </div>
+                <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-amber-500 h-full transition-all" style="width: ${(guessedCount/12)*100}%"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- GRILLE DES 12 COFFRES SUR LE PROJECTEUR -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          ${boxOrder.map((itemId, idx) => {
+            const boxNum = idx + 1;
+            const item = GAME_DATA.apostles.find(a => a.id === itemId) || GAME_DATA.apostles[0];
+            const unlockedByTeams = [1, 2, 3].filter(t => state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].unlocked && state.apostlesProgress[t].unlocked[boxNum]);
+            return `
+              <div class="p-3.5 rounded-xl border ${state.apostlesRevealed ? 'bg-emerald-950/50 border-emerald-500/50' : 'bg-slate-800/90 border-slate-700'} space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <span class="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    ${state.apostlesRevealed ? `🔓 Coffre #${boxNum} — ${item.apostle}` : `🔒 Coffre #${boxNum}`}
+                  </span>
+                  <span class="text-[11px] text-slate-400">
+                    ${unlockedByTeams.length > 0 ? `Ouvert par Éq. ${unlockedByTeams.join(', ')}` : 'Scellé'}
+                  </span>
+                </div>
+                ${state.apostlesRevealed ? `
+                  <p class="text-xs text-slate-200 leading-relaxed">${item.clueText}</p>
+                  <div class="text-[11px] text-emerald-300 pt-1 border-t border-slate-700/80">
+                    ${[1, 2, 3].map(t => {
+                      const g = (state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].guesses) ? state.apostlesProgress[t].guesses[boxNum] : null;
+                      const ok = g === item.apostle;
+                      return `Éq.${t}: <strong class="${ok?'text-emerald-400':'text-rose-400'}">${g || '—'}</strong>`;
+                    }).join(' • ')}
+                  </div>
+                ` : `
+                  <p class="text-xs text-slate-400 italic">Énigme de déverrouillage sur les téléphones...</p>
+                `}
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -1427,6 +1661,70 @@ function renderPlayer(root) {
     } else {
       body = `<div class="text-center py-8 text-sm text-slate-300">Regardez le projecteur et soufflez la réponse !</div>`;
     }
+  } else if (state.currentGame === 'APOSTLES') {
+    if (!isCaptain) {
+      body = `<div class="text-center py-8 text-sm text-slate-300">Aidez votre capitaine (<strong>Téléphone ${myTeam}A</strong>) à résoudre les 12 énigmes bibliques et identifier les 12 Apôtres !</div>`;
+    } else if (state.apostlesRevealed) {
+      body = `<div class="text-center py-8 text-emerald-400 font-bold">🏆 Manche terminée ! Regardez les résultats et les points sur le grand écran.</div>`;
+    } else {
+      const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      const myProg = (state.apostlesProgress && state.apostlesProgress[myTeam]) ? state.apostlesProgress[myTeam] : { unlocked: {}, guesses: {} };
+      const currentItemId = boxOrder[(selectedApostleBox - 1) % 12];
+      const currentItem = GAME_DATA.apostles.find(a => a.id === currentItemId) || GAME_DATA.apostles[0];
+      const isUnlocked = !!(myProg.unlocked && myProg.unlocked[selectedApostleBox]);
+      const currentGuess = (myProg.guesses && myProg.guesses[selectedApostleBox]) ? myProg.guesses[selectedApostleBox] : '';
+      const allApostleNames = GAME_DATA.apostles.map(a => a.apostle).sort();
+
+      body = `
+        <div class="space-y-4">
+          <div class="text-xs uppercase font-bold text-amber-400 text-center">Sélectionnez un coffre à décrypter (1 à 12) :</div>
+          <div class="grid grid-cols-6 gap-1.5">
+            ${boxOrder.map((_, idx) => {
+              const bNum = idx + 1;
+              const unlk = !!(myProg.unlocked && myProg.unlocked[bNum]);
+              const gsd = !!(myProg.guesses && myProg.guesses[bNum]);
+              const isSel = bNum === selectedApostleBox;
+              let btnClass = 'bg-slate-800 text-slate-300 border-slate-700';
+              if (gsd) btnClass = 'bg-emerald-800 text-white border-emerald-400';
+              else if (unlk) btnClass = 'bg-amber-700 text-white border-amber-400';
+              if (isSel) btnClass += ' ring-2 ring-white scale-105';
+              return `
+                <button onclick="selectApostleBox(${bNum})" class="py-2 rounded-lg border text-xs font-extrabold transition ${btnClass}">
+                  #${bNum} ${gsd ? '✅' : (unlk ? '🔓' : '🔒')}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-2">
+              <span class="font-extrabold text-amber-400 text-sm">Coffre #${selectedApostleBox}</span>
+              <span class="text-xs ${isUnlocked ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${isUnlocked ? '🔓 Déverrouillé' : '🔒 Verrouillé par énigme'}</span>
+            </div>
+
+            ${!isUnlocked ? `
+              <p class="text-sm text-slate-200 leading-relaxed">${currentItem.riddleQuestion}</p>
+              <div id="riddle-err" class="hidden text-xs text-rose-400 font-bold">❌ Réponse incorrecte, réessayez !</div>
+              <input id="apostle-riddle-input" type="text" placeholder="Votre réponse (nombre ou mot)..." class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2.5 text-white text-sm">
+              <button onclick="tryUnlockApostleBox(${myTeam}, ${selectedApostleBox})" class="w-full py-3 bg-amber-600 hover:bg-amber-500 rounded-xl font-extrabold text-slate-950 text-sm">
+                🔑 Déverrouiller le Coffre #${selectedApostleBox}
+              </button>
+            ` : `
+              <div class="p-3 rounded-lg bg-slate-900/90 border-l-4 border-amber-500 text-xs text-slate-200 leading-relaxed">
+                « ${currentItem.clueText} »
+              </div>
+              <div class="space-y-1.5 pt-1">
+                <label class="text-xs text-amber-300 font-bold block">À quel Apôtre correspond cet indice ?</label>
+                <select onchange="submitApostleGuess(${myTeam}, ${selectedApostleBox}, this.value)" class="w-full bg-slate-900 border border-emerald-500/60 rounded-lg p-2.5 text-sm text-white">
+                  <option value="" disabled ${!currentGuess ? 'selected' : ''}>-- Sélectionner --</option>
+                  ${allApostleNames.map(name => `<option value="${name}" ${currentGuess === name ? 'selected' : ''}>${name}</option>`).join('')}
+                </select>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
   }
 
   root.innerHTML = `<div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-5 max-w-md mx-auto w-full space-y-4 shadow-xl"><div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-extrabold text-amber-400">Terminal ${myRole} — Équipe ${myTeam}</span><span class="text-xs text-slate-400">${isCaptain ? 'Capitaine' : 'Second'}</span></div>${body}</div>`;
@@ -1437,8 +1735,44 @@ function renderPlayer(root) {
 }
 
 /* ============================================================================
-9. GESTION DU DESSIN PAR PAQUETS (DRAW_BATCH) & NETTOYAGE DES ÉCOUTEURS
+9. GESTION DES INTERACTIONS JOUEURS & DU DESSIN PAR PAQUETS (DRAW_BATCH)
    ============================================================================ */
+function selectApostleBox(boxNum) {
+  selectedApostleBox = boxNum;
+  render();
+}
+
+function tryUnlockApostleBox(team, boxNum) {
+  const inputEl = document.getElementById('apostle-riddle-input');
+  if (!inputEl) return;
+  const userAns = normalizeAnswer(inputEl.value);
+  const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const itemId = boxOrder[(boxNum - 1) % 12];
+  const item = GAME_DATA.apostles.find(a => a.id === itemId);
+  if (!item) return;
+
+  const isCorrect = item.riddleAnswers.some(ans => normalizeAnswer(ans) === userAns);
+  if (isCorrect) {
+    state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
+    state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {} };
+    state.apostlesProgress[team].unlocked[boxNum] = true;
+    sendEvent('APOSTLE_UNLOCK', { team, boxNum });
+    render();
+  } else {
+    const errEl = document.getElementById('riddle-err');
+    if (errEl) errEl.classList.remove('hidden');
+  }
+}
+
+function submitApostleGuess(team, boxNum, apostleName) {
+  if (!apostleName) return;
+  state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
+  state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {} };
+  state.apostlesProgress[team].guesses[boxNum] = apostleName;
+  sendEvent('APOSTLE_GUESS', { team, boxNum, apostle: apostleName });
+  render();
+}
+
 function playerBuzz() {
   const input = document.getElementById('buzz-input');
   sendEvent('BUZZ', { slot: myRole, team: parseInt(myRole[0], 10), answer: input ? input.value.trim() : '' });

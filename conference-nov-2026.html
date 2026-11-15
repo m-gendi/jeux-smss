@@ -10,6 +10,26 @@
     body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; overscroll-behavior: none; }
     .coptic-bg { background: radial-gradient(circle at top, #1e293b 0%, #0f172a 100%); }
     canvas { touch-action: none; }
+
+    @keyframes pulseGold {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.8); }
+      40% { transform: scale(1.04); box-shadow: 0 0 35px 12px rgba(245, 158, 11, 0.55); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+    @keyframes pulseEmerald {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.9); }
+      40% { transform: scale(1.05); box-shadow: 0 0 40px 14px rgba(16, 185, 129, 0.65); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    @keyframes popBanner {
+      0% { opacity: 0; transform: translateY(12px) scale(0.85); }
+      20% { opacity: 1; transform: translateY(0) scale(1.05); }
+      80% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    }
+    .anim-unlock-gold { animation: pulseGold 1.3s ease-out; border-color: #f59e0b !important; }
+    .anim-match-emerald { animation: pulseEmerald 1.5s ease-out; border-color: #10b981 !important; }
+    .anim-pop-banner { animation: popBanner 2.4s ease-in-out forwards; }
   </style>
 </head>
 <body class="coptic-bg min-h-screen flex flex-col justify-between">
@@ -408,89 +428,90 @@ const GAME_DATA = {
   ],
 
   // JEU 6 : LA CHASSE AUX COFFRES DES 12 APÔTRES (Option A — 5 minutes)
+  // Toutes les énigmes d'ouverture sont désormais 100% indépendantes des 12 Apôtres (Ancien Testament, Liturgie Copte, Vie du Christ)
   apostles: [
     {
       id: 1,
       apostle: "Pierre (Céphas)",
-      riddleQuestion: "Combien de gros poissons les apôtres ont-ils pris dans le filet lors de la pêche miraculeuse au bord du lac de Tibériade (Jean 21:11) ?",
-      riddleAnswers: ["153", "cent cinquante trois", "cent cinquante-trois"],
+      riddleQuestion: "Liturgie Copte : Combien d'onctions (signes de croix) le prêtre trace-t-il sur le corps du nouveau baptisé avec le Saint Mayroun lors du sacrement de la Confirmation ?",
+      riddleAnswers: ["36", "trente six", "trente-six"],
       clueText: "Après avoir prêché dans le Pont, la Galatie et la Bithynie, j'ai scellé mon témoignage à Rome sous Néron en demandant à ne pas être supplicié dans la même posture que mon Maître. Je suis fêté le 5 Abib."
     },
     {
       id: 2,
       apostle: "André (Le Protoclet)",
-      riddleQuestion: "Combien de corbeilles pleines de morceaux les disciples ont-ils remportées après la multiplication des 5 pains et 2 poissons (Matthieu 14:20) ?",
-      riddleAnswers: ["12", "douze"],
+      riddleQuestion: "Prière de l'Agpeya : Combien de fois répète-t-on « Kyrie Eleison » au début de chaque heure de l'Agpeya (symbolisant les 39 coups de fouet du Christ + la lance + la couronne d'épines) ?",
+      riddleAnswers: ["41", "quarante et un", "quarante-et-un"],
       clueText: "Premier appelé parmi les disciples de Jean-Baptiste, j'ai évangélisé la Scythie et les rives du Pont-Euxin (mer Noire) avant d'être condamné par le proconsul Égée à Patras en Achaïe le 4 Kiahk."
     },
     {
       id: 3,
       apostle: "Thomas (Didyme)",
-      riddleQuestion: "Au bout de combien de jours après la Résurrection Jésus est-il apparu de nouveau aux disciples lorsque Thomas était présent (Jean 20:26) ?",
-      riddleAnswers: ["8", "huit"],
+      riddleQuestion: "Ancien Testament : Sur quelle montagne Abraham s'est-il rendu pour offrir son fils Isaac en sacrifice avant que l'Ange de l'Éternel n'arrête sa main (Genèse 22:2) ?",
+      riddleAnswers: ["moriah", "moria", "mont moriah", "morija"],
       clueText: "Selon le Synaxaire, j'ai vu le corps de la Théotokos s'élever au ciel et j'ai reçu sa sainte ceinture. J'ai évangélisé le royaume du roi Gondophorès aux Indes, où j'ai été transpercé de lances le 26 Paoni."
     },
     {
       id: 4,
       apostle: "Barthélemy (Nathanaël)",
-      riddleQuestion: "Sous quel arbre ce disciple se trouvait-il lorsque Jésus l'a vu avant même que Philippe ne l'appelle (Jean 1:48) ?",
-      riddleAnswers: ["figuier", "un figuier", "le figuier"],
+      riddleQuestion: "Ancien Testament : Combien de jours au total le prophète Moïse est-il resté sur le mont Sinaï sans manger de pain ni boire d'eau pour recevoir les tables de l'Alliance (Exode 34:28) ?",
+      riddleAnswers: ["40", "quarante"],
       clueText: "Originaire de Cana en Galilée, j'ai prêché dans les oasis d'Égypte (Al-Bahansa) puis en Arabie et en Arménie, où le roi Astyage m'a fait écorcher vif et mettre dans un sac de crin jeté à la mer le 1er Tout."
     },
     {
       id: 5,
       apostle: "Matthieu (Lévi)",
-      riddleQuestion: "Combien de générations y a-t-il au total dans chacune des 3 séries de la généalogie de Jésus au chapitre 1 de cet Évangile (Matthieu 1:17) ?",
-      riddleAnswers: ["14", "quatorze"],
+      riddleQuestion: "Ancien Testament : Quel roi de Babylone a jeté les trois jeunes gens (Hanania, Mischaël et Azaria) dans la fournaise ardente (Daniel 3) ?",
+      riddleAnswers: ["nebukadnetsar", "nabuchodonosor", "neboukadnetsar"],
       clueText: "Fils d'Alphée, j'ai prêché au pays des Kahanites et en Éthiopie (près de la mer Rouge) après avoir rédigé mon texte en hébreu/araméen ; j'ai subi le martyre le 12 Paopi."
     },
     {
       id: 6,
       apostle: "Jacques (fils d'Alphée)",
-      riddleQuestion: "Dans quelle ville les disciples furent-ils appelés « chrétiens » pour la première fois (Actes 11:26) ?",
-      riddleAnswers: ["antioche"],
+      riddleQuestion: "Évangiles : Combien de portiques entouraient la piscine de Béthesda à Jérusalem où Jésus a guéri le paralytique malade depuis 38 ans (Jean 5:2) ?",
+      riddleAnswers: ["5", "cinq"],
       clueText: "Appelé le Mineur, j'ai prêché en Syrie et jusqu'à Ostracine (aux portes de l'Égypte), où j'ai achevé ma course par la lapidation et le martyre le 10 Amchir."
     },
     {
       id: 7,
       apostle: "Philippe (de Bethsaïde)",
-      riddleQuestion: "Sur la route de quelle ville le diacre homonyme a-t-il baptisé le ministre eunuque de la reine Candace d'Éthiopie (Actes 8:26) ?",
-      riddleAnswers: ["gaza"],
+      riddleQuestion: "Ancien Testament : Combien de fois Naaman le Syrien a-t-il dû se plonger dans le Jourdain sur l'ordre du prophète Élisée pour être purifié de sa lèpre (2 Rois 5:14) ?",
+      riddleAnswers: ["7", "sept"],
       clueText: "Originaire de la même ville que Pierre et André, j'ai porté la Bonne Nouvelle en Phrygie (Asie Mineure) et en Afrique avant d'être suspendu et torturé à Hiérapolis le 18 Hator."
     },
     {
       id: 8,
       apostle: "Jude (Thaddée / Lebbée)",
-      riddleQuestion: "Combien de chapitres comporte l'épître canonique écrite par cet apôtre dans le Nouveau Testament ?",
-      riddleAnswers: ["1", "un", "un seul"],
+      riddleQuestion: "Ancien Testament : Quel grand-prêtre (sacrificateur) et roi de Salem a béni Abraham en lui apportant du pain et du vin (Genèse 14:18) ?",
+      riddleAnswers: ["melchisedec", "melchisedech", "melkisedek"],
       clueText: "Auteur d'une épître catholique qui mentionne le combat de l'Archange Michel pour le corps de Moïse, j'ai évangélisé Édesse, la Mésopotamie et la Perse, où j'ai reçu la couronne le 2 Abib."
     },
     {
       id: 9,
       apostle: "Simon le Cananéen (le Zélote)",
-      riddleQuestion: "Dans quel village de Galilée Jésus a-t-il accompli son premier signe en changeant l'eau en vin (Jean 2:11) ?",
-      riddleAnswers: ["cana"],
+      riddleQuestion: "Ancien Testament : Combien de pierres lisses David a-t-il choisies dans le torrent avant d'aller affronter Goliath (1 Samuel 17:40) ?",
+      riddleAnswers: ["5", "cinq"],
       clueText: "Identifié dans la tradition orientale comme l'époux des noces de Galilée, j'ai prêché en Mauritanie, en Afrique puis en Perse (Suar) où j'ai été scié en deux le 15 Bachans."
     },
     {
       id: 10,
       apostle: "Jacques (fils de Zébédée)",
-      riddleQuestion: "Quel nom Jésus a-t-il donné aux deux fils de Zébédée, qui signifie « Fils du tonnerre » (Marc 3:17) ?",
-      riddleAnswers: ["boanerges", "boanergès"],
+      riddleQuestion: "Calendrier Copte : Combien de mois comporte au total une année liturgique dans le calendrier copte (en comptant le petit mois de Nassie / Épagomènes) ?",
+      riddleAnswers: ["13", "treize"],
       clueText: "Témoin privilégié de la Transfiguration sur le mont Thabor et de l'agonie à Gethsémané, j'ai été le tout premier des Douze à boire la coupe du martyre par le glaive sous Hérode Agrippa Ier le 17 Baramhat."
     },
     {
       id: 11,
       apostle: "Jean le Théologien (L'Évangéliste)",
-      riddleQuestion: "À combien d'Églises d'Asie le Seigneur demande-t-il d'écrire au début du livre de l'Apocalypse (Apocalypse 1:11) ?",
+      riddleQuestion: "Sacrements Coptes : Combien de mèches de coton (qui sont allumées l'une après l'autre) place-t-on dans la lampe à huile lors du sacrement de l'Onction des Malades (Al-Qandil) ?",
       riddleAnswers: ["7", "sept"],
       clueText: "Plongé dans une cuve d'huile bouillante à Rome sous Domitien sans en subir de mal avant d'être exilé dans les mines d'une île de la mer Égée, je me suis endormi dans la paix à un âge avancé le 4 Touba."
     },
     {
       id: 12,
       apostle: "Matthias",
-      riddleQuestion: "Quel était le nom de l'autre disciple (surnommé Justus) proposé avec lui lors du tirage au sort au Cénacle (Actes 1:23) ?",
-      riddleAnswers: ["joseph", "barsabbas", "joseph barsabbas", "justus"],
+      riddleQuestion: "Ancien Testament : Quel juge d'Israël a remporté la victoire contre les Madianites avec seulement 300 hommes équipés de trompettes et de cruches contenant des flambeaux (Juges 7:7) ?",
+      riddleAnswers: ["gedeon", "gédéon"],
       clueText: "Ayant suivi le Seigneur depuis le baptême de Jean jusqu'à l'Ascension, le sort est tombé sur moi pour compléter le collège apostolique ; selon le Synaxaire (8 Baramhat), j'ai évangélisé la ville des Anthropophages où j'ai été délivré de prison."
     }
   ]
@@ -508,6 +529,7 @@ const DEFAULT_STATE = {
   revealed: false,
   timerEndAt: null,
   timerRemainingPaused: null,
+  isManualPaused: false,
   fiestaChains: {
     1: { step: 0, target: "", currentWord: "", history: [] },
     2: { step: 0, target: "", currentWord: "", history: [] },
@@ -531,19 +553,19 @@ const DEFAULT_STATE = {
   picDrawerSlot: '1A',
   picPrompt: '',
   picRoundId: 1,
-  // État du Jeu 6 : Chasse aux Coffres des 12 Apôtres
+  // État du Jeu 6 : Chasse aux Coffres des 12 Apôtres + Événement d'animation par équipe
   apostlesBoxOrder: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   apostlesProgress: {
-    1: { unlocked: {}, guesses: {} },
-    2: { unlocked: {}, guesses: {} },
-    3: { unlocked: {}, guesses: {} }
+    1: { unlocked: {}, guesses: {}, lastEvent: null },
+    2: { unlocked: {}, guesses: {}, lastEvent: null },
+    3: { unlocked: {}, guesses: {}, lastEvent: null }
   },
   apostlesScored: false,
   apostlesRevealed: false
 };
 
 let state = loadPersistedState();
-let selectedApostleBox = 1; // Coffre actuellement affiché sur le téléphone du joueur
+let selectedApostleBox = 1;
 
 function loadPersistedState() {
   try {
@@ -764,6 +786,7 @@ function handleNetworkMessage(packet) {
       render();
     }
   } else if (type === 'DRAW_BATCH') {
+    if (state.isManualPaused) return;
     if (data.roundId === state.picRoundId) {
       drawBatchOnCanvas(data.segments);
     }
@@ -774,7 +797,13 @@ function handleNetworkMessage(packet) {
   } else if (myRole === 'HOST' && isHostAuthenticated) {
     if (type === 'REQUEST_STATE') {
       broadcastState();
-    } else if (type === 'BUZZ') {
+      return;
+    }
+
+    // VERROUILLAGE PENDANT LA PAUSE MANUELLE : Aucune action joueur n'est traitée tant que le chrono est en pause
+    if (state.isManualPaused) return;
+
+    if (type === 'BUZZ') {
       if (!state.buzzedBy) {
         state.buzzedBy = { slot: data.slot, team: data.team, answer: data.answer || '' };
         if (state.timerEndAt && state.timerEndAt > Date.now()) {
@@ -820,31 +849,50 @@ function handleNetworkMessage(packet) {
         broadcastState();
       }
     } else if (type === 'APOSTLE_UNLOCK') {
-      state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
-      state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {} };
+      state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
+      state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {}, lastEvent: null };
       state.apostlesProgress[data.team].unlocked[data.boxNum] = true;
+      state.apostlesProgress[data.team].lastEvent = {
+        type: 'UNLOCK',
+        boxNum: data.boxNum,
+        ts: Date.now()
+      };
       broadcastState();
     } else if (type === 'APOSTLE_GUESS') {
-      state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
-      state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {} };
+      state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
+      state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {}, lastEvent: null };
       state.apostlesProgress[data.team].guesses[data.boxNum] = data.apostle;
+
+      // Vérifie si l'apôtre associé est correct pour déclencher l'animation de réussite
+      const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+      const itemId = boxOrder[(data.boxNum - 1) % 12];
+      const item = GAME_DATA.apostles.find(a => a.id === itemId);
+      if (item && item.apostle === data.apostle) {
+        state.apostlesProgress[data.team].lastEvent = {
+          type: 'CORRECT_MATCH',
+          boxNum: data.boxNum,
+          ts: Date.now()
+        };
+      }
       broadcastState();
     }
   }
 }
 
 /* ============================================================================
-6. CHRONOMÈTRE PERSISTANT (AVEC FONCTION PAUSE/REPRISE)
+6. CHRONOMÈTRE PERSISTANT (AVEC BLOCAGE DES TERMINAUX EN PAUSE MANUELLE)
    ============================================================================ */
 function startTimer(seconds) {
   state.timerEndAt = Date.now() + seconds * 1000;
   state.timerRemainingPaused = null;
+  state.isManualPaused = false;
   broadcastState();
 }
 
 function stopTimer() {
   state.timerEndAt = null;
   state.timerRemainingPaused = null;
+  state.isManualPaused = false;
   broadcastState();
 }
 
@@ -852,9 +900,13 @@ function toggleTimerPause() {
   if (state.timerEndAt && state.timerEndAt > Date.now()) {
     state.timerRemainingPaused = Math.ceil((state.timerEndAt - Date.now()) / 1000);
     state.timerEndAt = null;
+    state.isManualPaused = true;
   } else if (state.timerRemainingPaused !== null) {
     state.timerEndAt = Date.now() + state.timerRemainingPaused * 1000;
     state.timerRemainingPaused = null;
+    state.isManualPaused = false;
+  } else {
+    state.isManualPaused = !state.isManualPaused;
   }
   broadcastState();
 }
@@ -876,6 +928,9 @@ setInterval(() => {
   } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
     box.classList.remove('hidden');
     disp.textContent = state.timerRemainingPaused + 's (Pause)';
+  } else if (state.isManualPaused) {
+    box.classList.remove('hidden');
+    disp.textContent = 'PAUSE';
   } else {
     box.classList.add('hidden');
   }
@@ -925,6 +980,7 @@ function startGame(gameName, roundIdx = 0) {
   state.revealed = false;
   state.timerEndAt = null;
   state.timerRemainingPaused = null;
+  state.isManualPaused = false;
 
   if (gameName === 'SYNAXAIRE') {
     state.clueStep = 0;
@@ -981,12 +1037,11 @@ function startGame(gameName, roundIdx = 0) {
     state.picRoundId = (state.picRoundId || 1) + 1;
     startTimer(90);
   } else if (gameName === 'APOSTLES') {
-    // Mélange aléatoire des 12 coffres et lancement du chrono de 5 minutes (300 secondes)
     state.apostlesBoxOrder = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     state.apostlesProgress = {
-      1: { unlocked: {}, guesses: {} },
-      2: { unlocked: {}, guesses: {} },
-      3: { unlocked: {}, guesses: {} }
+      1: { unlocked: {}, guesses: {}, lastEvent: null },
+      2: { unlocked: {}, guesses: {}, lastEvent: null },
+      3: { unlocked: {}, guesses: {}, lastEvent: null }
     };
     state.apostlesScored = false;
     state.apostlesRevealed = false;
@@ -1041,7 +1096,7 @@ function scoreApostlesAutomatically() {
         const boxNum = idx + 1;
         const item = GAME_DATA.apostles.find(a => a.id === itemId);
         if (item && prog.guesses && prog.guesses[boxNum] === item.apostle) {
-          state.scores[team] += 5; // +5 pts par apôtre correctement identifié (max 60 pts)
+          state.scores[team] += 5;
         }
       });
     });
@@ -1054,10 +1109,11 @@ function scoreApostlesAutomatically() {
 
 function unlockAllApostlesBoxesForAll() {
   [1, 2, 3].forEach(t => {
-    state.apostlesProgress[t] = state.apostlesProgress[t] || { unlocked: {}, guesses: {} };
+    state.apostlesProgress[t] = state.apostlesProgress[t] || { unlocked: {}, guesses: {}, lastEvent: null };
     for (let b = 1; b <= 12; b++) {
       state.apostlesProgress[t].unlocked[b] = true;
     }
+    state.apostlesProgress[t].lastEvent = { type: 'UNLOCK', boxNum: 'TOUS', ts: Date.now() };
   });
   broadcastState();
 }
@@ -1078,7 +1134,7 @@ function render() {
     }
   } else {
     renderPlayer(root);
-    if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
+    if (!state.isManualPaused && state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
       initCanvasForElement('player-canvas');
     }
   }
@@ -1143,9 +1199,17 @@ function renderHost(root) {
         <button onclick="addPoints(3, 10)" class="bg-purple-700 hover:bg-purple-600 px-2 py-1 rounded font-bold ml-1">+10 Éq.3</button>
         <button onclick="addPoints(3, -10)" class="bg-purple-950 border border-purple-700 px-1.5 py-1 rounded text-purple-300">-10</button>
         <button onclick="startTimer(60)" title="Relancer 60s" class="bg-amber-700 hover:bg-amber-600 px-2 py-1 rounded font-bold ml-1">⏱️ 60s</button>
-        <button onclick="toggleTimerPause()" title="Pause / Reprendre" class="bg-amber-600 hover:bg-amber-500 px-2 py-1 rounded font-bold ml-1">⏸️</button>
+        <button onclick="toggleTimerPause()" title="Pause / Reprendre (Verrouille les terminaux)" class="${state.isManualPaused ? 'bg-rose-600 animate-pulse text-white' : 'bg-amber-600 hover:bg-amber-500'} px-2.5 py-1 rounded font-bold ml-1">
+          ${state.isManualPaused ? '▶️ Reprendre' : '⏸️ Pause'}
+        </button>
       </div>
     </div>
+    ${state.isManualPaused ? `
+      <div class="mb-4 p-3 rounded-xl bg-rose-950/90 border-2 border-rose-500 text-center text-sm font-extrabold text-rose-200 flex items-center justify-center gap-3">
+        <span>⏸️ LE JEU EST EN PAUSE — Tous les terminaux des joueurs sont actuellement verrouillés.</span>
+        <button onclick="toggleTimerPause()" class="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs">▶️ Déverrouiller & Reprendre</button>
+      </div>
+    ` : ''}
   `;
 
   let content = '';
@@ -1433,6 +1497,12 @@ function renderHost(root) {
     `;
   } else if (state.currentGame === 'APOSTLES') {
     const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    const teamStyles = {
+      1: { title: "ÉQUIPE 1", color: "text-blue-300", border: "border-blue-500/50", bg: "bg-blue-950/40" },
+      2: { title: "ÉQUIPE 2", color: "text-emerald-300", border: "border-emerald-500/50", bg: "bg-emerald-950/40" },
+      3: { title: "ÉQUIPE 3", color: "text-purple-300", border: "border-purple-500/50", bg: "bg-purple-950/40" }
+    };
+
     content = `
       <div class="bg-slate-900/80 border border-amber-500/40 rounded-2xl p-6 space-y-6">
         <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-700 pb-4">
@@ -1447,10 +1517,10 @@ function renderHost(root) {
           </div>
         </div>
 
-        <!-- PROGRESSION EN DIRECT DES 3 ÉQUIPES -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- TABLEAU DE BORD GÉANT DES 3 ÉQUIPES AVEC ANIMATIONS EN DIRECT -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           ${[1, 2, 3].map(t => {
-            const prog = (state.apostlesProgress && state.apostlesProgress[t]) ? state.apostlesProgress[t] : { unlocked: {}, guesses: {} };
+            const prog = (state.apostlesProgress && state.apostlesProgress[t]) ? state.apostlesProgress[t] : { unlocked: {}, guesses: {}, lastEvent: null };
             const unlockedCount = Object.keys(prog.unlocked || {}).length;
             const guessedCount = Object.keys(prog.guesses || {}).filter(k => prog.guesses[k]).length;
             let correctCount = 0;
@@ -1459,18 +1529,46 @@ function renderHost(root) {
               const it = GAME_DATA.apostles.find(a => a.id === itemId);
               if (it && prog.guesses && prog.guesses[bNum] === it.apostle) correctCount++;
             });
+
+            // Vérifie si un événement récent (< 3.5 secondes) doit déclencher une animation sur la carte de l'équipe
+            const ev = prog.lastEvent;
+            const isRecent = ev && (Date.now() - ev.ts < 3500);
+            let cardAnimClass = '';
+            let bannerHtml = '';
+            if (isRecent) {
+              if (ev.type === 'UNLOCK') {
+                cardAnimClass = 'anim-unlock-gold';
+                bannerHtml = `<div class="anim-pop-banner bg-amber-500 text-slate-950 font-extrabold text-xs px-3 py-1 rounded-full text-center shadow-lg">🔓 COFFRE #${ev.boxNum} DÉVERROUILLÉ !</div>`;
+              } else if (ev.type === 'CORRECT_MATCH') {
+                cardAnimClass = 'anim-match-emerald';
+                bannerHtml = `<div class="anim-pop-banner bg-emerald-500 text-slate-950 font-extrabold text-xs px-3 py-1 rounded-full text-center shadow-lg">🎉 APÔTRE DU COFFRE #${ev.boxNum} TROUVÉ !</div>`;
+              }
+            }
+
+            const st = teamStyles[t];
             return `
-              <div class="p-4 rounded-xl bg-slate-800 border border-slate-700 space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="font-bold text-amber-400">Équipe ${t} (Tél. ${t}A)</span>
-                  ${state.apostlesRevealed ? `<span class="text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-600 text-white">${correctCount}/12 justes (+${correctCount*5} pts)</span>` : ''}
+              <div class="p-5 rounded-2xl ${st.bg} border-2 ${st.border} ${cardAnimClass} space-y-4 transition-all relative overflow-hidden">
+                <div class="flex justify-between items-center border-b border-slate-700/80 pb-2">
+                  <span class="font-extrabold text-lg ${st.color}">${st.title} (Tél. ${t}A)</span>
+                  ${state.apostlesRevealed ? `<span class="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-600 text-white">${correctCount}/12 justes (+${correctCount*5} pts)</span>` : ''}
                 </div>
-                <div class="text-xs text-slate-300 flex justify-between">
-                  <span>🔓 Coffres ouverts : <strong>${unlockedCount} / 12</strong></span>
-                  <span>✍️ Associés : <strong>${guessedCount} / 12</strong></span>
+
+                ${bannerHtml}
+
+                <!-- COMPTEURS GÉANTS -->
+                <div class="grid grid-cols-2 gap-3 text-center">
+                  <div class="bg-slate-900/90 border border-amber-500/40 rounded-xl p-3">
+                    <div class="text-[11px] uppercase tracking-wider font-bold text-amber-300">🔓 Coffres Ouverts</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1">${unlockedCount}<span class="text-lg text-slate-400">/12</span></div>
+                  </div>
+                  <div class="bg-slate-900/90 border border-emerald-500/40 rounded-xl p-3">
+                    <div class="text-[11px] uppercase tracking-wider font-bold text-emerald-300">✍️ Apôtres Associés</div>
+                    <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1">${guessedCount}<span class="text-lg text-slate-400">/12</span></div>
+                  </div>
                 </div>
-                <div class="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden">
-                  <div class="bg-amber-500 h-full transition-all" style="width: ${(guessedCount/12)*100}%"></div>
+
+                <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+                  <div class="bg-gradient-to-r from-amber-500 to-emerald-500 h-full transition-all duration-500" style="width: ${(guessedCount/12)*100}%"></div>
                 </div>
               </div>
             `;
@@ -1519,6 +1617,21 @@ function renderHost(root) {
 function renderPlayer(root) {
   const myTeam = parseInt(myRole[0], 10);
   const isCaptain = myRole[1] === 'A';
+
+  // BLOCAGE TOTAL DES TERMINAUX SI LE MAÎTRE A MIS LE CHRONO EN PAUSE
+  if (state.isManualPaused) {
+    root.innerHTML = `
+      <div class="bg-slate-900/95 border-2 border-rose-500 rounded-2xl p-8 max-w-md mx-auto w-full space-y-4 text-center shadow-2xl">
+        <div class="text-6xl animate-bounce">⏸️</div>
+        <h2 class="text-2xl font-extrabold text-rose-400">JEU EN PAUSE</h2>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          L'animateur a mis le chronomètre en pause. Votre terminal (<strong>${myRole}</strong>) est temporairement verrouillé jusqu'à la reprise.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
   let body = '';
 
   if (state.currentGame === 'LOBBY') {
@@ -1668,16 +1781,47 @@ function renderPlayer(root) {
       body = `<div class="text-center py-8 text-emerald-400 font-bold">🏆 Manche terminée ! Regardez les résultats et les points sur le grand écran.</div>`;
     } else {
       const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-      const myProg = (state.apostlesProgress && state.apostlesProgress[myTeam]) ? state.apostlesProgress[myTeam] : { unlocked: {}, guesses: {} };
+      const myProg = (state.apostlesProgress && state.apostlesProgress[myTeam]) ? state.apostlesProgress[myTeam] : { unlocked: {}, guesses: {}, lastEvent: null };
+      const unlockedCount = Object.keys(myProg.unlocked || {}).length;
+      const guessedCount = Object.keys(myProg.guesses || {}).filter(k => myProg.guesses[k]).length;
+
       const currentItemId = boxOrder[(selectedApostleBox - 1) % 12];
       const currentItem = GAME_DATA.apostles.find(a => a.id === currentItemId) || GAME_DATA.apostles[0];
       const isUnlocked = !!(myProg.unlocked && myProg.unlocked[selectedApostleBox]);
       const currentGuess = (myProg.guesses && myProg.guesses[selectedApostleBox]) ? myProg.guesses[selectedApostleBox] : '';
       const allApostleNames = GAME_DATA.apostles.map(a => a.apostle).sort();
 
+      // Animation locale sur le téléphone de l'équipe
+      const ev = myProg.lastEvent;
+      const isRecent = ev && (Date.now() - ev.ts < 3000);
+      let playerAnimClass = '';
+      let playerBanner = '';
+      if (isRecent) {
+        if (ev.type === 'UNLOCK') {
+          playerAnimClass = 'anim-unlock-gold';
+          playerBanner = `<div class="anim-pop-banner bg-amber-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">🔓 COFFRE #${ev.boxNum} DÉVERROUILLÉ !</div>`;
+        } else if (ev.type === 'CORRECT_MATCH') {
+          playerAnimClass = 'anim-match-emerald';
+          playerBanner = `<div class="anim-pop-banner bg-emerald-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">🎉 BONNE ASSOCIATION POUR LE COFFRE #${ev.boxNum} !</div>`;
+        }
+      }
+
       body = `
         <div class="space-y-4">
-          <div class="text-xs uppercase font-bold text-amber-400 text-center">Sélectionnez un coffre à décrypter (1 à 12) :</div>
+          <!-- COMPTEURS GÉANTS SUR LE TÉLÉPHONE -->
+          <div class="grid grid-cols-2 gap-2.5 text-center">
+            <div class="bg-slate-800 border border-amber-500/40 rounded-xl p-2">
+              <div class="text-[10px] uppercase font-bold text-amber-300">🔓 Coffres Ouverts</div>
+              <div class="text-2xl font-extrabold text-white">${unlockedCount} / 12</div>
+            </div>
+            <div class="bg-slate-800 border border-emerald-500/40 rounded-xl p-2">
+              <div class="text-[10px] uppercase font-bold text-emerald-300">✍️ Associés</div>
+              <div class="text-2xl font-extrabold text-white">${guessedCount} / 12</div>
+            </div>
+          </div>
+
+          ${playerBanner}
+
           <div class="grid grid-cols-6 gap-1.5">
             ${boxOrder.map((_, idx) => {
               const bNum = idx + 1;
@@ -1696,7 +1840,7 @@ function renderPlayer(root) {
             }).join('')}
           </div>
 
-          <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 space-y-3">
+          <div class="bg-slate-800 border border-slate-700 ${playerAnimClass} rounded-xl p-4 space-y-3 transition-all">
             <div class="flex justify-between items-center border-b border-slate-700 pb-2">
               <span class="font-extrabold text-amber-400 text-sm">Coffre #${selectedApostleBox}</span>
               <span class="text-xs ${isUnlocked ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}">${isUnlocked ? '🔓 Déverrouillé' : '🔒 Verrouillé par énigme'}</span>
@@ -1738,11 +1882,13 @@ function renderPlayer(root) {
 9. GESTION DES INTERACTIONS JOUEURS & DU DESSIN PAR PAQUETS (DRAW_BATCH)
    ============================================================================ */
 function selectApostleBox(boxNum) {
+  if (state.isManualPaused) return;
   selectedApostleBox = boxNum;
   render();
 }
 
 function tryUnlockApostleBox(team, boxNum) {
+  if (state.isManualPaused) return;
   const inputEl = document.getElementById('apostle-riddle-input');
   if (!inputEl) return;
   const userAns = normalizeAnswer(inputEl.value);
@@ -1753,9 +1899,10 @@ function tryUnlockApostleBox(team, boxNum) {
 
   const isCorrect = item.riddleAnswers.some(ans => normalizeAnswer(ans) === userAns);
   if (isCorrect) {
-    state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
-    state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {} };
+    state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
+    state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {}, lastEvent: null };
     state.apostlesProgress[team].unlocked[boxNum] = true;
+    state.apostlesProgress[team].lastEvent = { type: 'UNLOCK', boxNum, ts: Date.now() };
     sendEvent('APOSTLE_UNLOCK', { team, boxNum });
     render();
   } else {
@@ -1765,23 +1912,34 @@ function tryUnlockApostleBox(team, boxNum) {
 }
 
 function submitApostleGuess(team, boxNum, apostleName) {
-  if (!apostleName) return;
-  state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {} }, 2: { unlocked: {}, guesses: {} }, 3: { unlocked: {}, guesses: {} } };
-  state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {} };
+  if (state.isManualPaused || !apostleName) return;
+  state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
+  state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {}, lastEvent: null };
   state.apostlesProgress[team].guesses[boxNum] = apostleName;
+
+  const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  const itemId = boxOrder[(boxNum - 1) % 12];
+  const item = GAME_DATA.apostles.find(a => a.id === itemId);
+  if (item && item.apostle === apostleName) {
+    state.apostlesProgress[team].lastEvent = { type: 'CORRECT_MATCH', boxNum, ts: Date.now() };
+  }
+
   sendEvent('APOSTLE_GUESS', { team, boxNum, apostle: apostleName });
   render();
 }
 
 function playerBuzz() {
+  if (state.isManualPaused) return;
   const input = document.getElementById('buzz-input');
   sendEvent('BUZZ', { slot: myRole, team: parseInt(myRole[0], 10), answer: input ? input.value.trim() : '' });
 }
 function submitFiestaWord(team) {
+  if (state.isManualPaused) return;
   const el = document.getElementById('fiesta-word');
   if (el && el.value.trim()) sendEvent('FIESTA_WORD', { team, word: el.value.trim() });
 }
 function submitFiestaVote(team) {
+  if (state.isManualPaused) return;
   const v1 = document.getElementById('fiesta-sel-1').value;
   const v2 = document.getElementById('fiesta-sel-2').value;
   const v3 = document.getElementById('fiesta-sel-3').value;
@@ -1792,6 +1950,7 @@ function submitFiestaVote(team) {
   sendEvent('FIESTA_VOTE', { team, guesses: { 1: v1, 2: v2, 3: v3 } });
 }
 function submitVerse(team) {
+  if (state.isManualPaused) return;
   const el = document.getElementById('verse-input');
   if (el && el.value.trim()) sendEvent('VERSE_SUBMIT', { team, text: el.value.trim() });
 }
@@ -1825,6 +1984,7 @@ function initCanvasForElement(canvasId) {
   }
 
   function start(e) {
+    if (state.isManualPaused) return;
     e.preventDefault();
     drawing = true;
     lastPos = getPos(e);
@@ -1832,7 +1992,7 @@ function initCanvasForElement(canvasId) {
 
     if (!batchInterval) {
       batchInterval = setInterval(() => {
-        if (pendingSegments.length > 0) {
+        if (pendingSegments.length > 0 && !state.isManualPaused) {
           const batchToSend = [...pendingSegments];
           pendingSegments = [];
           
@@ -1848,7 +2008,7 @@ function initCanvasForElement(canvasId) {
   }
 
   function move(e) {
-    if (!drawing) return;
+    if (!drawing || state.isManualPaused) return;
     e.preventDefault();
     const pos = getPos(e);
 
@@ -1876,7 +2036,7 @@ function initCanvasForElement(canvasId) {
       clearInterval(batchInterval);
       batchInterval = null;
     }
-    if (pendingSegments.length > 0) {
+    if (pendingSegments.length > 0 && !state.isManualPaused) {
       const batchToSend = [...pendingSegments];
       pendingSegments = [];
       drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);

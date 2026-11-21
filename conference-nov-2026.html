@@ -29,11 +29,6 @@
       60% { transform: scale(1.2) rotate(3deg); }
       100% { transform: scale(1); }
     }
-    @keyframes wrongShake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-8px); border-color: #f43f5e !important; }
-      40%, 80% { transform: translateX(8px); border-color: #f43f5e !important; }
-    }
     @keyframes popBanner {
       0% { opacity: 0; transform: translateY(-14px) scale(0.85); }
       15% { opacity: 1; transform: translateY(0) scale(1.04); }
@@ -43,7 +38,6 @@
     .anim-unlock-gold { animation: pulseGold 2.2s ease-out; border-color: #fbbf24 !important; }
     .anim-match-emerald { animation: pulseEmerald 2.4s ease-out; border-color: #34d399 !important; }
     .anim-number-pop { display: inline-block; animation: numberBounce 1.2s ease-out; }
-    .anim-wrong-shake { animation: wrongShake 0.6s ease-in-out; }
     .anim-pop-banner { animation: popBanner 3.4s ease-in-out forwards; }
   </style>
 </head>
@@ -348,6 +342,7 @@ const GAME_DATA = {
     }
   ],
 
+  // 20 paires de mots pour Undercover ("Hos" remplace "Hoas", et Calice vs Mysteer remplace Astérisque/Trône)
   undercover: [
     { orthodox: "Le Synaxaire (Récits historiques de la vie des Saints du jour)", undercover: "Le Difnar / Antiphonaire (Hymnes poétiques chantées sur les Saints du jour)" },
     { orthodox: "Le Concile de Nicée en 325 (Condamnation d'Arius)", undercover: "Le Concile d'Éphèse en 431 (Condamnation de Nestorius)" },
@@ -355,10 +350,20 @@ const GAME_DATA = {
     { orthodox: "L'Épître Catholique / Al-Katholikon (Jacques, Pierre, Jean ou Jude)", undercover: "Le Praxis (Livre des Actes des Apôtres)" },
     { orthodox: "L'Orarion / Badrashil (Étole portée par les diacres)", undercover: "L'Épitrachilion / Sadréya (Étole portée par les prêtres)" },
     { orthodox: "Le Saint Mayroun (Sacrement de la Confirmation — 36 onctions)", undercover: "L'Huile du Ghalilaon (Huile d'exorcisme avant l'immersion baptismale)" },
-    { orthodox: "La 1re Hoas de la Tasbeha (Cantique de Moïse après la Mer Rouge)", undercover: "La 3e Hoas de la Tasbeha (Cantique des Trois Jeunes Gens dans la fournaise)" },
-    { orthodox: "L'Astérisque / Al-Qobba (Dôme métallique croisé posé sur la patène)", undercover: "Le Trône / Al-Korsi (Coffre en bois sur l'autel abritant le calice)" },
+    { orthodox: "Le 1er Hos de la Tasbeha (Cantique de Moïse après la Mer Rouge)", undercover: "Le 3e Hos de la Tasbeha (Cantique des Trois Jeunes Gens dans la fournaise)" },
+    { orthodox: "Le Calice (Al-Ka's contenant le Sang précieux)", undercover: "Le Mysteer (Cuillère liturgique pour la communion)" },
     { orthodox: "Saint Macaire le Grand (Père du désert de Scété / Wadi El-Natrun)", undercover: "Saint Pacôme le Grand (Fondateur du monachisme cénobitique en Haute-Égypte)" },
-    { orthodox: "L'Hymne du Trisagion (Agios O Theos)", undercover: "L'Hymne d'O Monogenis (Fils Unique et Verbe de Dieu)" }
+    { orthodox: "L'Hymne du Trisagion (Agios O Theos)", undercover: "L'Hymne d'O Monogenis (Fils Unique et Verbe de Dieu)" },
+    { orthodox: "L'Agpeya (Livre des prières des heures)", undercover: "Le Kholagui (Livre de la Divine Liturgie)" },
+    { orthodox: "La Patène / Al-Siniya (Plateau liturgique recevant l'Agneau)", undercover: "Le Voile du Sanctuaire / Al-Sitr" },
+    { orthodox: "Le Diacre / Diakonos (Serviteur de l'autel)", undercover: "Le Sous-diacre / Hypodiakonos" },
+    { orthodox: "Le Jeûne de Ninive (3 jours)", undercover: "Le Grand Carême (55 jours)" },
+    { orthodox: "L'Aumône / Zakat-al-Khirma (Offrande des prémices et des pauvres)", undercover: "La Fraction / Qesma (Division du pain eucharistique)" },
+    { orthodox: "Le 2e Hos de la Tasbeha (Psaume 135 — Louange éternelle)", undercover: "Le 4e Hos de la Tasbeha (Psaumes 148, 149, 150)" },
+    { orthodox: "L'Encensoir / Al-Chouraya (3 chaînes + 1 chaîne de la Théotokos)", undercover: "La Boîte à encens / Al-Doukhna" },
+    { orthodox: "La Croix Processionnelle (Croix à hampe portée en procession)", undercover: "La Croix de Bénédiction (Croix tenue par le célébrant)" },
+    { orthodox: "L'Hymne Epouro (Roi de la Paix)", undercover: "L'Hymne Tai Shouri (Encensoir d'or pur)" },
+    { orthodox: "Le Monastère d'Al-Baramous (Wadi El-Natrun)", undercover: "Le Monastère des Syriens / Al-Sourian (Wadi El-Natrun)" }
   ],
 
   verses: [
@@ -566,7 +571,6 @@ const DEFAULT_STATE = {
   picDrawerSlot: '1A',
   picPrompt: '',
   picRoundId: 1,
-  // État du Jeu 6 : Chasse aux Coffres des 12 Apôtres + Événements d'animation
   apostlesBoxOrder: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   apostlesProgress: {
     1: { unlocked: {}, guesses: {}, lastEvent: null },
@@ -580,6 +584,7 @@ const DEFAULT_STATE = {
 
 let state = loadPersistedState();
 let selectedApostleBox = 1;
+let isSecretWordHeld = false;
 
 function loadPersistedState() {
   try {
@@ -622,6 +627,16 @@ function isApostleGuessCorrect(boxNum, guessedApostleName) {
   const itemId = boxOrder[(boxNum - 1) % 12];
   const item = GAME_DATA.apostles.find(a => a.id === itemId);
   return !!(item && item.apostle === guessedApostleName);
+}
+
+function getTeamUnlockedCount(team) {
+  const prog = (state.apostlesProgress && state.apostlesProgress[team]) ? state.apostlesProgress[team] : { unlocked: {} };
+  return Object.keys(prog.unlocked || {}).length;
+}
+
+function getTeamGuessedCount(team) {
+  const prog = (state.apostlesProgress && state.apostlesProgress[team]) ? state.apostlesProgress[team] : { guesses: {} };
+  return Object.keys(prog.guesses || {}).filter(k => prog.guesses[k]).length;
 }
 
 function getTeamCorrectApostlesCount(team) {
@@ -901,27 +916,18 @@ function handleNetworkMessage(packet) {
       state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
       state.apostlesProgress[data.team] = state.apostlesProgress[data.team] || { unlocked: {}, guesses: {}, lastEvent: null };
       state.apostlesProgress[data.team].guesses[data.boxNum] = data.apostle;
-
       const nowTs = Date.now();
-      if (isApostleGuessCorrect(data.boxNum, data.apostle)) {
-        state.apostlesProgress[data.team].lastEvent = {
-          type: 'CORRECT_MATCH',
-          boxNum: data.boxNum,
-          ts: nowTs
-        };
-        state.apostlesGlobalAnnouncement = {
-          team: data.team,
-          type: 'CORRECT_MATCH',
-          boxNum: data.boxNum,
-          ts: nowTs
-        };
-      } else {
-        state.apostlesProgress[data.team].lastEvent = {
-          type: 'WRONG_MATCH',
-          boxNum: data.boxNum,
-          ts: nowTs
-        };
-      }
+      state.apostlesProgress[data.team].lastEvent = {
+        type: 'GUESS_MADE',
+        boxNum: data.boxNum,
+        ts: nowTs
+      };
+      state.apostlesGlobalAnnouncement = {
+        team: data.team,
+        type: 'GUESS_MADE',
+        boxNum: data.boxNum,
+        ts: nowTs
+      };
       broadcastState();
     }
   }
@@ -1029,6 +1035,7 @@ function startGame(gameName, roundIdx = 0) {
   state.timerEndAt = null;
   state.timerRemainingPaused = null;
   state.isManualPaused = false;
+  isSecretWordHeld = false;
 
   if (gameName === 'SYNAXAIRE') {
     state.clueStep = 0;
@@ -1228,7 +1235,7 @@ function renderHost(root) {
         <button onclick="startGame('LOBBY', 0)" class="px-2.5 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='LOBBY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">📱 6 QR Codes</button>
         <button onclick="startGame('SYNAXAIRE', state.currentGame==='SYNAXAIRE'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='SYNAXAIRE'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">1. Synaxaire (15)</button>
         <button onclick="startGame('FIESTA', state.currentGame==='FIESTA'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='FIESTA'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">2. Évolution Copte (6)</button>
-        <button onclick="startGame('UNDERCOVER', state.currentGame==='UNDERCOVER'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (10)</button>
+        <button onclick="startGame('UNDERCOVER', state.currentGame==='UNDERCOVER'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (20)</button>
         <button onclick="startGame('VERSES', state.currentGame==='VERSES'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
         <button onclick="startGame('PICTIONARY', state.currentGame==='PICTIONARY'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (15)</button>
         <button onclick="startGame('APOSTLES', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='APOSTLES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">6. Les 12 Apôtres (5m)</button>
@@ -1545,7 +1552,6 @@ function renderHost(root) {
       3: { title: "ÉQUIPE 3", color: "text-purple-300", border: "border-purple-500/50", bg: "bg-purple-950/40" }
     };
 
-    // Bandeau géant d'annonce en haut de l'écran maître lors d'un déverrouillage ou d'une bonne association
     const ga = state.apostlesGlobalAnnouncement;
     const isGlobalRecent = ga && (Date.now() - ga.ts < 3500);
     let globalToastHtml = '';
@@ -1556,10 +1562,17 @@ function renderHost(root) {
             🔓 L'ÉQUIPE ${ga.team} VIENT DE DÉVERROUILLER LE COFFRE #${ga.boxNum} !
           </div>
         `;
-      } else if (ga.type === 'CORRECT_MATCH') {
+      } else if (ga.type === 'GUESS_MADE' && !state.apostlesRevealed) {
         globalToastHtml = `
-          <div class="anim-pop-banner p-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-500 text-slate-950 font-extrabold text-xl text-center shadow-2xl border-2 border-white">
-            🎉 BRAVO ! L'ÉQUIPE ${ga.team} VIENT D'ASSOCIER CORRECTEMENT L'APÔTRE DU COFFRE #${ga.boxNum} !
+          <div class="anim-pop-banner p-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-sky-500 to-indigo-600 text-white font-extrabold text-xl text-center shadow-2xl border-2 border-white">
+            ✍️ L'ÉQUIPE ${ga.team} VIENT DE FAIRE UNE ASSOCIATION SUR LE COFFRE #${ga.boxNum} !
+          </div>
+        `;
+      } else if (ga.type === 'GUESS_MADE' && state.apostlesRevealed) {
+        const isCorr = isApostleGuessCorrect(ga.boxNum, state.apostlesProgress[ga.team]?.guesses?.[ga.boxNum]);
+        globalToastHtml = `
+          <div class="anim-pop-banner p-4 rounded-2xl ${isCorr ? 'bg-emerald-500 text-slate-950' : 'bg-rose-600 text-white'} font-extrabold text-xl text-center shadow-2xl border-2 border-white">
+            ${isCorr ? `✅ ÉQUIPE ${ga.team} : ASSOCIATION CORRECTE (COFFRE #${ga.boxNum}) !` : `❌ ÉQUIPE ${ga.team} : MAUVAISE ASSOCIATION (COFFRE #${ga.boxNum})`}
           </div>
         `;
       }
@@ -1581,11 +1594,12 @@ function renderHost(root) {
 
         ${globalToastHtml}
 
-        <!-- TABLEAU DE BORD GÉANT DES 3 ÉQUIPES AVEC PROGRESSION VISUELLE DES 12 COFFRES -->
+        <!-- TABLEAU DE BORD GÉANT DES 3 ÉQUIPES -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           ${[1, 2, 3].map(t => {
             const prog = (state.apostlesProgress && state.apostlesProgress[t]) ? state.apostlesProgress[t] : { unlocked: {}, guesses: {}, lastEvent: null };
-            const unlockedCount = Object.keys(prog.unlocked || {}).length;
+            const unlockedCount = getTeamUnlockedCount(t);
+            const guessedCount = getTeamGuessedCount(t);
             const correctCount = getTeamCorrectApostlesCount(t);
 
             const ev = prog.lastEvent;
@@ -1593,18 +1607,16 @@ function renderHost(root) {
             let cardAnimClass = '';
             let bannerHtml = '';
             let unlockNumAnim = '';
-            let correctNumAnim = '';
+            let guessNumAnim = '';
             if (isRecent) {
               if (ev.type === 'UNLOCK') {
                 cardAnimClass = 'anim-unlock-gold';
                 unlockNumAnim = 'anim-number-pop';
                 bannerHtml = `<div class="anim-pop-banner bg-amber-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-full text-center shadow-lg">🔓 COFFRE #${ev.boxNum} OUVERT !</div>`;
-              } else if (ev.type === 'CORRECT_MATCH') {
+              } else if (ev.type === 'GUESS_MADE') {
                 cardAnimClass = 'anim-match-emerald';
-                correctNumAnim = 'anim-number-pop';
-                bannerHtml = `<div class="anim-pop-banner bg-emerald-400 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-full text-center shadow-lg">🎉 APÔTRE #${ev.boxNum} BIEN ASSOCIÉ !</div>`;
-              } else if (ev.type === 'WRONG_MATCH') {
-                cardAnimClass = 'anim-wrong-shake';
+                guessNumAnim = 'anim-number-pop';
+                bannerHtml = `<div class="anim-pop-banner bg-sky-400 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-full text-center shadow-lg">✍️ ASSOCIATION COFFRE #${ev.boxNum} ENREGISTRÉE !</div>`;
               }
             }
 
@@ -1613,49 +1625,72 @@ function renderHost(root) {
               <div class="p-5 rounded-2xl ${st.bg} border-2 ${st.border} ${cardAnimClass} space-y-4 transition-all relative overflow-hidden">
                 <div class="flex justify-between items-center border-b border-slate-700/80 pb-2">
                   <span class="font-extrabold text-lg ${st.color}">${st.title} (Tél. ${t}A)</span>
-                  <span class="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-600/90 text-white">+${correctCount * 5} pts potentiels</span>
+                  ${state.apostlesRevealed
+                    ? `<span class="text-xs font-extrabold px-2.5 py-1 rounded-lg bg-emerald-600 text-white">${correctCount}/12 justes (+${correctCount*5} pts)</span>`
+                    : `<span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-800 text-amber-300">Progression : ${unlockedCount + guessedCount}/24</span>`
+                  }
                 </div>
 
                 ${bannerHtml}
 
-                <!-- COMPTEURS GÉANTS (COFFRES OUVERTS & APÔTRES CORRECTEMENT ASSOCIÉS) -->
+                <!-- COMPTEURS GÉANTS : COFFRES OUVERTS & ASSOCIATIONS EFFECTUÉES (OU JUSTES APRÈS RÉVÉLATION) -->
                 <div class="grid grid-cols-2 gap-3 text-center">
                   <div class="bg-slate-900/95 border-2 border-amber-500/50 rounded-xl p-3 shadow-inner">
                     <div class="text-[11px] uppercase tracking-wider font-extrabold text-amber-300">🔓 Coffres Ouverts</div>
                     <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1"><span class="${unlockNumAnim}">${unlockedCount}</span><span class="text-lg text-slate-400">/12</span></div>
                   </div>
-                  <div class="bg-slate-900/95 border-2 border-emerald-500/60 rounded-xl p-3 shadow-inner">
-                    <div class="text-[11px] uppercase tracking-wider font-extrabold text-emerald-300">✅ Apôtres Justes</div>
-                    <div class="text-4xl sm:text-5xl font-extrabold text-emerald-400 mt-1"><span class="${correctNumAnim}">${correctCount}</span><span class="text-lg text-slate-400">/12</span></div>
-                  </div>
+                  ${state.apostlesRevealed ? `
+                    <div class="bg-slate-900/95 border-2 border-emerald-500/60 rounded-xl p-3 shadow-inner">
+                      <div class="text-[11px] uppercase tracking-wider font-extrabold text-emerald-300">✅ Apôtres Justes</div>
+                      <div class="text-4xl sm:text-5xl font-extrabold text-emerald-400 mt-1"><span>${correctCount}</span><span class="text-lg text-slate-400">/12</span></div>
+                    </div>
+                  ` : `
+                    <div class="bg-slate-900/95 border-2 border-sky-500/50 rounded-xl p-3 shadow-inner">
+                      <div class="text-[11px] uppercase tracking-wider font-extrabold text-sky-300">✍️ Associations</div>
+                      <div class="text-4xl sm:text-5xl font-extrabold text-white mt-1"><span class="${guessNumAnim}">${guessedCount}</span><span class="text-lg text-slate-400">/12</span></div>
+                    </div>
+                  `}
                 </div>
 
                 <!-- MINI-GRILLE VISUELLE DES 12 COFFRES DE L'ÉQUIPE EN DIRECT -->
                 <div class="space-y-1">
                   <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex justify-between">
-                    <span>État des 12 Coffres de l'Équipe ${t}</span>
-                    <span>${Math.round((correctCount / 12) * 100)}% complété</span>
+                    <span>Coffres & Associations de l'Équipe ${t}</span>
+                    <span>${state.apostlesRevealed ? `${correctCount} justes / ${12 - correctCount} faux ou vides` : `${guessedCount}/12 associés`}</span>
                   </div>
                   <div class="grid grid-cols-6 gap-1.5 pt-1">
                     ${boxOrder.map((_, idx) => {
                       const bNum = idx + 1;
                       const isUnlk = !!(prog.unlocked && prog.unlocked[bNum]);
                       const guessVal = (prog.guesses && prog.guesses[bNum]) ? prog.guesses[bNum] : null;
-                      const isCorr = isApostleGuessCorrect(bNum, guessVal);
                       const isJustChanged = isRecent && ev.boxNum === bNum;
 
                       let pillStyle = 'bg-slate-900 text-slate-500 border-slate-700';
                       let icon = '🔒';
-                      if (isCorr) {
-                        pillStyle = 'bg-emerald-600 text-white border-emerald-300 shadow-md shadow-emerald-500/30';
-                        icon = '✅';
-                      } else if (guessVal) {
-                        pillStyle = 'bg-rose-900/80 text-rose-200 border-rose-500';
-                        icon = '❌';
-                      } else if (isUnlk) {
-                        pillStyle = 'bg-amber-500 text-slate-950 border-yellow-200 shadow-md shadow-amber-500/30';
-                        icon = '🔓';
+
+                      if (state.apostlesRevealed) {
+                        const isCorr = isApostleGuessCorrect(bNum, guessVal);
+                        if (isCorr) {
+                          pillStyle = 'bg-emerald-600 text-white border-emerald-300';
+                          icon = '✅';
+                        } else if (guessVal) {
+                          pillStyle = 'bg-rose-900/90 text-rose-200 border-rose-500';
+                          icon = '❌';
+                        } else if (isUnlk) {
+                          pillStyle = 'bg-amber-600 text-slate-950 border-amber-300';
+                          icon = '🔓';
+                        }
+                      } else {
+                        // Avant validation finale : aucun indice sur la justesse de la réponse
+                        if (guessVal) {
+                          pillStyle = 'bg-sky-600 text-white border-sky-300 shadow-md shadow-sky-500/20';
+                          icon = '✍️';
+                        } else if (isUnlk) {
+                          pillStyle = 'bg-amber-500 text-slate-950 border-yellow-200 shadow-md shadow-amber-500/30';
+                          icon = '🔓';
+                        }
                       }
+
                       if (isJustChanged) pillStyle += ' scale-125 ring-2 ring-white z-10';
 
                       return `
@@ -1672,8 +1707,8 @@ function renderHost(root) {
                   <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800" title="Coffres ouverts">
                     <div class="bg-amber-500 h-full transition-all duration-500" style="width: ${(unlockedCount/12)*100}%"></div>
                   </div>
-                  <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800" title="Apôtres correctement associés">
-                    <div class="bg-gradient-to-r from-emerald-500 to-green-400 h-full transition-all duration-500" style="width: ${(correctCount/12)*100}%"></div>
+                  <div class="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800" title="Progression associations">
+                    <div class="bg-gradient-to-r ${state.apostlesRevealed ? 'from-emerald-500 to-green-400' : 'from-sky-500 to-indigo-400'} h-full transition-all duration-500" style="width: ${((state.apostlesRevealed ? correctCount : guessedCount)/12)*100}%"></div>
                   </div>
                 </div>
               </div>
@@ -1687,6 +1722,7 @@ function renderHost(root) {
             const boxNum = idx + 1;
             const item = GAME_DATA.apostles.find(a => a.id === itemId) || GAME_DATA.apostles[0];
             const unlockedByTeams = [1, 2, 3].filter(t => state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].unlocked && state.apostlesProgress[t].unlocked[boxNum]);
+            const guessedByTeams = [1, 2, 3].filter(t => state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].guesses && state.apostlesProgress[t].guesses[boxNum]);
             const solvedByTeams = [1, 2, 3].filter(t => state.apostlesProgress && state.apostlesProgress[t] && state.apostlesProgress[t].guesses && state.apostlesProgress[t].guesses[boxNum] === item.apostle);
             return `
               <div class="p-3.5 rounded-xl border ${state.apostlesRevealed ? 'bg-emerald-950/50 border-emerald-500/50' : 'bg-slate-800/90 border-slate-700'} space-y-1.5">
@@ -1696,7 +1732,10 @@ function renderHost(root) {
                   </span>
                   <div class="flex gap-1.5 text-[10px]">
                     <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">🔓 ${unlockedByTeams.length}/3</span>
-                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">✅ ${solvedByTeams.length}/3</span>
+                    ${state.apostlesRevealed
+                      ? `<span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">✅ ${solvedByTeams.length}/3</span>`
+                      : `<span class="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-bold">✍️ ${guessedByTeams.length}/3</span>`
+                    }
                   </div>
                 </div>
                 ${state.apostlesRevealed ? `
@@ -1710,7 +1749,7 @@ function renderHost(root) {
                   </div>
                 ` : `
                   <p class="text-xs text-slate-400 italic">
-                    ${solvedByTeams.length > 0 ? `Apôtre identifié par Éq. ${solvedByTeams.join(', ')}` : (unlockedByTeams.length > 0 ? `Coffre ouvert par Éq. ${unlockedByTeams.join(', ')}` : 'Coffre scellé...')}
+                    ${guessedByTeams.length > 0 ? `Association enregistrée par Éq. ${guessedByTeams.join(', ')}` : (unlockedByTeams.length > 0 ? `Coffre ouvert par Éq. ${unlockedByTeams.join(', ')}` : 'Coffre scellé...')}
                   </p>
                 `}
               </div>
@@ -1815,9 +1854,23 @@ function renderPlayer(root) {
 
     body = `
       <div class="space-y-4">
-        <div class="bg-slate-800 border-2 border-amber-500/50 rounded-2xl p-5 text-center space-y-2">
-          <div class="text-xs uppercase text-slate-400 font-bold">Votre Mot Secret (Gardez-le caché)</div>
-          <div class="text-2xl font-extrabold text-amber-300">${myInfo.word}</div>
+        <div class="bg-slate-800 border-2 border-amber-500/50 rounded-2xl p-5 text-center space-y-3 select-none">
+          <div class="text-xs uppercase text-slate-400 font-bold">Votre Mot Secret (Maintenez l'œil appuyé)</div>
+          <div class="text-2xl font-extrabold text-amber-300 min-h-[2.25rem] flex items-center justify-center tracking-wider">
+            ${isSecretWordHeld ? myInfo.word : '••••••••••••••••'}
+          </div>
+          <button
+            type="button"
+            onmousedown="setSecretWordHeld(true)"
+            onmouseup="setSecretWordHeld(false)"
+            onmouseleave="setSecretWordHeld(false)"
+            ontouchstart="event.preventDefault(); setSecretWordHeld(true);"
+            ontouchend="event.preventDefault(); setSecretWordHeld(false);"
+            ontouchcancel="setSecretWordHeld(false)"
+            class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-extrabold text-sm transition select-none ${isSecretWordHeld ? 'bg-amber-400 text-slate-950 scale-105' : 'bg-slate-900 hover:bg-slate-700 text-amber-300 border border-amber-500/60'}">
+            <span class="text-lg">👁️</span>
+            <span>${isSecretWordHeld ? 'Relâchez pour masquer' : 'Maintenir appuyé pour voir'}</span>
+          </button>
         </div>
 
         ${!state.ucVotingOpen && !state.ucRevealed ? `
@@ -1884,21 +1937,62 @@ function renderPlayer(root) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Regardez le projecteur et soufflez la réponse !</div>`;
     }
   } else if (state.currentGame === 'APOSTLES') {
+    // Barre de progression globale des 3 équipes en haut de l'écran joueur
+    const rivalsProgressBar = `
+      <div class="bg-slate-950/90 border border-slate-700/80 rounded-xl p-2.5 space-y-2">
+        <div class="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 flex justify-between">
+          <span>📊 Progression des Équipes</span>
+          <span>Coffres / Associations</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center">
+          ${[1, 2, 3].map(t => {
+            const uCnt = getTeamUnlockedCount(t);
+            const gCnt = getTeamGuessedCount(t);
+            const cCnt = getTeamCorrectApostlesCount(t);
+            const isMe = t === myTeam;
+            const badgeColor = t === 1 ? 'text-blue-300' : (t === 2 ? 'text-emerald-300' : 'text-purple-300');
+            return `
+              <div class="bg-slate-900 rounded-lg p-1.5 border ${isMe ? 'border-amber-400/80' : 'border-slate-800'}">
+                <div class="text-[10px] font-extrabold ${badgeColor}">Éq. ${t}${isMe ? ' (Vous)' : ''}</div>
+                <div class="text-xs font-extrabold text-white mt-0.5">🔓 ${uCnt}/12</div>
+                <div class="text-[11px] font-bold ${state.apostlesRevealed ? 'text-emerald-400' : 'text-sky-300'}">
+                  ${state.apostlesRevealed ? `✅ ${cCnt}/12` : `✍️ ${gCnt}/12`}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+
     if (!isCaptain) {
-      body = `<div class="text-center py-8 text-sm text-slate-300">Aidez votre capitaine (<strong>Téléphone ${myTeam}A</strong>) à résoudre les 12 énigmes bibliques et identifier les 12 Apôtres !</div>`;
+      body = `
+        <div class="space-y-4">
+          ${rivalsProgressBar}
+          <div class="text-center py-6 text-sm text-slate-300">Aidez votre capitaine (<strong>Téléphone ${myTeam}A</strong>) à résoudre les 12 énigmes bibliques et identifier les 12 Apôtres !</div>
+        </div>
+      `;
     } else if (state.apostlesRevealed) {
-      body = `<div class="text-center py-8 text-emerald-400 font-bold">🏆 Manche terminée ! Regardez les résultats et les points sur le grand écran.</div>`;
+      const myCorrect = getTeamCorrectApostlesCount(myTeam);
+      body = `
+        <div class="space-y-4">
+          ${rivalsProgressBar}
+          <div class="text-center py-6 space-y-2">
+            <div class="text-emerald-400 font-extrabold text-lg">🏆 Manche terminée !</div>
+            <div class="text-sm text-slate-200">Résultat de l'Équipe ${myTeam} : <strong>${myCorrect} / 12</strong> apôtres corrects (+${myCorrect * 5} pts).</div>
+          </div>
+        </div>
+      `;
     } else {
       const boxOrder = state.apostlesBoxOrder || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
       const myProg = (state.apostlesProgress && state.apostlesProgress[myTeam]) ? state.apostlesProgress[myTeam] : { unlocked: {}, guesses: {}, lastEvent: null };
-      const unlockedCount = Object.keys(myProg.unlocked || {}).length;
-      const correctCount = getTeamCorrectApostlesCount(myTeam);
+      const unlockedCount = getTeamUnlockedCount(myTeam);
+      const guessedCount = getTeamGuessedCount(myTeam);
 
       const currentItemId = boxOrder[(selectedApostleBox - 1) % 12];
       const currentItem = GAME_DATA.apostles.find(a => a.id === currentItemId) || GAME_DATA.apostles[0];
       const isUnlocked = !!(myProg.unlocked && myProg.unlocked[selectedApostleBox]);
       const currentGuess = (myProg.guesses && myProg.guesses[selectedApostleBox]) ? myProg.guesses[selectedApostleBox] : '';
-      const isCurrentCorrect = isApostleGuessCorrect(selectedApostleBox, currentGuess);
       const allApostleNames = GAME_DATA.apostles.map(a => a.apostle).sort();
 
       const ev = myProg.lastEvent;
@@ -1909,26 +2003,25 @@ function renderPlayer(root) {
         if (ev.type === 'UNLOCK') {
           playerAnimClass = 'anim-unlock-gold';
           playerBanner = `<div class="anim-pop-banner bg-amber-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">🔓 COFFRE #${ev.boxNum} DÉVERROUILLÉ !</div>`;
-        } else if (ev.type === 'CORRECT_MATCH') {
+        } else if (ev.type === 'GUESS_MADE') {
           playerAnimClass = 'anim-match-emerald';
-          playerBanner = `<div class="anim-pop-banner bg-emerald-500 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">🎉 BONNE ASSOCIATION POUR LE COFFRE #${ev.boxNum} !</div>`;
-        } else if (ev.type === 'WRONG_MATCH') {
-          playerAnimClass = 'anim-wrong-shake';
-          playerBanner = `<div class="anim-pop-banner bg-rose-600 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">❌ CE N'EST PAS CET APÔTRE, RÉESSAYEZ !</div>`;
+          playerBanner = `<div class="anim-pop-banner bg-sky-400 text-slate-950 font-extrabold text-xs px-3 py-1.5 rounded-lg text-center shadow">✍️ ASSOCIATION ENREGISTRÉE POUR LE COFFRE #${ev.boxNum} !</div>`;
         }
       }
 
       body = `
         <div class="space-y-4">
+          ${rivalsProgressBar}
+
           <!-- COMPTEURS GÉANTS SUR LE TÉLÉPHONE -->
           <div class="grid grid-cols-2 gap-2.5 text-center">
             <div class="bg-slate-800 border-2 border-amber-500/40 rounded-xl p-2.5">
               <div class="text-[10px] uppercase font-bold text-amber-300">🔓 Coffres Ouverts</div>
               <div class="text-3xl font-extrabold text-white">${unlockedCount} / 12</div>
             </div>
-            <div class="bg-slate-800 border-2 border-emerald-500/50 rounded-xl p-2.5">
-              <div class="text-[10px] uppercase font-bold text-emerald-300">✅ Apôtres Justes</div>
-              <div class="text-3xl font-extrabold text-emerald-400">${correctCount} / 12</div>
+            <div class="bg-slate-800 border-2 border-sky-500/50 rounded-xl p-2.5">
+              <div class="text-[10px] uppercase font-bold text-sky-300">✍️ Associations</div>
+              <div class="text-3xl font-extrabold text-sky-300">${guessedCount} / 12</div>
             </div>
           </div>
 
@@ -1939,16 +2032,14 @@ function renderPlayer(root) {
               const bNum = idx + 1;
               const unlk = !!(myProg.unlocked && myProg.unlocked[bNum]);
               const gVal = (myProg.guesses && myProg.guesses[bNum]) ? myProg.guesses[bNum] : null;
-              const isCorr = isApostleGuessCorrect(bNum, gVal);
               const isSel = bNum === selectedApostleBox;
               let btnClass = 'bg-slate-800 text-slate-300 border-slate-700';
-              if (isCorr) btnClass = 'bg-emerald-700 text-white border-emerald-400';
-              else if (gVal) btnClass = 'bg-rose-900 text-rose-200 border-rose-500';
+              if (gVal) btnClass = 'bg-sky-700 text-white border-sky-300';
               else if (unlk) btnClass = 'bg-amber-600 text-slate-950 border-amber-300';
               if (isSel) btnClass += ' ring-2 ring-white scale-105';
               return `
                 <button onclick="selectApostleBox(${bNum})" class="py-2 rounded-lg border text-xs font-extrabold transition ${btnClass}">
-                  #${bNum} ${isCorr ? '✅' : (gVal ? '❌' : (unlk ? '🔓' : '🔒'))}
+                  #${bNum} ${gVal ? '✍️' : (unlk ? '🔓' : '🔒')}
                 </button>
               `;
             }).join('')}
@@ -1957,8 +2048,8 @@ function renderPlayer(root) {
           <div class="bg-slate-800 border border-slate-700 ${playerAnimClass} rounded-xl p-4 space-y-3 transition-all">
             <div class="flex justify-between items-center border-b border-slate-700 pb-2">
               <span class="font-extrabold text-amber-400 text-sm">Coffre #${selectedApostleBox}</span>
-              <span class="text-xs ${isCurrentCorrect ? 'text-emerald-400 font-extrabold' : (isUnlocked ? 'text-amber-300 font-bold' : 'text-rose-400 font-bold')}">
-                ${isCurrentCorrect ? '✅ Apôtre trouvé !' : (isUnlocked ? '🔓 Déverrouillé' : '🔒 Verrouillé par énigme')}
+              <span class="text-xs ${currentGuess ? 'text-sky-300 font-extrabold' : (isUnlocked ? 'text-amber-300 font-bold' : 'text-rose-400 font-bold')}">
+                ${currentGuess ? '✍️ Associé' : (isUnlocked ? '🔓 Déverrouillé' : '🔒 Verrouillé par énigme')}
               </span>
             </div>
 
@@ -1975,7 +2066,7 @@ function renderPlayer(root) {
               </div>
               <div class="space-y-1.5 pt-1">
                 <label class="text-xs text-amber-300 font-bold block">À quel Apôtre correspond cet indice ?</label>
-                <select onchange="submitApostleGuess(${myTeam}, ${selectedApostleBox}, this.value)" class="w-full bg-slate-900 border ${isCurrentCorrect ? 'border-emerald-500' : 'border-amber-500/60'} rounded-lg p-2.5 text-sm text-white">
+                <select onchange="submitApostleGuess(${myTeam}, ${selectedApostleBox}, this.value)" class="w-full bg-slate-900 border border-amber-500/60 rounded-lg p-2.5 text-sm text-white">
                   <option value="" disabled ${!currentGuess ? 'selected' : ''}>-- Sélectionner --</option>
                   ${allApostleNames.map(name => `<option value="${name}" ${currentGuess === name ? 'selected' : ''}>${name}</option>`).join('')}
                 </select>
@@ -1997,6 +2088,13 @@ function renderPlayer(root) {
 /* ============================================================================
 9. GESTION DES INTERACTIONS JOUEURS & DU DESSIN PAR PAQUETS (DRAW_BATCH)
    ============================================================================ */
+function setSecretWordHeld(held) {
+  if (state.isManualPaused) return;
+  if (isSecretWordHeld === held) return;
+  isSecretWordHeld = held;
+  render();
+}
+
 function selectApostleBox(boxNum) {
   if (state.isManualPaused) return;
   selectedApostleBox = boxNum;
@@ -2032,12 +2130,7 @@ function submitApostleGuess(team, boxNum, apostleName) {
   state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
   state.apostlesProgress[team] = state.apostlesProgress[team] || { unlocked: {}, guesses: {}, lastEvent: null };
   state.apostlesProgress[team].guesses[boxNum] = apostleName;
-
-  if (isApostleGuessCorrect(boxNum, apostleName)) {
-    state.apostlesProgress[team].lastEvent = { type: 'CORRECT_MATCH', boxNum, ts: Date.now() };
-  } else {
-    state.apostlesProgress[team].lastEvent = { type: 'WRONG_MATCH', boxNum, ts: Date.now() };
-  }
+  state.apostlesProgress[team].lastEvent = { type: 'GUESS_MADE', boxNum, ts: Date.now() };
 
   sendEvent('APOSTLE_GUESS', { team, boxNum, apostle: apostleName });
   render();

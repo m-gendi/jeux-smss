@@ -342,7 +342,6 @@ const GAME_DATA = {
     }
   ],
 
-  // 20 paires de mots pour Undercover ("Hos" remplace "Hoas", et Calice vs Mysteer remplace Astérisque/Trône)
   undercover: [
     { orthodox: "Le Synaxaire (Récits historiques de la vie des Saints du jour)", undercover: "Le Difnar / Antiphonaire (Hymnes poétiques chantées sur les Saints du jour)" },
     { orthodox: "Le Concile de Nicée en 325 (Condamnation d'Arius)", undercover: "Le Concile d'Éphèse en 431 (Condamnation de Nestorius)" },
@@ -544,6 +543,7 @@ const DEFAULT_STATE = {
   roundIndex: 0,
   clueStep: 0,
   buzzedBy: null,
+  buzzerPenaltyUntil: { 1: 0, 2: 0, 3: 0 },
   revealed: false,
   timerEndAt: null,
   timerRemainingPaused: null,
@@ -585,6 +585,8 @@ const DEFAULT_STATE = {
 let state = loadPersistedState();
 let selectedApostleBox = 1;
 let isSecretWordHeld = false;
+let qrDisplayMode = 'ALL'; // 'ALL' ou 'ONE_BY_ONE'
+let qrOneByOneIndex = 0; // 0 à 5 pour VALID_PLAYER_SLOTS
 
 function loadPersistedState() {
   try {
@@ -600,6 +602,28 @@ function savePersistedState() {
   try {
     localStorage.setItem('coptic_conf_persisted_state_v2', JSON.stringify(state));
   } catch (e) {}
+}
+
+function isTeamBuzzerPenalized(team) {
+  if (state.currentGame !== 'SYNAXAIRE' && state.currentGame !== 'PICTIONARY') return false;
+  const until = (state.buzzerPenaltyUntil && state.buzzerPenaltyUntil[team]) ? state.buzzerPenaltyUntil[team] : 0;
+  return until > Date.now();
+}
+
+function getTeamBuzzerPenaltyRemainingSec(team) {
+  const until = (state.buzzerPenaltyUntil && state.buzzerPenaltyUntil[team]) ? state.buzzerPenaltyUntil[team] : 0;
+  return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+}
+
+function applyWrongBuzzPenalty(team) {
+  state.buzzerPenaltyUntil = state.buzzerPenaltyUntil || { 1: 0, 2: 0, 3: 0 };
+  state.buzzerPenaltyUntil[team] = Date.now() + 10000;
+  state.buzzedBy = null;
+  if (state.timerRemainingPaused) {
+    startTimer(state.timerRemainingPaused);
+  } else {
+    broadcastState();
+  }
 }
 
 function shuffleArray(arr) {
@@ -851,7 +875,7 @@ function handleNetworkMessage(packet) {
     if (state.isManualPaused) return;
 
     if (type === 'BUZZ') {
-      if (!state.buzzedBy) {
+      if (!state.buzzedBy && !isTeamBuzzerPenalized(data.team)) {
         state.buzzedBy = { slot: data.slot, team: data.team, answer: data.answer || '' };
         if (state.timerEndAt && state.timerEndAt > Date.now()) {
           state.timerRemainingPaused = Math.ceil((state.timerEndAt - Date.now()) / 1000);
@@ -968,25 +992,43 @@ function toggleTimerPause() {
 setInterval(() => {
   const box = document.getElementById('timer-box');
   const disp = document.getElementById('timer-display');
-  if (!box || !disp) return;
-
-  if (state.timerEndAt) {
-    box.classList.remove('hidden');
-    const rem = Math.max(0, Math.ceil((state.timerEndAt - Date.now()) / 1000));
-    disp.textContent = rem + 's';
-    if (rem === 0 && myRole === 'HOST' && isHostAuthenticated) {
-      state.timerEndAt = null;
-      savePersistedState();
-      broadcastState();
+  if (box && disp) {
+    if (state.timerEndAt) {
+      box.classList.remove('hidden');
+      const rem = Math.max(0, Math.ceil((state.timerEndAt - Date.now()) / 1000));
+      disp.textContent = rem + 's';
+      if (rem === 0 && myRole === 'HOST' && isHostAuthenticated) {
+        state.timerEndAt = null;
+        savePersistedState();
+        broadcastState();
+      }
+    } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
+      box.classList.remove('hidden');
+      disp.textContent = state.timerRemainingPaused + 's (Pause)';
+    } else if (state.isManualPaused) {
+      box.classList.remove('hidden');
+      disp.textContent = 'PAUSE';
+    } else {
+      box.classList.add('hidden');
     }
-  } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
-    box.classList.remove('hidden');
-    disp.textContent = state.timerRemainingPaused + 's (Pause)';
-  } else if (state.isManualPaused) {
-    box.classList.remove('hidden');
-    disp.textContent = 'PAUSE';
-  } else {
-    box.classList.add('hidden');
+  }
+
+  if (myRole !== 'HOST' && !state.isManualPaused && (state.currentGame === 'SYNAXAIRE' || state.currentGame === 'PICTIONARY')) {
+    const myTeam = parseInt(myRole[0], 10);
+    const isCaptain = myRole[1] === 'A';
+    if (isCaptain && !state.buzzedBy) {
+      const btn = document.getElementById('captain-buzzer-btn');
+      if (btn) {
+        if (isTeamBuzzerPenalized(myTeam)) {
+          const sec = getTeamBuzzerPenaltyRemainingSec(myTeam);
+          btn.disabled = true;
+          btn.className = "w-full py-8 rounded-2xl font-extrabold text-xl bg-slate-800 border-2 border-rose-500/70 text-rose-400";
+          btn.textContent = `⏳ PÉNALITÉ : ${sec}s`;
+        } else if (btn.disabled) {
+          render();
+        }
+      }
+    }
   }
 }, 300);
 
@@ -1031,6 +1073,7 @@ function startGame(gameName, roundIdx = 0) {
   state.currentGame = gameName;
   state.roundIndex = Math.max(0, roundIdx);
   state.buzzedBy = null;
+  state.buzzerPenaltyUntil = { 1: 0, 2: 0, 3: 0 };
   state.revealed = false;
   state.timerEndAt = null;
   state.timerRemainingPaused = null;
@@ -1228,6 +1271,21 @@ function renderHostLoginGate(root) {
   `;
 }
 
+function setQrDisplayMode(mode) {
+  qrDisplayMode = mode;
+  render();
+}
+
+function stepQrOneByOne(delta) {
+  qrOneByOneIndex = (qrOneByOneIndex + delta + VALID_PLAYER_SLOTS.length) % VALID_PLAYER_SLOTS.length;
+  render();
+}
+
+function selectQrOneByOneIndex(idx) {
+  qrOneByOneIndex = Math.max(0, Math.min(VALID_PLAYER_SLOTS.length - 1, idx));
+  render();
+}
+
 function renderHost(root) {
   const navBar = `
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4 bg-slate-900/90 p-3 rounded-xl border border-slate-700">
@@ -1271,13 +1329,21 @@ function renderHost(root) {
       { team: 3, name: "ÉQUIPE 3", border: "border-purple-500/50", bg: "bg-purple-950/40", text: "text-purple-300", slots: ['3A', '3B'] }
     ];
 
-    content = `
-      <div class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 space-y-6">
-        <div class="text-center space-y-1">
-          <h2 class="text-2xl font-extrabold text-amber-400">Scannez le QR Code attribué à votre équipe</h2>
-          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié.</p>
-        </div>
+    const switchBarHtml = `
+      <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-xl p-2">
+        <span class="text-xs font-bold text-slate-400 mr-1">Affichage des QR Codes :</span>
+        <button onclick="setQrDisplayMode('ALL')" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition ${qrDisplayMode === 'ALL' ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+          Tous les QR Codes (6)
+        </button>
+        <button onclick="setQrDisplayMode('ONE_BY_ONE')" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition ${qrDisplayMode === 'ONE_BY_ONE' ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
+          1 par 1 (Connexion guidée)
+        </button>
+      </div>
+    `;
 
+    let qrBodyHtml = '';
+    if (qrDisplayMode === 'ALL') {
+      qrBodyHtml = `
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
           ${teamsConfig.map(t => `
             <div class="${t.bg} border ${t.border} rounded-2xl p-4 space-y-4">
@@ -1299,6 +1365,51 @@ function renderHost(root) {
             </div>
           `).join('')}
         </div>
+      `;
+    } else {
+      const currentSlot = VALID_PLAYER_SLOTS[qrOneByOneIndex] || '1A';
+      const currentTeamNum = parseInt(currentSlot[0], 10);
+      const isCap = currentSlot.endsWith('A');
+      const teamMeta = teamsConfig.find(t => t.team === currentTeamNum) || teamsConfig[0];
+      const targetUrl = `${baseUrl}?role=${currentSlot}`;
+      const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(targetUrl)}`;
+
+      qrBodyHtml = `
+        <div class="max-w-lg mx-auto space-y-4">
+          <div class="flex flex-wrap justify-center gap-1.5">
+            ${VALID_PLAYER_SLOTS.map((slot, idx) => {
+              const active = idx === qrOneByOneIndex;
+              return `
+                <button onclick="selectQrOneByOneIndex(${idx})" class="px-3 py-1 rounded-lg text-xs font-extrabold border transition ${active ? 'bg-amber-500 text-slate-950 border-amber-300 scale-105' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}">
+                  ${slot}
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="${teamMeta.bg} border-2 ${teamMeta.border} rounded-2xl p-6 flex flex-col items-center space-y-4 shadow-xl">
+            <div class="text-center space-y-1">
+              <div class="text-xs uppercase tracking-widest font-extrabold ${teamMeta.text}">${teamMeta.name} • ${isCap ? 'Capitaine' : 'Second'} (${qrOneByOneIndex + 1} / 6)</div>
+              <a href="?role=${currentSlot}" class="text-2xl font-extrabold text-white hover:text-amber-300 transition inline-block">Terminal ${currentSlot}</a>
+            </div>
+            <img src="${qrImg}" alt="QR ${currentSlot}" class="w-56 h-56 rounded-2xl bg-white p-2 shadow-lg">
+            <div class="flex items-center gap-3 pt-1">
+              <button onclick="stepQrOneByOne(-1)" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-extrabold text-white">⬅ Précédent</button>
+              <button onclick="stepQrOneByOne(1)" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs font-extrabold text-slate-950 shadow">Suivant ➔</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    content = `
+      <div class="bg-slate-900/80 rounded-2xl border border-amber-500/30 p-6 space-y-5">
+        <div class="text-center space-y-1">
+          <h2 class="text-2xl font-extrabold text-amber-400">Scannez le QR Code attribué à votre équipe</h2>
+          <p class="text-xs text-slate-300">Chaque QR Code verrouille automatiquement le téléphone sur son terminal dédié.</p>
+        </div>
+        ${switchBarHtml}
+        ${qrBodyHtml}
       </div>
     `;
   } else if (state.currentGame === 'SYNAXAIRE') {
@@ -1333,7 +1444,7 @@ function renderHost(root) {
             </div>
             <div class="flex gap-2">
               <button onclick="addPoints(${state.buzzedBy.team}, ${currentPts}); state.revealed=true; stopTimer(); broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">✅ Valider (+${currentPts} pts)</button>
-              <button onclick="state.buzzedBy=null; if(state.timerRemainingPaused){startTimer(state.timerRemainingPaused);} broadcastState();" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux (Reprendre)</button>
+              <button onclick="applyWrongBuzzPenalty(${state.buzzedBy.team})" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux (Bloquer 10s)</button>
             </div>
           </div>
         ` : `<div class="text-center text-sm text-slate-400 italic py-2">En attente d'un buzz des téléphones 1A, 2A ou 3A...</div>`}
@@ -1535,7 +1646,7 @@ function renderHost(root) {
                 <div class="text-sm text-white">« ${state.buzzedBy.answer || 'Oral'} »</div>
                 <div class="flex gap-2 pt-1">
                   <button onclick="addPoints(${state.buzzedBy.team}, 25); addPoints(${state.picDrawerSlot[0]}, 10); state.revealed=true; stopTimer(); broadcastState();" class="bg-emerald-600 px-3 py-1.5 rounded text-xs font-bold">✅ +25 pts</button>
-                  <button onclick="state.buzzedBy=null; if(state.timerRemainingPaused){startTimer(state.timerRemainingPaused);} broadcastState();" class="bg-rose-700 px-3 py-1.5 rounded text-xs font-bold">❌ Reprendre</button>
+                  <button onclick="applyWrongBuzzPenalty(${state.buzzedBy.team})" class="bg-rose-700 px-3 py-1.5 rounded text-xs font-bold">❌ Faux (Bloquer 10s)</button>
                 </div>
               </div>
             ` : `<div class="p-4 rounded-xl bg-slate-800 text-xs text-slate-300">Les capitaines peuvent buzzer dès qu'ils reconnaissent la scène.</div>`}
@@ -1681,7 +1792,6 @@ function renderHost(root) {
                           icon = '🔓';
                         }
                       } else {
-                        // Avant validation finale : aucun indice sur la justesse de la réponse
                         if (guessVal) {
                           pillStyle = 'bg-sky-600 text-white border-sky-300 shadow-md shadow-sky-500/20';
                           icon = '✍️';
@@ -1789,12 +1899,23 @@ function renderPlayer(root) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
     } else {
       const locked = state.buzzedBy !== null;
+      const penalized = !locked && isTeamBuzzerPenalized(myTeam);
+      const penSec = getTeamBuzzerPenaltyRemainingSec(myTeam);
+      let btnClass = 'bg-rose-600 text-white';
+      let btnLabel = '🔔 BUZZER !';
+      if (locked) {
+        btnClass = 'bg-slate-700 text-slate-400';
+        btnLabel = state.buzzedBy.team === myTeam ? '🔔 VOUS AVEZ LA MAIN !' : '🔒 Verrouillé';
+      } else if (penalized) {
+        btnClass = 'bg-slate-800 border-2 border-rose-500/70 text-rose-400 text-xl';
+        btnLabel = `⏳ PÉNALITÉ : ${penSec}s`;
+      }
       body = `
         <div class="space-y-4">
           <div class="text-xs uppercase font-bold text-amber-400 text-center">Manche 1 • Le Synaxaire</div>
           <input id="buzz-input" type="text" placeholder="Optionnel : tapez la réponse..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white">
-          <button ${locked ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-8 rounded-2xl font-extrabold text-2xl ${locked ? 'bg-slate-700 text-slate-400' : 'bg-rose-600 text-white'}">
-            ${locked ? (state.buzzedBy.team === myTeam ? '🔔 VOUS AVEZ LA MAIN !' : `🔒 Verrouillé`) : '🔔 BUZZER !'}
+          <button id="captain-buzzer-btn" ${(locked || penalized) ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-8 rounded-2xl font-extrabold text-2xl ${btnClass}">
+            ${btnLabel}
           </button>
         </div>
       `;
@@ -1926,18 +2047,28 @@ function renderPlayer(root) {
       `;
     } else if (isCaptain) {
       const locked = state.buzzedBy !== null;
+      const penalized = !locked && isTeamBuzzerPenalized(myTeam);
+      const penSec = getTeamBuzzerPenaltyRemainingSec(myTeam);
+      let btnClass = 'bg-rose-600 text-white';
+      let btnLabel = '🔔 BUZZER !';
+      if (locked) {
+        btnClass = 'bg-slate-700 text-slate-400';
+        btnLabel = '🔒 Verrouillé';
+      } else if (penalized) {
+        btnClass = 'bg-slate-800 border-2 border-rose-500/70 text-rose-400 text-lg';
+        btnLabel = `⏳ PÉNALITÉ : ${penSec}s`;
+      }
       body = `
         <div class="space-y-4">
           <div class="text-xs text-center text-slate-300">Terminal <strong>${state.picDrawerSlot}</strong> dessine !</div>
           <input id="buzz-input" type="text" placeholder="Réponse optionnelle..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white">
-          <button ${locked ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-6 rounded-2xl font-extrabold text-xl ${locked ? 'bg-slate-700 text-slate-400' : 'bg-rose-600 text-white'}">🔔 BUZZER !</button>
+          <button id="captain-buzzer-btn" ${(locked || penalized) ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-6 rounded-2xl font-extrabold text-xl ${btnClass}">${btnLabel}</button>
         </div>
       `;
     } else {
       body = `<div class="text-center py-8 text-sm text-slate-300">Regardez le projecteur et soufflez la réponse !</div>`;
     }
   } else if (state.currentGame === 'APOSTLES') {
-    // Barre de progression globale des 3 équipes en haut de l'écran joueur
     const rivalsProgressBar = `
       <div class="bg-slate-950/90 border border-slate-700/80 rounded-xl p-2.5 space-y-2">
         <div class="text-[10px] uppercase tracking-wider font-extrabold text-slate-400 flex justify-between">
@@ -2138,8 +2269,10 @@ function submitApostleGuess(team, boxNum, apostleName) {
 
 function playerBuzz() {
   if (state.isManualPaused) return;
+  const team = parseInt(myRole[0], 10);
+  if (isTeamBuzzerPenalized(team)) return;
   const input = document.getElementById('buzz-input');
-  sendEvent('BUZZ', { slot: myRole, team: parseInt(myRole[0], 10), answer: input ? input.value.trim() : '' });
+  sendEvent('BUZZ', { slot: myRole, team, answer: input ? input.value.trim() : '' });
 }
 function submitFiestaWord(team) {
   if (state.isManualPaused) return;

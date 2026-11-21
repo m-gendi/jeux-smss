@@ -895,6 +895,7 @@ function handleNetworkMessage(packet) {
     if (state.isManualPaused) return;
 
     if (type === 'BUZZ') {
+      if (state.currentGame === 'SYNAXAIRE' && state.revealed) return;
       if (!state.buzzedBy && !isTeamBuzzerPenalized(data.team)) {
         state.buzzedBy = { slot: data.slot, team: data.team, answer: data.answer || '' };
         if (state.timerEndAt && state.timerEndAt > Date.now()) {
@@ -1036,7 +1037,7 @@ setInterval(() => {
   if (myRole !== 'HOST' && !state.isManualPaused && (state.currentGame === 'SYNAXAIRE' || state.currentGame === 'PICTIONARY')) {
     const myTeam = parseInt(myRole[0], 10);
     const isCaptain = myRole[1] === 'A';
-    if (isCaptain && !state.buzzedBy) {
+    if (isCaptain && !state.buzzedBy && !(state.currentGame === 'SYNAXAIRE' && state.revealed)) {
       const btn = document.getElementById('captain-buzzer-btn');
       if (btn) {
         if (isTeamBuzzerPenalized(myTeam)) {
@@ -1467,7 +1468,7 @@ function renderHost(root) {
               <button onclick="applyWrongBuzzPenalty(${state.buzzedBy.team})" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux (Bloquer 10s)</button>
             </div>
           </div>
-        ` : `<div class="text-center text-sm text-slate-400 italic py-2">En attente d'un buzz des téléphones 1A, 2A ou 3A...</div>`}
+        ` : (state.revealed ? `<div class="text-center text-sm text-emerald-400 font-bold py-2">✅ Manche validée — Buzzers verrouillés jusqu'à la manche suivante.</div>` : `<div class="text-center text-sm text-slate-400 italic py-2">En attente d'un buzz des téléphones 1A, 2A ou 3A...</div>`)}
         ${state.revealed ? `<div class="p-6 rounded-xl bg-emerald-950/90 border border-emerald-400 text-center"><div class="text-3xl font-extrabold text-white">${item.answer}</div></div>` : ''}
       </div>
     `;
@@ -1918,12 +1919,16 @@ function renderPlayer(root) {
     if (!isCaptain) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
     } else {
-      const locked = state.buzzedBy !== null;
-      const penalized = !locked && isTeamBuzzerPenalized(myTeam);
+      const roundCompleted = !!state.revealed;
+      const locked = !roundCompleted && state.buzzedBy !== null;
+      const penalized = !roundCompleted && !locked && isTeamBuzzerPenalized(myTeam);
       const penSec = getTeamBuzzerPenaltyRemainingSec(myTeam);
       let btnClass = 'bg-rose-600 text-white';
       let btnLabel = '🔔 BUZZER !';
-      if (locked) {
+      if (roundCompleted) {
+        btnClass = 'bg-emerald-900/70 border border-emerald-500/60 text-emerald-300 text-xl';
+        btnLabel = '✅ MANCHE VALIDÉE';
+      } else if (locked) {
         btnClass = 'bg-slate-700 text-slate-400';
         btnLabel = state.buzzedBy.team === myTeam ? '🔔 VOUS AVEZ LA MAIN !' : '🔒 Verrouillé';
       } else if (penalized) {
@@ -1933,8 +1938,8 @@ function renderPlayer(root) {
       body = `
         <div class="space-y-4">
           <div class="text-xs uppercase font-bold text-amber-400 text-center">Manche 1 • Le Synaxaire</div>
-          <input id="buzz-input" type="text" placeholder="Optionnel : tapez la réponse..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white">
-          <button id="captain-buzzer-btn" ${(locked || penalized) ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-8 rounded-2xl font-extrabold text-2xl ${btnClass}">
+          <input id="buzz-input" ${roundCompleted ? 'disabled' : ''} type="text" placeholder="Optionnel : tapez la réponse..." class="w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-white disabled:opacity-50">
+          <button id="captain-buzzer-btn" ${(roundCompleted || locked || penalized) ? 'disabled' : ''} onclick="playerBuzz()" class="w-full py-8 rounded-2xl font-extrabold text-2xl ${btnClass}">
             ${btnLabel}
           </button>
         </div>
@@ -2289,6 +2294,7 @@ function submitApostleGuess(team, boxNum, apostleName) {
 
 function playerBuzz() {
   if (state.isManualPaused) return;
+  if (state.currentGame === 'SYNAXAIRE' && state.revealed) return;
   const team = parseInt(myRole[0], 10);
   if (isTeamBuzzerPenalized(team)) return;
   const input = document.getElementById('buzz-input');

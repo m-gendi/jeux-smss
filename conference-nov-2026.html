@@ -430,7 +430,7 @@ const GAME_DATA = {
 
   pictionary: [
     "Le buisson ardent contenant la Vierge Marie (Théotokos) portant l'Enfant Jésus",
-    "Le pain du Qorban avec le Spoudikon (12 croix autour de la croix centrale) et les 5 trous",
+    "Le Spadikon du Korban",
     "Saint Athanase au Concile de Nicée tenant l'Évangile face à Arius",
     "Le prophète Ésaïe dont les lèvres sont purifiées par un séraphin avec un charbon ardent",
     "Saint Jean le Petit arrosant le bâton de bois sec qui devient un arbre fruitier",
@@ -438,12 +438,23 @@ const GAME_DATA = {
     "L'Archange Michel tenant l'épée de feu et la balance pesant les âmes",
     "Saint Simon le Tanneur portant une jarre d'eau face à la montagne du Mokattam qui s'élève",
     "Saint Bishoy lavant les pieds du Christ dans un bassin",
-    "L'autel copte avec le Korsi (coffre du calice), la patène surmontée du dôme (Qobba) et les deux éventails (Marawih)",
+    "Le Korsi sur l'autel (coffre du calice)",
     "Sainte Damienne entourée des 40 vierges martyres dans son palais monastique",
-    "Le cordonnier Anianus d'Alexandrie guéri par Saint Marc après s'être transpercé la main en réparant sa sandale",
+    "Malchus, le serviteur du grand prêtre Caïphe, à qui l'apôtre Simon-Pierre a coupé l'oreille droite",
     "Le jeune Samuel couché près de l'Arche d'Alliance dans le Temple d'Éli",
     "Saint Moïse le Noir marchant vers les moines avec un sac de sable percé qui coule derrière son dos",
     "Les 24 prêtres de l'Apocalypse portant des couronnes d'or et des coupes d'encens devant le Trône"
+    // 10 sujets supplémentaires (incluant des scènes et objets simples à dessiner)
+    "La colombe avec un rameau d'olivier",
+    "Les deux tables de la Loi (les 10 commandements)",
+    "L'échelle de Jacob touchant le ciel",
+    "La harpe du roi David",
+    "La couronne d'épines du Christ",
+    "La barque sur la tempête apaisée par Jésus",
+    "Le corbeau apportant du pain à Élie",
+    "Le livre de l'Agpeya posé sur une table",
+    "Le coq qui chante après le reniement de Pierre",
+    "La balance de justice"
   ],
 
   apostles: [
@@ -624,6 +635,11 @@ function applyWrongBuzzPenalty(team) {
   } else {
     broadcastState();
   }
+}
+
+function validateSynaxaireBuzz(team, pts) {
+  addPoints(team, pts);
+  startGame('SYNAXAIRE', state.roundIndex + 1);
 }
 
 function shuffleArray(arr) {
@@ -1036,7 +1052,7 @@ setInterval(() => {
 7. CONTRÔLES DU MAÎTRE DU JEU (HOST) & RESET GLOBAL COMPLET
    ============================================================================ */
 function addPoints(team, pts) {
-  state.scores[team] = Math.max(0, (state.scores[team] || 0) + pts);
+  state.scores[team] = (state.scores[team] || 0) + pts;
   broadcastState();
 }
 
@@ -1295,7 +1311,7 @@ function renderHost(root) {
         <button onclick="startGame('FIESTA', state.currentGame==='FIESTA'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='FIESTA'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">2. Évolution Copte (6)</button>
         <button onclick="startGame('UNDERCOVER', state.currentGame==='UNDERCOVER'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='UNDERCOVER'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">3. Undercover (20)</button>
         <button onclick="startGame('VERSES', state.currentGame==='VERSES'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
-        <button onclick="startGame('PICTIONARY', state.currentGame==='PICTIONARY'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (15)</button>
+        <button onclick="startGame('PICTIONARY', state.currentGame==='PICTIONARY'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (25)</button>
         <button onclick="startGame('APOSTLES', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='APOSTLES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">6. Les 12 Apôtres (5m)</button>
       </div>
       <div class="flex flex-wrap items-center gap-1 text-xs">
@@ -1443,7 +1459,7 @@ function renderHost(root) {
               ${state.buzzedBy.answer ? `<div class="text-lg text-amber-200 mt-1">« ${state.buzzedBy.answer} »</div>` : ''}
             </div>
             <div class="flex gap-2">
-              <button onclick="addPoints(${state.buzzedBy.team}, ${currentPts}); state.revealed=true; stopTimer(); broadcastState();" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">✅ Valider (+${currentPts} pts)</button>
+              <button onclick="validateSynaxaireBuzz(${state.buzzedBy.team}, ${currentPts})" class="bg-emerald-600 px-4 py-2 rounded-lg font-bold text-sm">✅ Valider (+${currentPts} pts) & Suivant</button>
               <button onclick="applyWrongBuzzPenalty(${state.buzzedBy.team})" class="bg-rose-700 px-4 py-2 rounded-lg font-bold text-sm">❌ Faux (Bloquer 10s)</button>
             </div>
           </div>

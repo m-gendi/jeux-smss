@@ -35,15 +35,20 @@
       85% { opacity: 1; transform: translateY(0) scale(1); }
       100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
     }
+    @keyframes podiumRise {
+      0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
     .anim-unlock-gold { animation: pulseGold 2.2s ease-out; border-color: #fbbf24 !important; }
     .anim-match-emerald { animation: pulseEmerald 2.4s ease-out; border-color: #34d399 !important; }
     .anim-number-pop { display: inline-block; animation: numberBounce 1.2s ease-out; }
     .anim-pop-banner { animation: popBanner 3.4s ease-in-out forwards; }
+    .anim-podium { animation: podiumRise 0.7s ease-out forwards; }
   </style>
 </head>
 <body class="coptic-bg min-h-screen flex flex-col justify-between">
 
-  <!-- BARRE SUPÉRIEURE : SCORES, TIMER & BOUTONS D'ACTION (LOGOUT JOUEUR / RESET GLOBAL MAÎTRE) -->
+  <!-- BARRE SUPÉRIEURE : SCORES, TIMER & BOUTONS D'ACTION -->
   <header class="border-b border-amber-600/30 bg-slate-900/95 backdrop-blur p-3 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center gap-3">
@@ -74,11 +79,16 @@
         </div>
       </div>
 
-      <!-- Statut, Reset Global Maître & Déconnexion (Maître ET Joueur) -->
+      <!-- Statut, Son, Reset Global Maître & Déconnexion -->
       <div class="flex flex-wrap items-center gap-2">
         <span id="role-badge" class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-amber-400 border border-amber-500/30 font-bold"></span>
         <span id="conn-badge" class="text-xs px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Connexion...</span>
-        
+
+        <!-- Bouton Son (Visible uniquement pour le Maître authentifié) -->
+        <button id="host-sound-btn" onclick="toggleSound()" class="hidden text-xs bg-slate-800 hover:bg-slate-700 border border-amber-500/40 px-2.5 py-1 rounded text-amber-300 font-bold">
+          🔊 Son ON
+        </button>
+
         <!-- Bouton Reset Global (Visible uniquement pour le Maître authentifié) -->
         <button id="host-reset-btn" onclick="resetEntireTournament()" class="hidden text-xs bg-red-900 hover:bg-red-700 border border-red-400 px-2.5 py-1 rounded text-white font-extrabold shadow">
           🗑️ RESET GLOBAL
@@ -89,7 +99,7 @@
           🔒 Déconnexion Maître
         </button>
 
-        <!-- Bouton Logout Joueur (Permet de quitter le rôle joueur et revenir en Maître) -->
+        <!-- Bouton Logout Joueur -->
         <button id="player-logout-btn" onclick="logoutPlayer()" class="hidden text-xs bg-rose-800 hover:bg-rose-700 border border-rose-500 px-2.5 py-1 rounded text-white font-bold">
           🚪 Quitter Terminal
         </button>
@@ -102,7 +112,7 @@
 
 <script>
 /* ============================================================================
-0. SÉCURITÉ CRYPTOGRAPHIQUE (MOT DE PASSE MAÎTRE)
+0. SÉCURITÉ CRYPTOGRAPHIQUE (MOT DE PASSE MAÎTRE) & AUDIO WEB API
    ============================================================================ */
 function simpleHash(str) {
   let hash = 0;
@@ -132,6 +142,78 @@ let isHostAuthenticated = sessionStorage.getItem('coptic_host_authed') === 'true
 let activeRemoteHost = { id: null, lastSeen: 0 };
 let authErrorMsg = "";
 
+// Moteur audio Web Audio API (zéro fichier MP3 externe)
+let soundEnabled = localStorage.getItem('coptic_sound_enabled') !== 'false';
+let audioCtx = null;
+
+function ensureAudioContext() {
+  if (!soundEnabled || myRole !== 'HOST') return null;
+  try {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    return audioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function playTone(freq, duration, type = 'sine', volume = 0.18, startOffset = 0) {
+  const ctx = ensureAudioContext();
+  if (!ctx) return;
+  try {
+    const now = ctx.currentTime + startOffset;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  } catch (e) {}
+}
+
+function playSound(kind) {
+  if (!soundEnabled || myRole !== 'HOST') return;
+  if (kind === 'buzz') {
+    playTone(520, 0.12, 'sawtooth', 0.22, 0);
+    playTone(780, 0.22, 'triangle', 0.22, 0.08);
+  } else if (kind === 'tick') {
+    playTone(880, 0.06, 'sine', 0.14, 0);
+  } else if (kind === 'timeout') {
+    playTone(330, 0.22, 'sawtooth', 0.2, 0);
+    playTone(220, 0.45, 'sawtooth', 0.22, 0.2);
+  } else if (kind === 'unlock') {
+    playTone(587.33, 0.12, 'triangle', 0.18, 0);
+    playTone(880, 0.25, 'triangle', 0.2, 0.1);
+  } else if (kind === 'success') {
+    playTone(523.25, 0.12, 'triangle', 0.18, 0);
+    playTone(659.25, 0.12, 'triangle', 0.18, 0.1);
+    playTone(783.99, 0.28, 'triangle', 0.2, 0.2);
+  } else if (kind === 'wrong') {
+    playTone(180, 0.28, 'sawtooth', 0.2, 0);
+  } else if (kind === 'podium') {
+    playTone(523.25, 0.14, 'triangle', 0.2, 0);
+    playTone(659.25, 0.14, 'triangle', 0.2, 0.14);
+    playTone(783.99, 0.14, 'triangle', 0.2, 0.28);
+    playTone(1046.5, 0.45, 'triangle', 0.24, 0.42);
+  }
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('coptic_sound_enabled', soundEnabled ? 'true' : 'false');
+  if (soundEnabled) playSound('unlock');
+  updateRoleBadgeAndButtons();
+}
+
 /* ============================================================================
 1. ROUTAGE ET GESTION DES RÔLES (AVEC DÉCONNEXION JOUEUR)
    ============================================================================ */
@@ -158,6 +240,7 @@ function updateRoleBadgeAndButtons() {
   const badge = document.getElementById('role-badge');
   const hostLogoutBtn = document.getElementById('host-logout-btn');
   const hostResetBtn = document.getElementById('host-reset-btn');
+  const hostSoundBtn = document.getElementById('host-sound-btn');
   const playerLogoutBtn = document.getElementById('player-logout-btn');
 
   if (myRole === 'HOST') {
@@ -166,14 +249,20 @@ function updateRoleBadgeAndButtons() {
     if (isHostAuthenticated) {
       if (hostLogoutBtn) hostLogoutBtn.classList.remove('hidden');
       if (hostResetBtn) hostResetBtn.classList.remove('hidden');
+      if (hostSoundBtn) {
+        hostSoundBtn.classList.remove('hidden');
+        hostSoundBtn.textContent = soundEnabled ? '🔊 Son ON' : '🔇 Son OFF';
+      }
     } else {
       if (hostLogoutBtn) hostLogoutBtn.classList.add('hidden');
       if (hostResetBtn) hostResetBtn.classList.add('hidden');
+      if (hostSoundBtn) hostSoundBtn.classList.add('hidden');
     }
   } else {
     badge.textContent = `📱 Terminal ${myRole}`;
     if (hostLogoutBtn) hostLogoutBtn.classList.add('hidden');
     if (hostResetBtn) hostResetBtn.classList.add('hidden');
+    if (hostSoundBtn) hostSoundBtn.classList.add('hidden');
     if (playerLogoutBtn) playerLogoutBtn.classList.remove('hidden');
   }
 }
@@ -456,8 +545,7 @@ const GAME_DATA = {
     "Les 24 prêtres de l'Apocalypse portant des couronnes d'or et des coupes d'encens devant le Trône"
   ],
 
-  // VÉRIFIÉ SELON LE SYNAXAIRE COPTE ORTHODOXE : chaque définition correspond exactement à son apôtre
-  apostles: [
+apostles: [
     {
       id: 1,
       apostle: "Pierre (Céphas)",
@@ -544,9 +632,9 @@ const GAME_DATA = {
     }
   ]
 };
-
+  
 /* ============================================================================
-3. ÉTAT GLOBAL PERSISTANT
+3. ÉTAT GLOBAL PERSISTANT & MÉMOIRE LOCALE (DESSIN, PRÉSENCE, HORLOGE)
    ============================================================================ */
 const DEFAULT_STATE = {
   stateVersion: 1,
@@ -601,6 +689,25 @@ let isSecretWordHeld = false;
 let qrDisplayMode = 'ALL';
 let qrOneByOneIndex = 0;
 
+// Mémoire locale de dessin (survit aux re-renders lors d'un buzz ou d'une pause)
+let localDrawingHistory = [];
+let localDrawingRoundId = null;
+
+// Présence des 6 terminaux dans le Lobby (côté Maître)
+let connectedPlayers = {};
+
+// Synchronisation d'horloge (compense le décalage entre l'horloge du PC Maître et celle des téléphones)
+let clockOffset = 0;
+function serverNow() {
+  return myRole === 'HOST' ? Date.now() : (Date.now() + clockOffset);
+}
+
+// Mémoire pour le tic-tac sonore des 5 dernières secondes
+let lastTickSecond = null;
+
+// Clé de contexte pour savoir si on doit préserver les saisies joueur en cours
+let lastPlayerFormContext = '';
+
 function loadPersistedState() {
   try {
     const saved = localStorage.getItem('coptic_conf_persisted_state_v2');
@@ -620,15 +727,16 @@ function savePersistedState() {
 function isTeamBuzzerPenalized(team) {
   if (state.currentGame !== 'SYNAXAIRE' && state.currentGame !== 'PICTIONARY') return false;
   const until = (state.buzzerPenaltyUntil && state.buzzerPenaltyUntil[team]) ? state.buzzerPenaltyUntil[team] : 0;
-  return until > Date.now();
+  return until > serverNow();
 }
 
 function getTeamBuzzerPenaltyRemainingSec(team) {
   const until = (state.buzzerPenaltyUntil && state.buzzerPenaltyUntil[team]) ? state.buzzerPenaltyUntil[team] : 0;
-  return Math.max(0, Math.ceil((until - Date.now()) / 1000));
+  return Math.max(0, Math.ceil((until - serverNow()) / 1000));
 }
 
 function applyWrongBuzzPenalty(team) {
+  playSound('wrong');
   state.buzzerPenaltyUntil = state.buzzerPenaltyUntil || { 1: 0, 2: 0, 3: 0 };
   state.buzzerPenaltyUntil[team] = Date.now() + 10000;
   state.buzzedBy = null;
@@ -640,6 +748,7 @@ function applyWrongBuzzPenalty(team) {
 }
 
 function validateSynaxaireBuzz(team, pts) {
+  playSound('success');
   state.scores[team] = (state.scores[team] || 0) + pts;
   state.buzzedBy = null;
   state.revealed = true;
@@ -697,6 +806,10 @@ function getTeamCorrectApostlesCount(team) {
   return count;
 }
 
+function isPlayerOnline(slot) {
+  return !!(connectedPlayers[slot] && (Date.now() - connectedPlayers[slot] < 11000));
+}
+
 let currentDrawColor = '#0f172a';
 let currentDrawWidth = 3;
 let mqttClient = null;
@@ -729,6 +842,7 @@ function initMqtt() {
           announceHostLock('WHO_IS_HOST');
         }
       } else {
+        sendEvent('PLAYER_PING', { slot: myRole });
         sendEvent('REQUEST_STATE', {});
       }
     });
@@ -753,7 +867,7 @@ function initMqtt() {
 }
 
 /* ============================================================================
-4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE
+4. GESTION DU VERROU EXCLUSIF DE L'ÉCRAN MAÎTRE & PING PRÉSENCE JOUEURS
    ============================================================================ */
 function announceHostLock(action) {
   if (!mqttClient || !mqttClient.connected) return;
@@ -784,12 +898,17 @@ setInterval(() => {
   if (myRole === 'HOST') {
     if (isHostAuthenticated) {
       announceHostLock('HEARTBEAT');
+      if (state.currentGame === 'LOBBY') {
+        updateLobbyPresenceBadges();
+      }
     } else if (activeRemoteHost.id && Date.now() - activeRemoteHost.lastSeen >= 7500) {
       activeRemoteHost = { id: null, lastSeen: 0 };
       render();
     }
+  } else {
+    sendEvent('PLAYER_PING', { slot: myRole });
   }
-}, 3000);
+}, 3500);
 
 window.addEventListener('beforeunload', () => {
   if (myRole === 'HOST' && isHostAuthenticated) {
@@ -833,7 +952,7 @@ function logoutHost() {
 }
 
 /* ============================================================================
-5. SYNCHRONISATION RÉSEAU & PERSISTANCE (FIABILISÉE POUR PAUSE / REPRISE)
+5. SYNCHRONISATION RÉSEAU & PERSISTANCE
    ============================================================================ */
 function sendEvent(type, data) {
   const packet = { type, data, sender: myRole, ts: Date.now() };
@@ -843,13 +962,13 @@ function sendEvent(type, data) {
 }
 
 function broadcastState() {
-  state.stateVersion = (state.stateVersion || 0) + 1;
+  // Garantit une version strictement croissante même si on change de PC Maître en cours de conférence
+  state.stateVersion = Math.max((state.stateVersion || 0) + 1, Date.now());
   savePersistedState();
   if (myRole === 'HOST' && isHostAuthenticated) {
     const packet = { type: 'STATE_SYNC', data: state, sender: 'HOST', ts: Date.now() };
     const payloadStr = JSON.stringify(packet);
     if (mqttClient && mqttClient.connected) {
-      // Double diffusion : canal temps réel (ROOM) + message retenu (STATE) en QoS 1 pour qu'aucun mobile ne rate la reprise
       mqttClient.publish(MQTT_TOPIC_ROOM, payloadStr, { qos: 1 });
       mqttClient.publish(MQTT_TOPIC_STATE, payloadStr, { qos: 1, retain: true });
     }
@@ -865,10 +984,12 @@ function switchToFiestaVoting() {
 
 function handleNetworkMessage(packet) {
   if (!packet) return;
-  const { type, data } = packet;
+  const { type, data, sender, ts } = packet;
 
   if (type === 'FORCE_GLOBAL_RESET') {
     state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    localDrawingHistory = [];
+    localDrawingRoundId = null;
     try { localStorage.removeItem('coptic_conf_persisted_state_v2'); } catch (e) {}
     clearCanvasUI();
     render();
@@ -881,31 +1002,51 @@ function handleNetworkMessage(packet) {
   if (type === 'STATE_SYNC') {
     if (myRole !== 'HOST') {
       if (data && typeof data.stateVersion === 'number' && typeof state.stateVersion === 'number' && data.stateVersion < state.stateVersion) {
-        return; // Ignore un ancien paquet retenu si un paquet plus récent a déjà été reçu via ROOM
+        return;
       }
-      const hadBuzzBefore = !!state.buzzedBy;
+      if (typeof ts === 'number') {
+        clockOffset = ts - Date.now();
+      }
       state = Object.assign({}, DEFAULT_STATE, data);
+      if (state.picRoundId !== localDrawingRoundId) {
+        localDrawingHistory = [];
+        localDrawingRoundId = state.picRoundId;
+      }
       if (state.ucVotingOpen || state.ucRevealed || state.isManualPaused) {
         isSecretWordHeld = false;
       }
       savePersistedState();
       render();
-      if (!hadBuzzBefore && !state.buzzedBy) {
-        const buzzEl = document.getElementById('buzz-input');
-        if (buzzEl) buzzEl.value = '';
-      }
     }
   } else if (type === 'DRAW_BATCH') {
     if (state.isManualPaused) return;
+    if (sender === myRole) return; // Ignore ses propres paquets renvoyés par le broker
     if (data.roundId === state.picRoundId) {
+      if (localDrawingRoundId !== state.picRoundId) {
+        localDrawingHistory = [];
+        localDrawingRoundId = state.picRoundId;
+      }
+      localDrawingHistory.push(...data.segments);
       drawBatchOnCanvas(data.segments);
     }
   } else if (type === 'CLEAR_CANVAS') {
     if (data.roundId === state.picRoundId) {
+      localDrawingHistory = [];
       clearCanvasUI();
     }
   } else if (myRole === 'HOST' && isHostAuthenticated) {
+    if (type === 'PLAYER_PING' && data && VALID_PLAYER_SLOTS.includes(data.slot)) {
+      connectedPlayers[data.slot] = Date.now();
+      if (state.currentGame === 'LOBBY') {
+        updateLobbyPresenceBadges();
+      }
+      return;
+    }
+
     if (type === 'REQUEST_STATE') {
+      if (sender && VALID_PLAYER_SLOTS.includes(sender)) {
+        connectedPlayers[sender] = Date.now();
+      }
       broadcastState();
       return;
     }
@@ -915,6 +1056,7 @@ function handleNetworkMessage(packet) {
     if (type === 'BUZZ') {
       if (state.currentGame === 'SYNAXAIRE' && state.revealed) return;
       if (!state.buzzedBy && !isTeamBuzzerPenalized(data.team)) {
+        playSound('buzz');
         state.buzzedBy = { slot: data.slot, team: data.team, answer: (data.answer || '').trim() };
         if (state.timerEndAt && state.timerEndAt > Date.now()) {
           state.timerRemainingPaused = Math.ceil((state.timerEndAt - Date.now()) / 1000);
@@ -928,6 +1070,7 @@ function handleNetworkMessage(packet) {
         chain.history.push(data.word);
         chain.currentWord = data.word;
         chain.step += 1;
+        playSound('unlock');
         if (state.fiestaChains[1].step >= 4 && state.fiestaChains[2].step >= 4 && state.fiestaChains[3].step >= 4) {
           switchToFiestaVoting();
           return;
@@ -936,6 +1079,7 @@ function handleNetworkMessage(packet) {
       }
     } else if (type === 'FIESTA_VOTE') {
       state.fiestaVotes[data.team] = data.guesses;
+      playSound('unlock');
       broadcastState();
     } else if (type === 'UC_VOTE') {
       if (!state.ucVotingOpen || state.ucRevealed) return;
@@ -956,6 +1100,7 @@ function handleNetworkMessage(packet) {
       if (!exists) {
         const elapsed = ((Date.now() - state.verseStartTime) / 1000).toFixed(1);
         state.verseSubmissions.push({ team: data.team, text: data.text, time: elapsed + 's' });
+        playSound('unlock');
         broadcastState();
       }
     } else if (type === 'APOSTLE_UNLOCK') {
@@ -974,6 +1119,7 @@ function handleNetworkMessage(packet) {
         boxNum: data.boxNum,
         ts: nowTs
       };
+      playSound('unlock');
       broadcastState();
     } else if (type === 'APOSTLE_GUESS') {
       state.apostlesProgress = state.apostlesProgress || { 1: { unlocked: {}, guesses: {}, lastEvent: null }, 2: { unlocked: {}, guesses: {}, lastEvent: null }, 3: { unlocked: {}, guesses: {}, lastEvent: null } };
@@ -997,12 +1143,13 @@ function handleNetworkMessage(packet) {
 }
 
 /* ============================================================================
-6. CHRONOMÈTRE PERSISTANT (AVEC BLOCAGE DES TERMINAUX EN PAUSE MANUELLE)
+6. CHRONOMÈTRE PERSISTANT (AVEC HORLOGE SYNCHRONISÉE & TIC-TAC AUDIO)
    ============================================================================ */
 function startTimer(seconds) {
   state.timerEndAt = Date.now() + seconds * 1000;
   state.timerRemainingPaused = null;
   state.isManualPaused = false;
+  lastTickSecond = null;
   broadcastState();
 }
 
@@ -1010,19 +1157,18 @@ function stopTimer() {
   state.timerEndAt = null;
   state.timerRemainingPaused = null;
   state.isManualPaused = false;
+  lastTickSecond = null;
   broadcastState();
 }
 
 function toggleTimerPause() {
   if (state.isManualPaused) {
-    // Reprise explicite : déverrouille immédiatement les terminaux et relance le chrono si un temps restait
     state.isManualPaused = false;
     if (state.timerRemainingPaused !== null && state.timerRemainingPaused > 0) {
       state.timerEndAt = Date.now() + state.timerRemainingPaused * 1000;
       state.timerRemainingPaused = null;
     }
   } else {
-    // Mise en pause explicite : fige le chrono et verrouille les terminaux
     if (state.timerEndAt && state.timerEndAt > Date.now()) {
       state.timerRemainingPaused = Math.max(1, Math.ceil((state.timerEndAt - Date.now()) / 1000));
       state.timerEndAt = null;
@@ -1038,12 +1184,21 @@ setInterval(() => {
   if (box && disp) {
     if (state.timerEndAt) {
       box.classList.remove('hidden');
-      const rem = Math.max(0, Math.ceil((state.timerEndAt - Date.now()) / 1000));
+      const rem = Math.max(0, Math.ceil((state.timerEndAt - serverNow()) / 1000));
       disp.textContent = rem + 's';
-      if (rem === 0 && myRole === 'HOST' && isHostAuthenticated) {
-        state.timerEndAt = null;
-        savePersistedState();
-        broadcastState();
+
+      if (myRole === 'HOST' && isHostAuthenticated) {
+        if (rem > 0 && rem <= 5 && rem !== lastTickSecond) {
+          lastTickSecond = rem;
+          playSound('tick');
+        }
+        if (rem === 0) {
+          lastTickSecond = null;
+          playSound('timeout');
+          state.timerEndAt = null;
+          savePersistedState();
+          broadcastState();
+        }
       }
     } else if (state.timerRemainingPaused !== null && state.timerRemainingPaused !== undefined) {
       box.classList.remove('hidden');
@@ -1073,13 +1228,14 @@ setInterval(() => {
       }
     }
   }
-}, 300);
+}, 250);
 
 /* ============================================================================
 7. CONTRÔLES DU MAÎTRE DU JEU (HOST) & RESET GLOBAL COMPLET
    ============================================================================ */
 function addPoints(team, pts) {
   state.scores[team] = (state.scores[team] || 0) + pts;
+  if (pts > 0) playSound('success');
   broadcastState();
 }
 
@@ -1089,6 +1245,8 @@ function resetEntireTournament() {
   state = JSON.parse(JSON.stringify(DEFAULT_STATE));
   state.stateVersion = Date.now();
   state.picRoundId = Date.now();
+  localDrawingHistory = [];
+  localDrawingRoundId = state.picRoundId;
 
   try {
     localStorage.removeItem('coptic_conf_persisted_state_v2');
@@ -1123,6 +1281,7 @@ function startGame(gameName, roundIdx = 0) {
   state.timerRemainingPaused = null;
   state.isManualPaused = false;
   isSecretWordHeld = false;
+  lastTickSecond = null;
 
   if (gameName === 'SYNAXAIRE') {
     state.clueStep = 0;
@@ -1178,6 +1337,8 @@ function startGame(gameName, roundIdx = 0) {
     state.picDrawerSlot = slots[state.roundIndex % slots.length];
     state.picPrompt = GAME_DATA.pictionary[state.roundIndex % GAME_DATA.pictionary.length];
     state.picRoundId = (state.picRoundId || 1) + 1;
+    localDrawingHistory = [];
+    localDrawingRoundId = state.picRoundId;
     startTimer(90);
   } else if (gameName === 'APOSTLES') {
     state.apostlesBoxOrder = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
@@ -1191,6 +1352,8 @@ function startGame(gameName, roundIdx = 0) {
     state.apostlesRevealed = false;
     selectedApostleBox = 1;
     startTimer(300);
+  } else if (gameName === 'PODIUM') {
+    playSound('podium');
   }
   broadcastState();
 }
@@ -1223,10 +1386,11 @@ function revealAndScoreUndercover() {
         }
       });
       if (foundCount > 0) {
-        state.scores[team] = (state.scores[team] || 0) + foundCount * 15; // +15 pts par infiltré trouvé
+        state.scores[team] = (state.scores[team] || 0) + foundCount * 15;
       }
     });
     state.ucScored = true;
+    playSound('success');
   }
   state.ucRevealed = true;
   stopTimer();
@@ -1249,6 +1413,7 @@ function scoreFiestaAutomatically() {
   });
   state.fiestaScored = true;
   state.fiestaPhase = 'REVEAL';
+  playSound('success');
   broadcastState();
 }
 
@@ -1259,6 +1424,7 @@ function scoreApostlesAutomatically() {
       state.scores[team] += correctCount * 5;
     });
     state.apostlesScored = true;
+    playSound('success');
   }
   state.apostlesRevealed = true;
   stopTimer();
@@ -1273,12 +1439,69 @@ function unlockAllApostlesBoxesForAll() {
     }
     state.apostlesProgress[t].lastEvent = { type: 'UNLOCK', boxNum: 'TOUS', ts: Date.now() };
   });
+  playSound('unlock');
   broadcastState();
 }
 
+function getSortedTeamsRanking() {
+  const teams = [
+    { team: 1, name: "Équipe 1", score: state.scores[1] || 0, color: "text-blue-300", border: "border-blue-500", bg: "bg-blue-950/60" },
+    { team: 2, name: "Équipe 2", score: state.scores[2] || 0, color: "text-emerald-300", border: "border-emerald-500", bg: "bg-emerald-950/60" },
+    { team: 3, name: "Équipe 3", score: state.scores[3] || 0, color: "text-purple-300", border: "border-purple-500", bg: "bg-purple-950/60" }
+  ];
+  return teams.sort((a, b) => b.score - a.score);
+}
+
 /* ============================================================================
-8. RENDU GRAPHIQUE
+8. RENDU GRAPHIQUE (AVEC PRÉSERVATION DES SAISIES JOUEURS & REDRAW CANVAS)
    ============================================================================ */
+function getPlayerFormContextKey() {
+  const myTeam = myRole !== 'HOST' ? parseInt(myRole[0], 10) : 0;
+  const fiestaStep = (state.currentGame === 'FIESTA' && state.fiestaChains && state.fiestaChains[myTeam])
+    ? `${state.fiestaPhase}_${state.fiestaChains[myTeam].step}`
+    : '';
+  const apostleCtx = state.currentGame === 'APOSTLES' ? `box_${selectedApostleBox}` : '';
+  return `${state.currentGame}|${state.roundIndex}|${fiestaStep}|${apostleCtx}|${state.revealed}|${state.isManualPaused}`;
+}
+
+function capturePlayerInputs() {
+  const ctxKey = getPlayerFormContextKey();
+  if (ctxKey !== lastPlayerFormContext) {
+    lastPlayerFormContext = ctxKey;
+    return null; // Nouveau contexte / nouvelle manche : on ne restaure pas l'ancien texte
+  }
+  const activeId = document.activeElement ? document.activeElement.id : null;
+  const selStart = (document.activeElement && typeof document.activeElement.selectionStart === 'number') ? document.activeElement.selectionStart : null;
+  const selEnd = (document.activeElement && typeof document.activeElement.selectionEnd === 'number') ? document.activeElement.selectionEnd : null;
+
+  const ids = ['buzz-input', 'fiesta-word', 'verse-input', 'apostle-riddle-input', 'fiesta-sel-1', 'fiesta-sel-2', 'fiesta-sel-3'];
+  const values = {};
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) values[id] = el.value;
+  });
+  return { activeId, selStart, selEnd, values };
+}
+
+function restorePlayerInputs(snapshot) {
+  if (!snapshot) return;
+  Object.keys(snapshot.values).forEach(id => {
+    const el = document.getElementById(id);
+    if (el && snapshot.values[id] !== undefined && snapshot.values[id] !== '') {
+      el.value = snapshot.values[id];
+    }
+  });
+  if (snapshot.activeId) {
+    const activeEl = document.getElementById(snapshot.activeId);
+    if (activeEl && !activeEl.disabled) {
+      activeEl.focus();
+      if (snapshot.selStart !== null && typeof activeEl.setSelectionRange === 'function') {
+        try { activeEl.setSelectionRange(snapshot.selStart, snapshot.selEnd); } catch (e) {}
+      }
+    }
+  }
+}
+
 function render() {
   updateScoreHeader();
   const root = document.getElementById('app-container');
@@ -1288,14 +1511,32 @@ function render() {
       renderHostLoginGate(root);
     } else {
       renderHost(root);
-      if (state.currentGame === 'PICTIONARY') initCanvasForElement('host-canvas');
+      if (state.currentGame === 'PICTIONARY') {
+        initCanvasForElement('host-canvas');
+        redrawLocalCanvas('host-canvas');
+      }
     }
   } else {
+    const inputSnapshot = capturePlayerInputs();
     renderPlayer(root);
+    restorePlayerInputs(inputSnapshot);
     if (!state.isManualPaused && state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
       initCanvasForElement('player-canvas');
+      redrawLocalCanvas('player-canvas');
     }
   }
+}
+
+function updateLobbyPresenceBadges() {
+  VALID_PLAYER_SLOTS.forEach(slot => {
+    const el = document.getElementById(`presence-badge-${slot}`);
+    if (!el) return;
+    const online = isPlayerOnline(slot);
+    el.textContent = online ? '🟢 Connecté' : '⚪ En attente';
+    el.className = online
+      ? 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+      : 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700';
+  });
 }
 
 function renderHostLoginGate(root) {
@@ -1363,6 +1604,7 @@ function renderHost(root) {
         <button onclick="startGame('VERSES', state.currentGame==='VERSES'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='VERSES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">4. Versets (12)</button>
         <button onclick="startGame('PICTIONARY', state.currentGame==='PICTIONARY'?state.roundIndex:0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PICTIONARY'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">5. Iconographe (25)</button>
         <button onclick="startGame('APOSTLES', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='APOSTLES'?'bg-amber-500 text-slate-950':'bg-slate-800 text-slate-300'}">6. Les 12 Apôtres (5m)</button>
+        <button onclick="startGame('PODIUM', 0)" class="px-3 py-1.5 rounded-lg text-xs font-bold ${state.currentGame==='PODIUM'?'bg-yellow-400 text-slate-950 shadow':'bg-slate-800 text-amber-300 border border-amber-500/40'}">🏆 Podium</button>
       </div>
       <div class="flex flex-wrap items-center gap-1 text-xs">
         <button onclick="addPoints(1, 10)" class="bg-blue-700 hover:bg-blue-600 px-2 py-1 rounded font-bold">+10 Éq.1</button>
@@ -1395,6 +1637,8 @@ function renderHost(root) {
       { team: 3, name: "ÉQUIPE 3", border: "border-purple-500/50", bg: "bg-purple-950/40", text: "text-purple-300", slots: ['3A', '3B'] }
     ];
 
+    const onlineCount = VALID_PLAYER_SLOTS.filter(s => isPlayerOnline(s)).length;
+
     const switchBarHtml = `
       <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-xl p-2">
         <span class="text-xs font-bold text-slate-400 mr-1">Affichage des QR Codes :</span>
@@ -1404,6 +1648,9 @@ function renderHost(root) {
         <button onclick="setQrDisplayMode('ONE_BY_ONE')" class="px-3.5 py-1.5 rounded-lg text-xs font-extrabold transition ${qrDisplayMode === 'ONE_BY_ONE' ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}">
           1 par 1 (Connexion guidée)
         </button>
+        <span class="ml-2 text-xs font-extrabold px-2.5 py-1 rounded-full ${onlineCount === 6 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-amber-300 border border-slate-700'}">
+          📱 ${onlineCount} / 6 connectés
+        </span>
       </div>
     `;
 
@@ -1419,11 +1666,15 @@ function renderHost(root) {
                   const targetUrl = `${baseUrl}?role=${slot}`;
                   const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(targetUrl)}`;
                   const isCap = slot.endsWith('A');
+                  const online = isPlayerOnline(slot);
                   return `
                     <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-2.5 flex flex-col items-center space-y-2">
                       <a href="?role=${slot}" class="text-xs font-extrabold text-white px-2 py-0.5 rounded bg-slate-800 hover:bg-amber-600 transition">Terminal ${slot}</a>
                       <img src="${qrImg}" alt="QR ${slot}" class="w-28 h-28 rounded-lg bg-white p-1">
                       <span class="text-[10px] uppercase tracking-wider font-bold ${isCap ? 'text-amber-400' : 'text-slate-400'}">${isCap ? 'Capitaine' : 'Second'}</span>
+                      <span id="presence-badge-${slot}" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${online ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                        ${online ? '🟢 Connecté' : '⚪ En attente'}
+                      </span>
                     </div>
                   `;
                 }).join('')}
@@ -1439,15 +1690,17 @@ function renderHost(root) {
       const teamMeta = teamsConfig.find(t => t.team === currentTeamNum) || teamsConfig[0];
       const targetUrl = `${baseUrl}?role=${currentSlot}`;
       const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(targetUrl)}`;
+      const online = isPlayerOnline(currentSlot);
 
       qrBodyHtml = `
         <div class="max-w-lg mx-auto space-y-4">
           <div class="flex flex-wrap justify-center gap-1.5">
             ${VALID_PLAYER_SLOTS.map((slot, idx) => {
               const active = idx === qrOneByOneIndex;
+              const slotOn = isPlayerOnline(slot);
               return `
                 <button onclick="selectQrOneByOneIndex(${idx})" class="px-3 py-1 rounded-lg text-xs font-extrabold border transition ${active ? 'bg-amber-500 text-slate-950 border-amber-300 scale-105' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}">
-                  ${slot}
+                  ${slot} ${slotOn ? '🟢' : '⚪'}
                 </button>
               `;
             }).join('')}
@@ -1457,6 +1710,11 @@ function renderHost(root) {
             <div class="text-center space-y-1">
               <div class="text-xs uppercase tracking-widest font-extrabold ${teamMeta.text}">${teamMeta.name} • ${isCap ? 'Capitaine' : 'Second'} (${qrOneByOneIndex + 1} / 6)</div>
               <a href="?role=${currentSlot}" class="text-2xl font-extrabold text-white hover:text-amber-300 transition inline-block">Terminal ${currentSlot}</a>
+              <div>
+                <span id="presence-badge-${currentSlot}" class="inline-block text-xs font-extrabold px-3 py-0.5 rounded-full ${online ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400 border border-slate-700'}">
+                  ${online ? '🟢 Connecté' : '⚪ En attente'}
+                </span>
+              </div>
             </div>
             <img src="${qrImg}" alt="QR ${currentSlot}" class="w-56 h-56 rounded-2xl bg-white p-2 shadow-lg">
             <div class="flex items-center gap-3 pt-1">
@@ -1476,6 +1734,37 @@ function renderHost(root) {
         </div>
         ${switchBarHtml}
         ${qrBodyHtml}
+      </div>
+    `;
+  } else if (state.currentGame === 'PODIUM') {
+    const ranking = getSortedTeamsRanking();
+    const medals = ['🥇', '🥈', '🥉'];
+    const heights = ['min-h-[240px] border-yellow-400 bg-yellow-500/15', 'min-h-[195px] border-slate-300 bg-slate-400/15', 'min-h-[165px] border-amber-700 bg-amber-900/20'];
+    const podiumOrder = [1, 0, 2]; // 2e à gauche, 1er au centre, 3e à droite
+
+    content = `
+      <div class="bg-slate-900/90 border-2 border-amber-500/50 rounded-3xl p-8 space-y-8 text-center shadow-2xl">
+        <div class="space-y-2">
+          <div class="text-5xl">🏆</div>
+          <h2 class="text-3xl sm:text-4xl font-extrabold text-amber-400">Classement Final — Conférence des Serviteurs</h2>
+          <p class="text-sm text-slate-300">« Que personne ne méprise ta jeunesse » (1 Timothée 4:12)</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end max-w-4xl mx-auto pt-4">
+          ${podiumOrder.map(rankIdx => {
+            const t = ranking[rankIdx];
+            return `
+              <div class="anim-podium rounded-2xl border-2 ${heights[rankIdx]} p-6 flex flex-col justify-between items-center space-y-3 shadow-xl">
+                <div class="text-5xl">${medals[rankIdx]}</div>
+                <div>
+                  <div class="text-xs uppercase tracking-widest font-bold text-slate-400">${rankIdx === 0 ? '1re Place' : (rankIdx === 1 ? '2e Place' : '3e Place')}</div>
+                  <div class="text-2xl font-extrabold ${t.color} mt-1">${t.name}</div>
+                </div>
+                <div class="text-5xl font-black text-white">${t.score} <span class="text-base font-bold text-amber-300">pts</span></div>
+              </div>
+            `;
+          }).join('')}
+        </div>
       </div>
     `;
   } else if (state.currentGame === 'SYNAXAIRE') {
@@ -1815,7 +2104,6 @@ function renderHost(root) {
 
                 ${bannerHtml}
 
-                <!-- COMPTEURS GÉANTS : COFFRES OUVERTS & ASSOCIATIONS EFFECTUÉES (OU JUSTES APRÈS RÉVÉLATION) -->
                 <div class="grid grid-cols-2 gap-3 text-center">
                   <div class="bg-slate-900/95 border-2 border-amber-500/50 rounded-xl p-3 shadow-inner">
                     <div class="text-[11px] uppercase tracking-wider font-extrabold text-amber-300">🔓 Coffres Ouverts</div>
@@ -1834,7 +2122,6 @@ function renderHost(root) {
                   `}
                 </div>
 
-                <!-- MINI-GRILLE VISUELLE DES 12 COFFRES DE L'ÉQUIPE EN DIRECT -->
                 <div class="space-y-1">
                   <div class="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex justify-between">
                     <span>Coffres & Associations de l'Équipe ${t}</span>
@@ -1883,7 +2170,6 @@ function renderHost(root) {
                   </div>
                 </div>
 
-                <!-- DOUBLE BARRE DE PROGRESSION -->
                 <div class="space-y-1.5 pt-1">
                   <div class="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800" title="Coffres ouverts">
                     <div class="bg-amber-500 h-full transition-all duration-500" style="width: ${(unlockedCount/12)*100}%"></div>
@@ -1897,7 +2183,6 @@ function renderHost(root) {
           }).join('')}
         </div>
 
-        <!-- GRILLE DES 12 COFFRES SUR LE PROJECTEUR -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           ${boxOrder.map((itemId, idx) => {
             const boxNum = idx + 1;
@@ -1965,6 +2250,23 @@ function renderPlayer(root) {
 
   if (state.currentGame === 'LOBBY') {
     body = `<div class="text-center py-10 space-y-3"><div class="text-4xl">☦️</div><div class="text-xl font-bold text-white">Terminal ${myRole} prêt</div><p class="text-sm text-slate-400">Connecté pour l'Équipe ${myTeam}. Si vous êtes l'animateur, cliquez sur « 🚪 Quitter Terminal » en haut à droite.</p></div>`;
+  } else if (state.currentGame === 'PODIUM') {
+    const ranking = getSortedTeamsRanking();
+    const medals = ['🥇', '🥈', '🥉'];
+    body = `
+      <div class="space-y-4 text-center py-4">
+        <div class="text-4xl">🏆</div>
+        <div class="text-lg font-extrabold text-amber-400">Classement Final</div>
+        <div class="space-y-2">
+          ${ranking.map((t, idx) => `
+            <div class="flex items-center justify-between px-4 py-3 rounded-xl border ${t.team === myTeam ? 'border-amber-400 bg-amber-500/15' : 'border-slate-700 bg-slate-800/80'}">
+              <span class="font-extrabold text-white">${medals[idx]} ${t.name}${t.team === myTeam ? ' (Vous)' : ''}</span>
+              <span class="font-black text-amber-300">${t.score} pts</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
   } else if (state.currentGame === 'SYNAXAIRE') {
     if (!isCaptain) {
       body = `<div class="text-center py-8 text-sm text-slate-300">Soufflez la réponse à votre capitaine (<strong>Téléphone ${myTeam}A</strong>) !</div>`;
@@ -2048,24 +2350,23 @@ function renderPlayer(root) {
     const myVotesArr = Array.isArray(state.ucVotes[myTeam]) ? state.ucVotes[myTeam] : [];
     const slots = ['1A', '1B', '2A', '2B', '3A', '3B'];
 
-    // Pendant la phase de vote ou de révélation, le mot secret est complètement retiré de l'écran joueur pour éviter toute triche
     const secretWordCardHtml = (!state.ucVotingOpen && !state.ucRevealed) ? `
       <div class="bg-slate-800 border-2 border-amber-500/50 rounded-2xl p-5 text-center space-y-3 select-none">
         <div class="text-xs uppercase text-slate-400 font-bold">Votre Mot Secret (Maintenez l'œil appuyé)</div>
-        <div class="text-2xl font-extrabold text-amber-300 min-h-[2.25rem] flex items-center justify-center tracking-wider">
+        <div id="uc-secret-word-text" class="text-2xl font-extrabold text-amber-300 min-h-[2.25rem] flex items-center justify-center tracking-wider">
           ${isSecretWordHeld ? myInfo.word : '••••••••••••••••'}
         </div>
         <button
+          id="uc-eye-btn"
           type="button"
-          onmousedown="setSecretWordHeld(true)"
-          onmouseup="setSecretWordHeld(false)"
-          onmouseleave="setSecretWordHeld(false)"
-          ontouchstart="event.preventDefault(); setSecretWordHeld(true);"
-          ontouchend="event.preventDefault(); setSecretWordHeld(false);"
-          ontouchcancel="setSecretWordHeld(false)"
-          class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-extrabold text-sm transition select-none ${isSecretWordHeld ? 'bg-amber-400 text-slate-950 scale-105' : 'bg-slate-900 hover:bg-slate-700 text-amber-300 border border-amber-500/60'}">
+          onpointerdown="event.preventDefault(); setSecretWordHeld(true);"
+          onpointerup="setSecretWordHeld(false)"
+          onpointerleave="setSecretWordHeld(false)"
+          onpointercancel="setSecretWordHeld(false)"
+          oncontextmenu="return false;"
+          class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-extrabold text-sm transition select-none touch-none ${isSecretWordHeld ? 'bg-amber-400 text-slate-950 scale-105' : 'bg-slate-900 hover:bg-slate-700 text-amber-300 border border-amber-500/60'}">
           <span class="text-lg">👁️</span>
-          <span>${isSecretWordHeld ? 'Relâchez pour masquer' : 'Maintenir appuyé pour voir'}</span>
+          <span id="uc-eye-label">${isSecretWordHeld ? 'Relâchez pour masquer' : 'Maintenir appuyé pour voir'}</span>
         </button>
       </div>
     ` : `
@@ -2229,7 +2530,6 @@ function renderPlayer(root) {
         <div class="space-y-4">
           ${rivalsProgressBar}
 
-          <!-- COMPTEURS GÉANTS SUR LE TÉLÉPHONE -->
           <div class="grid grid-cols-2 gap-2.5 text-center">
             <div class="bg-slate-800 border-2 border-amber-500/40 rounded-xl p-2.5">
               <div class="text-[10px] uppercase font-bold text-amber-300">🔓 Coffres Ouverts</div>
@@ -2295,10 +2595,6 @@ function renderPlayer(root) {
   }
 
   root.innerHTML = `<div class="bg-slate-900/95 border border-slate-700 rounded-2xl p-5 max-w-md mx-auto w-full space-y-4 shadow-xl"><div class="flex justify-between items-center border-b border-slate-800 pb-2"><span class="font-extrabold text-amber-400">Terminal ${myRole} — Équipe ${myTeam}</span><span class="text-xs text-slate-400">${isCaptain ? 'Capitaine' : 'Second'}</span></div>${body}</div>`;
-
-  if (state.currentGame === 'PICTIONARY' && myRole === state.picDrawerSlot) {
-    initCanvasForElement('player-canvas');
-  }
 }
 
 /* ============================================================================
@@ -2306,10 +2602,24 @@ function renderPlayer(root) {
    ============================================================================ */
 function setSecretWordHeld(held) {
   if (state.isManualPaused) return;
-  if (state.ucVotingOpen || state.ucRevealed) return;
-  if (isSecretWordHeld === held) return;
+  if (state.ucVotingOpen || state.ucRevealed) held = false;
   isSecretWordHeld = held;
-  render();
+
+  // Mise à jour directe du DOM sans appeler render() pour éviter tout blocage tactile sur mobile
+  const wordEl = document.getElementById('uc-secret-word-text');
+  const btnEl = document.getElementById('uc-eye-btn');
+  const labelEl = document.getElementById('uc-eye-label');
+  const myInfo = (state.ucAssignments && state.ucAssignments[myRole]) ? state.ucAssignments[myRole] : { word: '...' };
+
+  if (wordEl) {
+    wordEl.textContent = held ? myInfo.word : '••••••••••••••••';
+  }
+  if (labelEl) {
+    labelEl.textContent = held ? 'Relâchez pour masquer' : 'Maintenir appuyé pour voir';
+  }
+  if (btnEl) {
+    btnEl.className = `inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-extrabold text-sm transition select-none touch-none ${held ? 'bg-amber-400 text-slate-950 scale-105' : 'bg-slate-900 hover:bg-slate-700 text-amber-300 border border-amber-500/60'}`;
+  }
 }
 
 function selectApostleBox(boxNum) {
@@ -2392,6 +2702,8 @@ function initCanvasForElement(canvasId) {
   const ctx = canvas.getContext('2d');
   ctx.lineCap = 'round';
 
+  if (canvasId === 'host-canvas') return;
+
   if (activeCanvasHandlers) {
     window.removeEventListener('mouseup', activeCanvasHandlers.stop);
     window.removeEventListener('touchend', activeCanvasHandlers.stop);
@@ -2412,6 +2724,23 @@ function initCanvasForElement(canvasId) {
     };
   }
 
+  function flushBatch() {
+    if (pendingSegments.length > 0 && !state.isManualPaused) {
+      const batchToSend = [...pendingSegments];
+      pendingSegments = [];
+      if (localDrawingRoundId !== state.picRoundId) {
+        localDrawingHistory = [];
+        localDrawingRoundId = state.picRoundId;
+      }
+      localDrawingHistory.push(...batchToSend);
+      drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);
+      sendEvent('DRAW_BATCH', {
+        roundId: state.picRoundId,
+        segments: batchToSend
+      });
+    }
+  }
+
   function start(e) {
     if (state.isManualPaused) return;
     e.preventDefault();
@@ -2420,19 +2749,7 @@ function initCanvasForElement(canvasId) {
     pendingSegments = [];
 
     if (!batchInterval) {
-      batchInterval = setInterval(() => {
-        if (pendingSegments.length > 0 && !state.isManualPaused) {
-          const batchToSend = [...pendingSegments];
-          pendingSegments = [];
-          
-          drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);
-          
-          sendEvent('DRAW_BATCH', {
-            roundId: state.picRoundId,
-            segments: batchToSend
-          });
-        }
-      }, 120);
+      batchInterval = setInterval(flushBatch, 80);
     }
   }
 
@@ -2465,15 +2782,7 @@ function initCanvasForElement(canvasId) {
       clearInterval(batchInterval);
       batchInterval = null;
     }
-    if (pendingSegments.length > 0 && !state.isManualPaused) {
-      const batchToSend = [...pendingSegments];
-      pendingSegments = [];
-      drawSegmentsArrayLocally(ctx, batchToSend, canvas.width, canvas.height);
-      sendEvent('DRAW_BATCH', {
-        roundId: state.picRoundId,
-        segments: batchToSend
-      });
-    }
+    flushBatch();
   }
 
   canvas.onmousedown = start;
@@ -2498,6 +2807,16 @@ function drawSegmentsArrayLocally(ctx, segments, width, height) {
   });
 }
 
+function redrawLocalCanvas(canvasId) {
+  const c = document.getElementById(canvasId);
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  if (localDrawingRoundId === state.picRoundId && localDrawingHistory.length > 0) {
+    drawSegmentsArrayLocally(ctx, localDrawingHistory, c.width, c.height);
+  }
+}
+
 function drawBatchOnCanvas(segments) {
   const hostCanvas = document.getElementById('host-canvas');
   if (hostCanvas) {
@@ -2510,6 +2829,7 @@ function drawBatchOnCanvas(segments) {
 }
 
 function sendClearCanvas() {
+  localDrawingHistory = [];
   clearCanvasUI();
   sendEvent('CLEAR_CANVAS', { roundId: state.picRoundId });
 }
